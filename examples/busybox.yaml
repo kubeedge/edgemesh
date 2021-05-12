@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox-sleep-resources-cloud
+spec:
+  nodeName: ke-edge2
+  containers:
+    - name: busybox
+      image: busybox:latest
+      imagePullPolicy: IfNotPresent
+      args:
+        - sleep
+        - "12000"
