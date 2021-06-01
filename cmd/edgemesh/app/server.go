@@ -3,7 +3,6 @@ package app
 import (
 	"fmt"
 
-	"github.com/kubeedge/kubeedge/pkg/version/verflag"
 	"github.com/spf13/cobra"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/cli/globalflag"
@@ -18,6 +17,7 @@ import (
 	"github.com/kubeedge/edgemesh/pkg/common/informers"
 	"github.com/kubeedge/edgemesh/pkg/controller"
 	"github.com/kubeedge/edgemesh/pkg/networking"
+	"github.com/kubeedge/kubeedge/pkg/version/verflag"
 )
 
 func NewEdgeMeshCommand() *cobra.Command {
