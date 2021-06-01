@@ -1,3 +1,19 @@
+/*
+Copyright 2021 The KubeEdge Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package dns
 
 import (
@@ -57,7 +73,6 @@ type dnsQuestion struct {
 	queByte []byte
 	qType   uint16
 	qClass  uint16
-	queNum  uint16
 	event   Event
 }
 
@@ -116,8 +131,7 @@ func StartDNS() {
 
 		que.from = from
 
-		rsp := make([]byte, 0)
-		rsp, err = recordHandle(que, req[:n])
+		rsp, err := recordHandle(que, req[:n])
 		if err != nil {
 			klog.Warningf("[EdgeMesh] failed to resolve dns: %v", err)
 			continue
