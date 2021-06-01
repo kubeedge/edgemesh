@@ -1,7 +1,13 @@
 package app
 
 import (
+	"fmt"
+
+	"github.com/kubeedge/kubeedge/pkg/version/verflag"
 	"github.com/spf13/cobra"
+	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/cli/globalflag"
+	"k8s.io/component-base/term"
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/beehive/pkg/core"
@@ -21,6 +27,9 @@ func NewEdgeMeshCommand() *cobra.Command {
 		Long: `EdgeMesh is a part of KubeEdge, and provides a simple network solution
 for the inter-communications between services at edge scenarios.`,
 		Run: func(cmd *cobra.Command, args []string) {
+			verflag.PrintAndExitIfRequested()
+			cliflag.PrintFlags(cmd.Flags())
+
 			config, err := opts.Config()
 			if err != nil {
 				klog.Fatal(err)
@@ -37,6 +46,25 @@ for the inter-communications between services at edge scenarios.`,
 		},
 	}
 
+	fs := cmd.Flags()
+	namedFs := opts.Flags()
+	verflag.AddFlags(namedFs.FlagSet("global"))
+	globalflag.AddGlobalFlags(namedFs.FlagSet("global"), cmd.Name())
+	for _, f := range namedFs.FlagSets {
+		fs.AddFlagSet(f)
+	}
+
+	usageFmt := "Usage:\n  %s\n"
+	cols, _, _ := term.TerminalSize(cmd.OutOrStdout())
+	cmd.SetUsageFunc(func(cmd *cobra.Command) error {
+		fmt.Fprintf(cmd.OutOrStderr(), usageFmt, cmd.UseLine())
+		cliflag.PrintSections(cmd.OutOrStderr(), namedFs, cols)
+		return nil
+	})
+	cmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+		fmt.Fprintf(cmd.OutOrStdout(), "%s\n\n"+usageFmt, cmd.Long, cmd.UseLine())
+		cliflag.PrintSections(cmd.OutOrStdout(), namedFs, cols)
+	})
 	return cmd
 }
 
