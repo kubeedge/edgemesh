@@ -3,9 +3,10 @@ package options
 import (
 	"path"
 
+	cliflag "k8s.io/component-base/cli/flag"
+
 	config "github.com/kubeedge/edgemesh/pkg/apis/componentconfig/edgemesh/v1alpha1"
 	"github.com/kubeedge/edgemesh/pkg/common/constants"
-	cliflag "k8s.io/component-base/cli/flag"
 )
 
 type EdgeMeshOptions struct {
