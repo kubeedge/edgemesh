@@ -1,7 +1,11 @@
+English | [简体中文](./README_zh.md)
+
 # EdgeMesh
 
-English | [简体中文](./README_ZH.md)
-
+[![CI](https://github.com/kubeedge/edgemesh/actions/workflows/main.yaml/badge.svg?branch=main)](https://github.com/kubeedge/edgemesh/actions/workflows/main.yaml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kubeedge/edgemesh)](https://goreportcard.com/report/github.com/kubeedge/edgemesh)
+[![GitHub license](https://img.shields.io/github/license/kubeedge/edgemesh)](https://github.com/kubeedge/edgemesh/blob/main/LICENSE)
+[![Releases](https://img.shields.io/github/release/kubeedge/kubeedge/all.svg)](https://github.com/kubeedge/edgemesh/releases)
 
 
 ## Introduction
