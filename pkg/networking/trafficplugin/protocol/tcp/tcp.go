@@ -81,7 +81,7 @@ func (p *TCP) Process() {
 	}
 	inv.Strategy = util.GetStrategyName(p.SvcNamespace, p.SvcName)
 	inv.Args = p.UpgradeReq
-
+	klog.Infof("MicroServiceName:%s, Endpoint:%s, Port:%s, SourceServiceID:%s, Protocol:%s, Strategy:%s, Args:%v", inv.MicroServiceName, inv.Endpoint, inv.Port, inv.SourceServiceID, inv.Protocol, inv.Strategy, inv.Args)
 	// create handlerchain
 	c, err := handler.CreateChain(common.Consumer, "tcp", handler.Loadbalance, l4ProxyHandlerName)
 	if err != nil {
@@ -117,6 +117,7 @@ func (p *TCP) responseCallback(data *invocation.Response) error {
 		}
 		return fmt.Errorf("result %v not string type", data.Result)
 	}
+	klog.Infof("responseCallback:ep:%s", ep)
 	epSplit := strings.Split(ep, ":")
 	if len(epSplit) != 2 {
 		klog.Errorf("endpoint %s not a valid address", ep)
