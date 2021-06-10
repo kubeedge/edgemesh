@@ -66,8 +66,17 @@ func (esd *EdgeServiceDiscovery) FindMicroServiceInstances(consumerID, microServ
 		return nil, err
 	}
 	if svc == nil {
-		return nil, fmt.Errorf("service is nil")
+		return nil, fmt.Errorf("service %s.%s is nil", namespace, name)
 	}
+	// get endpoints
+	eps, err := controller.GetEndPointsLister().Endpoints(namespace).Get(name)
+	if err != nil {
+		return nil, err
+	}
+	if eps == nil {
+		return nil, fmt.Errorf("endpoint %s.%s is nil", namespace, name)
+	}
+	klog.Infof("FindMicroServiceInstances::eps:%s --> address:%s -> port:%d", eps.Name, eps.Subsets[0].Addresses[0].IP, eps.Subsets[0].Ports[0].Port)
 	// get pods
 	pods, err := controller.GetPodLister().Pods(namespace).List(util.GetPodsSelector(svc))
 	if err != nil {
@@ -105,8 +114,25 @@ func (esd *EdgeServiceDiscovery) FindMicroServiceInstances(consumerID, microServ
 			}
 		}
 	}
+	// set targetPort from endpoints if hostPort == 0 still
+	if hostPort == 0 {
+		for _, a := range eps.Subsets {
+			for _, port := range a.Ports {
+				if port.Port != 0 {
+					microServiceInstances = append(microServiceInstances, &registry.MicroServiceInstance{
+						InstanceID:   fmt.Sprintf("%s.%s|%s.%d", namespace, name, a.Addresses[0].IP, port.Port),
+						ServiceID:    fmt.Sprintf("%s#%s#%s", namespace, name, a.Addresses[0].IP),
+						HostName:     "",
+						EndpointsMap: map[string]string{proto: fmt.Sprintf("%s:%d", a.Addresses[0].IP, port.Port)},
+					})
+				}
+			}
+		}
+	}
+
 	for _, p := range pods {
-		if p.Status.Phase == v1.PodRunning {
+		// set Pod ip if hostPort != 0
+		if p.Status.Phase == v1.PodRunning && hostPort != 0 {
 			microServiceInstances = append(microServiceInstances, &registry.MicroServiceInstance{
 				InstanceID:   fmt.Sprintf("%s.%s|%s.%d", namespace, name, p.Status.HostIP, hostPort),
 				ServiceID:    fmt.Sprintf("%s#%s#%s", namespace, name, p.Status.HostIP),

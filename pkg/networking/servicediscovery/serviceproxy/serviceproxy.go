@@ -122,6 +122,7 @@ func getSockOpt(s int, level int, name int, val uintptr, vallen *uint32) (err er
 // newProtocolFromSock returns a protocol.Protocol interface if the ip is in proxier list
 func newProtocolFromSock(ip string, port int, conn net.Conn) (proto protocol.Protocol, err error) {
 	svcPorts := svcDesc.getSvcPorts(ip)
+	klog.Infof("newProtocolFromSock().svcPorts:%s", svcPorts)
 	protoName, svcName := getProtocol(svcPorts, port)
 	if protoName == "" || svcName == "" {
 		return nil, fmt.Errorf("protocol name: %s or svcName: %s is invalid", protoName, svcName)
@@ -197,7 +198,7 @@ func fetchServiceInfo() {
 		}
 		svcPorts := GetSvcPorts(&svc, svcName)
 		svcDesc.set(svcName, clusterIP, svcPorts)
-		klog.Infof("[EdgeMesh] get cluster ip `%s` --> %s", clusterIP, svcName)
+		klog.Infof("[EdgeMesh] get cluster ip `%s` --> %s ---> %s", clusterIP, svcName, svcPorts)
 	}
 }
 
