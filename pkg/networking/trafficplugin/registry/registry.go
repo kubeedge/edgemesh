@@ -96,10 +96,9 @@ func (esd *EdgeServiceDiscovery) FindMicroServiceInstances(consumerID, microServ
 		proto = "rest"
 	}
 
-	// gen
 	var microServiceInstances instanceList
 	var hostPort int32
-	// all pods share the same host port, get from pods[0]
+
 	if pods[0].Spec.HostNetwork {
 		// host network
 		hostPort = int32(targetPort)
@@ -130,10 +129,24 @@ func (esd *EdgeServiceDiscovery) FindMicroServiceInstances(consumerID, microServ
 	} else {
 		// set Pod ip if hostPort != 0
 		for _, p := range pods {
+			if p.Spec.HostNetwork {
+				// host network
+				hostPort = int32(targetPort)
+			} else {
+				// container network
+				for _, container := range p.Spec.Containers {
+					for _, port := range container.Ports {
+						if port.ContainerPort == int32(targetPort) {
+							hostPort = port.HostPort
+						}
+					}
+				}
+			}
+
 			if p.Status.Phase == v1.PodRunning {
 				microServiceInstances = append(microServiceInstances, &registry.MicroServiceInstance{
 					InstanceID:   fmt.Sprintf("%s.%s|%s.%d", namespace, name, p.Status.HostIP, hostPort),
-					ServiceID:    fmt.Sprintf("%s#%s#%s", namespace, name, p.Status.HostIP),
+					ServiceID:    fmt.Sprintf("%s#%s#%s", namespace, name, p.Status.PodIP),
 					HostName:     "",
 					EndpointsMap: map[string]string{proto: fmt.Sprintf("%s:%d", p.Status.HostIP, hostPort)},
 				})

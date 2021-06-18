@@ -41,7 +41,7 @@ func (h defaultHasher) Sum64(data []byte) uint64 {
 type ServiceInstance struct {
 	Namespace  string
 	Name       string
-	InstanceIP string // TODO: Now it is host ip, and later it will be pod ip@Poorunga
+	InstanceIP string
 }
 
 // String gets service instance key
@@ -81,7 +81,7 @@ func CreateHashRingByService(svc *v1.Service) {
 			instances = append(instances, ServiceInstance{
 				Namespace:  svc.Namespace,
 				Name:       svc.Name,
-				InstanceIP: p.Status.HostIP,
+				InstanceIP: p.Status.PodIP,
 			})
 		}
 	}
@@ -156,7 +156,7 @@ func lookForDifference(hr *hashring.Consistent, pods []*v1.Pod, key string) ([]s
 			continue
 		}
 		if p.Status.Phase == v1.PodRunning {
-			key := fmt.Sprintf("%s#%s#%s", namespace, name, p.Status.HostIP)
+			key := fmt.Sprintf("%s#%s#%s", namespace, name, p.Status.PodIP)
 			dest = append(dest, key)
 		}
 	}
