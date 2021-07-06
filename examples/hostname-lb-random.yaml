@@ -52,7 +52,7 @@ metadata:
   name: hostname-lb-svc
   namespace: edgemesh-test
 spec:
-  host: hostname-lb-edge
+  host: hostname-lb-svc
   trafficPolicy:
     loadBalancer:
       simple: RANDOM

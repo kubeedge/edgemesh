@@ -65,10 +65,10 @@ spec:
 apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
-  name: hostname-lb-edge
+  name: hostname-lb-svc
   namespace: edgemesh-test
 spec:
-  host: hostname-lb-edge
+  host: hostname-lb-svc
   trafficPolicy:
     loadBalancer:
       simple: RANDOM
