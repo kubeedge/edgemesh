@@ -1,29 +1,37 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
-  name: edgemesh-gateway
+  name: edgemesh-agent
   namespace: kubeedge
   labels:
     k8s-app: kubeedge
-    kubeedge: edgemesh-gateway
+    kubeedge: edgemesh-agent
 spec:
   selector:
     matchLabels:
       k8s-app: kubeedge
-      kubeedge: edgemesh-gateway
+      kubeedge: edgemesh-agent
   template:
     metadata:
       labels:
         k8s-app: kubeedge
-        kubeedge: edgemesh-gateway
+        kubeedge: edgemesh-agent
     spec:
-      nodeName: ke-edge1
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/edge
+                    operator: Exists
+                  - key: node-role.kubernetes.io/agent
+                    operator: Exists
       hostNetwork: true
       containers:
-        - name: edgemesh-gateway
+        - name: edgemesh-agent
           securityContext:
             privileged: true
-          image: poorunga/edgemesh:0.1
+          image: kubeedge/edgemesh-agent:latest
           imagePullPolicy: IfNotPresent
           resources:
             limits:
@@ -40,7 +48,7 @@ spec:
       volumes:
         - name: conf
           configMap:
-            name: edgemesh-gateway-cfg
+            name: edgemesh-agent-cfg
         - name: resolv
           hostPath:
             path: /etc/resolv.conf

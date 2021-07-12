@@ -13,14 +13,14 @@ RUN apk update && apk add gcc && \
 WORKDIR /code
 COPY . .
 
-RUN CGO_ENABLED=1 go build -v -o /usr/local/bin/edgemesh -ldflags "$GO_LDFLAGS -w -s" \
-./cmd/edgemesh/edgemesh.go
+RUN CGO_ENABLED=1 go build -v -o /usr/local/bin/edgemesh-agent -ldflags "$GO_LDFLAGS -w -s" \
+./agent/cmd/edgemesh-agent/agent.go
 
 
 FROM alpine:3.11
 
 RUN apk update && apk --no-cache add iptables
 
-COPY --from=builder /usr/local/bin/edgemesh /usr/local/bin/edgemesh
+COPY --from=builder /usr/local/bin/edgemesh-agent /usr/local/bin/edgemesh-agent
 
-ENTRYPOINT ["edgemesh"]
+ENTRYPOINT ["edgemesh-agent"]

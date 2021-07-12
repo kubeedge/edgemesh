@@ -152,7 +152,8 @@ edgemesh::check::env() {
 }
 
 ALL_BINARIES_AND_TARGETS=(
-  edgemesh:cmd/edgemesh
+  edgemesh-agent:agent/cmd/edgemesh-agent
+  # edgemesh-server:server/cmd/edgemesh-server
 )
 
 edgemesh::golang::get_target_by_binary() {

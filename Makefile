@@ -14,9 +14,13 @@
 
 GOPATH?=$(shell go env GOPATH)
 
-# make binaries
-BINARIES=edgemesh
+# make all builds both agent and server binaries
 
+BINARIES=edgemesh-agent \
+         edgemesh-server
+
+COMPONENTS=agent \
+           server
 
 .EXPORT_ALL_VARIABLES:
 OUT_DIR ?= _output/local
@@ -33,8 +37,8 @@ define ALL_HELP_INFO
 #   make
 #   make all
 #   make all HELP=y
-#   make all WHAT=edgemesh
-#   make all WHAT=edgemesh GOLDFLAGS="" GOGCFLAGS="-N -l"
+#   make all WHAT=edgemesh-agent
+#   make all WHAT=edgemesh-agent GOLDFLAGS="" GOGCFLAGS="-N -l"
 #     Note: Specify GOLDFLAGS as an empty string for building unstripped binaries, specify GOGCFLAGS
 #     to "-N -l" to disable optimizations and inlining, this will be helpful when you want to
 #     use the debugging tools like delve. When GOLDFLAGS is unspecified, it defaults to "-s -w" which strips
@@ -111,10 +115,10 @@ clean:
 endif
 
 
+ARCH ?= amd64
 IMAGE_TAG ?= $(shell git describe --tags)
 GO_LDFLAGS='$(shell hack/make-rules/version.sh)'
 
-.PHONY: images
-images:
-	docker build --build-arg GO_LDFLAGS=${GO_LDFLAGS} -t kubeedge/edgemesh:${IMAGE_TAG} -f build/Dockerfile .
-
+.PHONY: agentimage
+agentimage:
+	docker build --build-arg GO_LDFLAGS=${GO_LDFLAGS} -t kubeedge/edgemesh-agent:${IMAGE_TAG} -f build/agent/Dockerfile .

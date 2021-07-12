@@ -44,6 +44,7 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     name: Build binary
     steps:
       - name: Install Go
@@ -65,6 +66,7 @@ jobs:
 
   docker_build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     name: Docker image build
     steps:
       - name: Install Go
@@ -82,4 +84,4 @@ jobs:
         with:
           fetch-depth: 0
 
-      - run: make images
+      - run: make agentimage
