@@ -28,6 +28,7 @@ type GlobalController struct {
 	podLister             k8slisters.PodLister
 	secretLister          k8slisters.SecretLister
 	serviceLister         k8slisters.ServiceLister
+	endpointsLister       k8slisters.EndpointsLister
 	destinationRuleLister istiolisters.DestinationRuleLister
 	virtualServiceLister  istiolisters.VirtualServiceLister
 
@@ -227,6 +228,7 @@ func NewGlobalController(k8sInformerFactory k8sinformers.SharedInformerFactory,
 		podLister:              podInformer.Lister(),
 		secretLister:           secretInformer.Lister(),
 		serviceLister:          svcInformer.Lister(),
+		endpointsLister:        endpointsInformer.Lister(),
 		destinationRuleLister:  drInformer.Lister(),
 		virtualServiceLister:   vsInformer.Lister(),
 		serviceManager:         serviceManager,
@@ -248,6 +250,10 @@ func GetSecretLister() k8slisters.SecretLister {
 
 func GetServiceLister() k8slisters.ServiceLister {
 	return gc.serviceLister
+}
+
+func GetEndPointsLister() k8slisters.EndpointsLister {
+	return gc.endpointsLister
 }
 
 func GetDestinationRuleLister() istiolisters.DestinationRuleLister {
