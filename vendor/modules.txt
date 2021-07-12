@@ -126,6 +126,13 @@ github.com/kubeedge/beehive/pkg/core/context
 github.com/kubeedge/beehive/pkg/core/model
 # github.com/kubeedge/kubeedge v1.6.2
 ## explicit
+github.com/kubeedge/kubeedge/common/constants
+github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1
+github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1/validation
+github.com/kubeedge/kubeedge/pkg/apis/componentconfig/meta/v1alpha1
+github.com/kubeedge/kubeedge/pkg/util
+github.com/kubeedge/kubeedge/pkg/util/flag
+github.com/kubeedge/kubeedge/pkg/util/validation
 github.com/kubeedge/kubeedge/pkg/version
 github.com/kubeedge/kubeedge/pkg/version/verflag
 # github.com/moby/term v0.0.0-20200312100748-672ec06f55cd
@@ -526,6 +533,7 @@ k8s.io/client-go/util/workqueue
 ## explicit
 k8s.io/component-base/cli/flag
 k8s.io/component-base/cli/globalflag
+k8s.io/component-base/config
 k8s.io/component-base/logs
 k8s.io/component-base/logs/json
 k8s.io/component-base/term
