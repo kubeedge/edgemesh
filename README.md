@@ -170,7 +170,7 @@ Before using EdgeMesh, you need to understand the following prerequisites at fir
 
 #### Deployment
 
-At the edge node, close EdgeMesh, open metaserver, and restart edgecore
+At the edge node, close edgeMesh module, open metaServer module, and restart edgecore
 
 ```shell
 $ vim /etc/kubeedge/config/edgecore.yaml
@@ -188,7 +188,7 @@ modules:
 $ systemctl restart edgecore
 ```
 
-On the cloud, open the dynamic controller module, and restart cloudcore
+On the cloud, open the dynamicController module, and restart cloudcore
 
 ```shell
 $ vim /etc/kubeedge/config/cloudcore.yaml
@@ -199,6 +199,12 @@ modules:
 ..
 ```
 
+
+```shell
+$ pkill cloudcore
+$ nohup /usr/local/bin/cloudcore > /var/log/kubeedge/cloudcore.log 2>&1 &
+```
+
 At the edge node, check if list-watch works
 
 ```shell
@@ -206,19 +212,14 @@ $ curl 127.0.0.1:10550/api/v1/services
 {"apiVersion":"v1","items":[{"apiVersion":"v1","kind":"Service","metadata":{"creationTimestamp":"2021-04-14T06:30:05Z","labels":{"component":"apiserver","provider":"kubernetes"},"name":"kubernetes","namespace":"default","resourceVersion":"147","selfLink":"default/services/kubernetes","uid":"55eeebea-08cf-4d1a-8b04-e85f8ae112a9"},"spec":{"clusterIP":"10.96.0.1","ports":[{"name":"https","port":443,"protocol":"TCP","targetPort":6443}],"sessionAffinity":"None","type":"ClusterIP"},"status":{"loadBalancer":{}}},{"apiVersion":"v1","kind":"Service","metadata":{"annotations":{"prometheus.io/port":"9153","prometheus.io/scrape":"true"},"creationTimestamp":"2021-04-14T06:30:07Z","labels":{"k8s-app":"kube-dns","kubernetes.io/cluster-service":"true","kubernetes.io/name":"KubeDNS"},"name":"kube-dns","namespace":"kube-system","resourceVersion":"203","selfLink":"kube-system/services/kube-dns","uid":"c221ac20-cbfa-406b-812a-c44b9d82d6dc"},"spec":{"clusterIP":"10.96.0.10","ports":[{"name":"dns","port":53,"protocol":"UDP","targetPort":53},{"name":"dns-tcp","port":53,"protocol":"TCP","targetPort":53},{"name":"metrics","port":9153,"protocol":"TCP","targetPort":9153}],"selector":{"k8s-app":"kube-dns"},"sessionAffinity":"None","type":"ClusterIP"},"status":{"loadBalancer":{}}}],"kind":"ServiceList","metadata":{"resourceVersion":"377360","selfLink":"/api/v1/services"}}
 ```
 
-Build EdgeMesh image (not necessary)
-```shell
-$ docker build -t edgemesh:0.1 -f build/Dockerfile .
-```
-
-Deploy EdgeMesh
+Deploy edgemesh-agent
 ```shell
 # Please set the subNet to the value of service-cluster-ip-range of kube-apiserver.
 # You can obtain the value from the /etc/kubernetes/manifests/kube-apiserver.yaml file on the master node
-$ kubectl apply -f build/kubernetes/edgemesh/03-configmap.yaml
-configmap/edgemesh-cfg created
-$ kubectl apply -f build/kubernetes/edgemesh/04-daemonset.yaml
-daemonset.apps/edgemesh created
+$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/03-configmap.yaml
+configmap/edgemesh-agent-cfg created
+$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/04-daemonset.yaml
+daemonset.apps/edgemesh-agent created
 ```
 
 
@@ -279,7 +280,7 @@ $ ./client --addr ws-svc.edgemesh-test:12348
 The capability of load balance needs to add the CRD 'DestinationRule'
 
 ```shell
-$ kubectl apply -f build/istio/destinationrule-crd.yaml
+$ kubectl apply -f build/crds/istio/destinationrule-crd.yaml
 customresourcedefinition.apiextensions.k8s.io/destinationrules.networking.istio.io created
 ```
 
@@ -299,7 +300,7 @@ spec
 
 ## EdgeMesh Ingress Gateway
 
-EdgeMesh ingress gateway provides a ability to access services in external edge nodes.
+EdgeMesh ingress gateway provides an ability to access services in external edge nodes.
 
 ![](./images/em-ig.png)
 
@@ -308,18 +309,18 @@ EdgeMesh ingress gateway provides a ability to access services in external edge 
 Create two CRDs: 'Gateway' and 'VirtualService'
 
 ```shell
-$ kubectl apply -f build/istio/gateway-crd.yaml
+$ kubectl apply -f build/crds/istio/gateway-crd.yaml
 customresourcedefinition.apiextensions.k8s.io/gateways.networking.istio.io created
-$ kubectl apply -f build/istio/virtualservice-crd.yaml
+$ kubectl apply -f build/crds/istio/virtualservice-crd.yaml
 customresourcedefinition.apiextensions.k8s.io/virtualservices.networking.istio.io created
 ```
 
 Deploy edgemesh-gateway
 
 ```shell
-$ kubectl apply -f 03-configmap.yaml 
+$ kubectl apply -f build/agent/kubernetes/edgemesh-gateway/03-configmap.yaml
 configmap/edgemesh-gateway-cfg created
-$ kubectl apply -f 04-deployment.yaml 
+$ kubectl apply -f build/agent/kubernetes/edgemesh-gateway/04-deployment.yaml
 deployment.apps/edgemesh-gateway created
 ```
 
@@ -335,7 +336,7 @@ destinationrule.networking.istio.io/hostname-lb-edge created
 virtualservice.networking.istio.io/edgemesh-gateway-svc created
 ```
 
-Check if the edgemesh-gateway is successfully deployed
+Check if the edgemesh-gateway is successfully created
 
 ```shell
 $ kubectl get gw -n edgemesh-test
@@ -343,7 +344,7 @@ NAME               AGE
 edgemesh-gateway   3m30s
 ```
 
-Finally, use the IP and the port exposed by the VirtualService to access
+Finally, use the IP and the port exposed by the Gateway to access
 
 ```shell
 $ curl 192.168.0.211:12345
@@ -396,4 +397,3 @@ $ curl -k --cert ./tls.crt --key ./tls.key https://192.168.0.129:12345
 If you need support, start with the 'Operation Guidance', and then follow the process that we've outlined
 
 If you have any question, please contact us through the recommended information on [KubeEdge](https://github.com/kubeedge/kubeedge#contact)
-
