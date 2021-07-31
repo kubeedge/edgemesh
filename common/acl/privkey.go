@@ -7,10 +7,10 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
-	"k8s.io/klog/v2"
 	"os"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/kubeedge/edge/pkg/edgehub/common/certutil"
 )
