@@ -8,14 +8,13 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
-	"github.com/kubeedge/kubeedge/common/constants"
-	"github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1"
-
 	chassisconfig "github.com/kubeedge/edgemesh/agent/pkg/chassis/config"
 	dnsconfig "github.com/kubeedge/edgemesh/agent/pkg/dns/config"
 	gwconfig "github.com/kubeedge/edgemesh/agent/pkg/gateway/config"
 	proxyconfig "github.com/kubeedge/edgemesh/agent/pkg/proxy/config"
 	tunnelconfig "github.com/kubeedge/edgemesh/agent/pkg/tunnel/config"
+	"github.com/kubeedge/kubeedge/common/constants"
+	"github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1"
 )
 
 const (
@@ -46,7 +45,8 @@ type Modules struct {
 	EdgeProxyConfig *proxyconfig.EdgeProxyConfig `json:"edgeProxy,omitempty"`
 	// EdgeGatewayConfig indicates edgegateway module config
 	EdgeGatewayConfig *gwconfig.EdgeGatewayConfig `json:"edgeGateway,omitempty"`
-	Tunnel *tunnelconfig.Tunnel `json:"tunnel,omitempty"`
+	// TunnelAgentConfig indicates tunnelagent module config
+	TunnelAgentConfig *tunnelconfig.TunnelAgentConfig `json:"tunnel,omitempty"`
 }
 
 // NewEdgeMeshAgentConfig returns a full EdgeMeshAgentConfig object
@@ -68,6 +68,7 @@ func NewEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 			EdgeDNSConfig:     dnsconfig.NewEdgeDNSConfig(),
 			EdgeProxyConfig:   proxyconfig.NewEdgeProxyConfig(),
 			EdgeGatewayConfig: gwconfig.NewEdgeGatewayConfig(),
+			TunnelAgentConfig: tunnelconfig.NewTunnelAgentConfig(),
 		},
 	}
 

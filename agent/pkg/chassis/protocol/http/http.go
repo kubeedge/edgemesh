@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/kubeedge/edgemesh/agent/pkg/chassis/controller"
 	"io"
 	"net"
 	"net/http"
@@ -36,6 +35,7 @@ import (
 	istioapi "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"k8s.io/klog/v2"
 
+	"github.com/kubeedge/edgemesh/agent/pkg/chassis/controller"
 	"github.com/kubeedge/edgemesh/agent/pkg/chassis/loadbalancer/util"
 	"github.com/kubeedge/edgemesh/agent/pkg/chassis/protocol/tcp"
 )

@@ -1,0 +1,17 @@
+syntax = "proto2";
+
+package tcp.pb;
+
+message TCPProxy {
+  enum Type {
+    CONNECT = 0;
+    SUCCESS = 1;
+    FAILED = 2;
+  }
+
+  optional Type type=1;
+  optional string nodename = 2;
+  optional string ip = 3;
+  optional int32 port = 4;
+}
+
