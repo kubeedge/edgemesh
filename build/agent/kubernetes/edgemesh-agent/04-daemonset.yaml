@@ -33,6 +33,11 @@ spec:
             privileged: true
           image: kubeedge/edgemesh-agent:latest
           imagePullPolicy: IfNotPresent
+          env:
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           resources:
             limits:
               cpu: 200m
@@ -45,6 +50,10 @@ spec:
               mountPath: /etc/kubeedge/config
             - name: resolv
               mountPath: /etc/resolv.conf
+            - name: edgemesh
+              mountPath: /etc/kubeedge/edgemesh
+            - name: kubeconfig
+              mountPath: /root/.kube/config
       volumes:
         - name: conf
           configMap:
@@ -52,3 +61,11 @@ spec:
         - name: resolv
           hostPath:
             path: /etc/resolv.conf
+        - name: edgemesh
+          hostPath:
+            path: /etc/kubeedge/edgemesh
+            type: DirectoryOrCreate
+        - name: kubeconfig
+          hostPath:
+            path: /root/.kube/config
+

@@ -119,6 +119,8 @@ ARCH ?= amd64
 IMAGE_TAG ?= $(shell git describe --tags)
 GO_LDFLAGS='$(shell hack/make-rules/version.sh)'
 
-.PHONY: agentimage
-agentimage:
-	docker build --build-arg GO_LDFLAGS=${GO_LDFLAGS} -t kubeedge/edgemesh-agent:${IMAGE_TAG} -f build/agent/Dockerfile .
+.PHONY: images agentimage serverimage
+images: agentimage serverimage
+agentimage serverimage:
+	docker build --build-arg GO_LDFLAGS=${GO_LDFLAGS} -t kubeedge/edgemesh-${@:image=}:${IMAGE_TAG} -f build/${@:image=}/Dockerfile .
+
