@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"path"
 
-	"k8s.io/apimachinery/pkg/util/validation/field"
-	cliflag "k8s.io/component-base/cli/flag"
-
+	"github.com/kubeedge/edgemesh/agent/cmd/edgemesh-agent/app/config"
 	"github.com/kubeedge/kubeedge/common/constants"
 	"github.com/kubeedge/kubeedge/pkg/util/validation"
-
-	"github.com/kubeedge/edgemesh/agent/cmd/edgemesh-agent/app/config"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	cliflag "k8s.io/component-base/cli/flag"
 )
 
 type EdgeMeshAgentOptions struct {
@@ -19,7 +17,7 @@ type EdgeMeshAgentOptions struct {
 
 func NewEdgeMeshAgentOptions() *EdgeMeshAgentOptions {
 	return &EdgeMeshAgentOptions{
-		ConfigFile: path.Join(constants.DefaultConfigDir, "edgemesh.yaml"),
+		ConfigFile: path.Join(constants.DefaultConfigDir, "edgemesh-agent.yaml"),
 	}
 }
 

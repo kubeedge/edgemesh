@@ -8,11 +8,10 @@ import (
 
 	"github.com/go-chassis/go-chassis/core/registry"
 	utiltags "github.com/go-chassis/go-chassis/pkg/util/tags"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/klog/v2"
-
 	"github.com/kubeedge/edgemesh/agent/pkg/chassis/controller"
 	"github.com/kubeedge/edgemesh/common/util"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -137,7 +136,7 @@ func (esd *EdgeServiceDiscovery) FindMicroServiceInstances(consumerID, microServ
 					InstanceID:   fmt.Sprintf("%s.%s|%s.%d", namespace, name, p.Status.HostIP, hostPort),
 					ServiceID:    fmt.Sprintf("%s#%s#%s", namespace, name, p.Status.HostIP),
 					HostName:     "",
-					EndpointsMap: map[string]string{proto: fmt.Sprintf("%s:%d", p.Status.HostIP, hostPort)},
+					EndpointsMap: map[string]string{proto: fmt.Sprintf("%s:%s:%d", p.Spec.NodeName, p.Status.HostIP, hostPort)},
 				})
 			}
 		}

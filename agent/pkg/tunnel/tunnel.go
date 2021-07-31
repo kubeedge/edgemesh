@@ -1,55 +1,65 @@
 package tunnel
 
 import (
-	"github.com/kubeedge/beehive/pkg/core"
-	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/config"
-	"github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1"
-	"github.com/kubeedge/edgemesh/pkg/common/certificate"
-	"github.com/kubeedge/edgemesh/pkg/common/modules"
+	"context"
+	"time"
+
+	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/controller"
+	"github.com/kubeedge/edgemesh/common/constants"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
+	ma "github.com/multiformats/go-multiaddr"
+	"k8s.io/klog/v2"
 )
 
-type Tunnel struct {
-	certManager certificate.CertManager
-	enable      bool
-}
+func (t *TunnelAgent) Run() {
+	for {
+		relay, err := controller.APIConn.GetPeerAddrInfo(constants.SERVER_ADDR_NAME)
+		if err != nil {
+			klog.Errorln("Failed to get tunnel server addr")
+			time.Sleep(5 * time.Second)
+			continue
+		}
 
-func NewTunnel(enable bool) *Tunnel {
-	return &Tunnel{
-		enable:      enable,
+		if len(t.Host.Network().ConnsToPeer(relay.ID)) == 0 {
+			klog.Warningf("Connection between agent and server %v is not established, try connect", relay.Addrs)
+			retryTime := 0
+			for retryTime < 3 {
+				klog.Infof("Tunnel agent connecting to tunnel server")
+				err = t.Host.Connect(context.Background(), *relay)
+				if err != nil {
+					klog.Warningf("Connect to server err: %v", err)
+					time.Sleep(2 * time.Second)
+					retryTime++
+					continue
+				}
+
+				controller.APIConn.SetPeerAddrInfo(t.Config.NodeName, InfoFromHostAndRelay(t.Host, relay))
+				klog.Infof("agent success connected to server %v", relay.Addrs)
+				break
+			}
+		} else {
+			klog.Infof("connection between agent and server is healthy")
+		}
+		// heartbeat time
+		time.Sleep(10 * time.Second)
 	}
 }
 
-func Register(tl *v1alpha1.Tunnel) {
-	config.InitConfigure(tl)
-	core.Register(NewTunnel(tl.Enable))
-}
-
-func (t *Tunnel) Name() string {
-	return modules.AgentTunnelModuleName
-}
-
-func (t *Tunnel) Group() string {
-	return modules.AgentTunnelGroupName
-}
-
-func (t *Tunnel) Enable() bool {
-	return t.enable
-}
-
-func (t *Tunnel) Start() {
-	certificateConfig := certificate.TunnelCertificate{
-		Heartbeat:          config.Config.Heartbeat,
-		TLSCAFile:          config.Config.TLSCAFile,
-		TLSCertFile:        config.Config.TLSCertFile,
-		TLSPrivateKeyFile:  config.Config.TLSPrivateKeyFile,
-		Token:              config.Config.Token,
-		HTTPServer:         config.Config.HTTPServer,
-		RotateCertificates: config.Config.RotateCertificates,
-		HostnameOverride:   config.Config.HostnameOverride,
+func InfoFromHostAndRelay(host host.Host, relay *peer.AddrInfo) *peer.AddrInfo {
+	p2pProto := ma.ProtocolWithCode(ma.P_P2P)
+	circuitProto := ma.ProtocolWithCode(ma.P_CIRCUIT)
+	peerAddrInfo := &peer.AddrInfo{
+		ID:    host.ID(),
+		Addrs: host.Addrs(),
 	}
-	t.certManager = certificate.NewCertManager(certificateConfig, config.Config.NodeName)
-	t.certManager.Start()
-
-	// TODO ifRotationDone() ????, 后面要添加这个东西，如果证书轮换了，要重新进行连接
-	select {}
+	for _, v := range relay.Addrs {
+		circuitAddr, err := ma.NewMultiaddr(v.String() + "/" + p2pProto.Name + "/" + relay.ID.String() + "/" + circuitProto.Name)
+		if err != nil {
+			klog.Warningf("New multi addr err: %v", err)
+			continue
+		}
+		peerAddrInfo.Addrs = append(peerAddrInfo.Addrs, circuitAddr)
+	}
+	return peerAddrInfo
 }

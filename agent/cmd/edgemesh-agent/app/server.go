@@ -29,7 +29,7 @@ func NewEdgeMeshAgentCommand() *cobra.Command {
 	opts := options.NewEdgeMeshAgentOptions()
 	cmd := &cobra.Command{
 		Use: "edgemesh-agent",
-		Long: `edgemesh-agent is a part of KubeEdge, and provides a simple network solution
+		Long: `edgemesh-agent is a part of EdgeMesh which provides a simple network solution
 for the inter-communications between services at edge scenarios.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			verflag.PrintAndExitIfRequested()
@@ -128,7 +128,7 @@ func registerModules(c *config.EdgeMeshAgentConfig, ifm *informers.Manager) []er
 	if err := gateway.Register(c.Modules.EdgeGatewayConfig, ifm); err != nil {
 		errs = append(errs, err)
 	}
-	if err := tunnel.Register(c.Modules.Tunnel, ifm); err != nil {
+	if err := tunnel.Register(c.Modules.TunnelAgentConfig, ifm); err != nil {
 		errs = append(errs, err)
 	}
 	return errs

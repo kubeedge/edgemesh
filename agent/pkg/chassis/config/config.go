@@ -1,6 +1,11 @@
 package config
 
-import "sync"
+import (
+	meshConstants "github.com/kubeedge/edgemesh/common/constants"
+	"k8s.io/klog/v2"
+	"os"
+	"sync"
+)
 
 // GoChassisConfig defines some configurations related to go-chassis
 type GoChassisConfig struct {
@@ -21,6 +26,8 @@ type Protocol struct {
 	// TCPReconnectTimes indicates 4-layer tcp reconnect times
 	// default 3
 	TCPReconnectTimes int `json:"tcpReconnectTimes,omitempty"`
+	// NodeName indicates the node name of edgemesh agent
+	NodeName string `json:"nodeName"`
 }
 
 // LoadBalancer indicates the loadbalance strategy in edgemesh
@@ -51,11 +58,18 @@ type ConsistentHash struct {
 }
 
 func NewGoChassisConfig() *GoChassisConfig {
+	nodeName, isExist := os.LookupEnv(meshConstants.MY_NODE_NAME)
+	if !isExist {
+		klog.Fatalf("env %s not exist", meshConstants.MY_NODE_NAME)
+		os.Exit(1)
+	}
+
 	return &GoChassisConfig{
 		Protocol: &Protocol{
 			TCPBufferSize:     8192,
 			TCPClientTimeout:  2,
 			TCPReconnectTimes: 3,
+			NodeName: nodeName,
 		},
 		LoadBalancer: &LoadBalancer{
 			DefaultLBStrategy:     "RoundRobin",
