@@ -1,55 +1,22 @@
 package tunnel
 
 import (
-	"github.com/kubeedge/beehive/pkg/core"
-	"github.com/kubeedge/edgemesh/pkg/apis/componentconfig/edgemesh-server/v1alpha1"
-	"github.com/kubeedge/edgemesh/pkg/common/certificate"
-	"github.com/kubeedge/edgemesh/pkg/common/modules"
-	"github.com/kubeedge/edgemesh/server/pkg/tunnel/config"
+	"github.com/libp2p/go-libp2p-core/host"
+	"k8s.io/klog/v2"
+
+	"github.com/kubeedge/edgemesh/common/constants"
+	"github.com/kubeedge/edgemesh/server/pkg/tunnel/controller"
 )
 
-type Tunnel struct {
-	certManager certificate.CertManager
-	enable      bool
-}
-
-func NewTunnel(enable bool) *Tunnel {
-	return &Tunnel{
-		enable:      enable,
+func (t *TunnelServer) Run() {
+	klog.Infoln("Start tunnel server success")
+	for _, v := range t.Host.Addrs() {
+		klog.Infof("%s : %v/p2p/%s\n", "Tunnel server addr", v, t.Host.ID().Pretty())
 	}
-}
 
-func Register(tl *v1alpha1.Tunnel) {
-	config.InitConfigure(tl)
-	core.Register(NewTunnel(tl.Enable))
-}
-
-func (t *Tunnel) Name() string {
-	return modules.AgentTunnelModuleName
-}
-
-func (t *Tunnel) Group() string {
-	return modules.AgentTunnelGroupName
-}
-
-func (t *Tunnel) Enable() bool {
-	return t.enable
-}
-
-func (t *Tunnel) Start() {
-	certificateConfig := certificate.TunnelCertificate{
-		Heartbeat:          config.Config.Heartbeat,
-		TLSCAFile:          config.Config.TLSCAFile,
-		TLSCertFile:        config.Config.TLSCertFile,
-		TLSPrivateKeyFile:  config.Config.TLSPrivateKeyFile,
-		Token:              config.Config.Token,
-		HTTPServer:         config.Config.HTTPServer,
-		RotateCertificates: config.Config.RotateCertificates,
-		HostnameOverride:   config.Config.HostnameOverride,
+	err := controller.APIConn.SetPeerAddrInfo(constants.SERVER_ADDR_NAME, host.InfoFromHost(t.Host))
+	if err != nil {
+		klog.Errorf("failed update [%s] addr %v to secret: %v", constants.SERVER_ADDR_NAME, t.Host.Addrs(), err)
 	}
-	t.certManager = certificate.NewCertManager(certificateConfig, config.Config.NodeName)
-	t.certManager.Start()
-
-	// TODO ifRotationDone() ????, 后面要添加这个东西，如果证书轮换了，要重新进行连接
-	select {}
+	klog.Infof("success update [%s] addr %v to secret", constants.SERVER_ADDR_NAME, t.Host.Addrs())
 }

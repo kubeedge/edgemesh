@@ -1,12 +1,15 @@
 package options
 
 import (
+	"fmt"
 	"path"
 
-	"github.com/kubeedge/edgemesh/pkg/apis/componentconfig/edgemesh-server/v1alpha1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	cliflag "k8s.io/component-base/cli/flag"
 
+	"github.com/kubeedge/edgemesh/server/cmd/edgemesh-server/app/config"
 	"github.com/kubeedge/kubeedge/common/constants"
+	"github.com/kubeedge/kubeedge/pkg/util/validation"
 )
 
 type EdgeMeshServerOptions struct {
@@ -25,9 +28,17 @@ func (e *EdgeMeshServerOptions) Flags() (fss cliflag.NamedFlagSets) {
 	return
 }
 
+func (e *EdgeMeshServerOptions) Validate() []error {
+	var errs []error
+	if !validation.FileIsExist(e.ConfigFile) {
+		errs = append(errs, field.Required(field.NewPath("config-file"),
+			fmt.Sprintf("config file %v not exist", e.ConfigFile)))
+	}
+	return errs
+}
 
-func (e *EdgeMeshServerOptions) Config() (*v1alpha1.Config, error) {
-	cfg := v1alpha1.NewDefaultEdgeMeshServerConfig()
+func (e *EdgeMeshServerOptions) Config() (*config.EdgeMeshServerConfig, error) {
+	cfg := config.NewEdgeMeshServerConfig()
 	if err := cfg.Parse(e.ConfigFile); err != nil {
 		return nil, err
 	}

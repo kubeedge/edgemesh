@@ -1,14 +1,20 @@
 package main
 
 import (
+	"math/rand"
 	"os"
+	"time"
 
-	"github.com/kubeedge/edgemesh/server/cmd/edgemeshserver/app"
 	"k8s.io/component-base/logs"
+
+	"github.com/kubeedge/edgemesh/server/cmd/edgemesh-server/app"
 )
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
 	command := app.NewEdgeMeshServerCommand()
+
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
