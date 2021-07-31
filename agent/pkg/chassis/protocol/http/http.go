@@ -193,7 +193,7 @@ func (p *HTTP) responseCallback(data *invocation.Response) error {
 		return data.Err
 	}
 	if data.Result == nil {
-		errMsg = "server response nil"
+		errMsg = "httpserver response nil"
 		if err := p.responseUnavailable(errMsg); err != nil {
 			return err
 		}

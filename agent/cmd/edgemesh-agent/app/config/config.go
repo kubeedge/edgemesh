@@ -15,6 +15,7 @@ import (
 	dnsconfig "github.com/kubeedge/edgemesh/agent/pkg/dns/config"
 	gwconfig "github.com/kubeedge/edgemesh/agent/pkg/gateway/config"
 	proxyconfig "github.com/kubeedge/edgemesh/agent/pkg/proxy/config"
+	tunnelconfig "github.com/kubeedge/edgemesh/agent/pkg/tunnel/config"
 )
 
 const (
@@ -45,6 +46,7 @@ type Modules struct {
 	EdgeProxyConfig *proxyconfig.EdgeProxyConfig `json:"edgeProxy,omitempty"`
 	// EdgeGatewayConfig indicates edgegateway module config
 	EdgeGatewayConfig *gwconfig.EdgeGatewayConfig `json:"edgeGateway,omitempty"`
+	Tunnel *tunnelconfig.Tunnel `json:"tunnel,omitempty"`
 }
 
 // NewEdgeMeshAgentConfig returns a full EdgeMeshAgentConfig object
