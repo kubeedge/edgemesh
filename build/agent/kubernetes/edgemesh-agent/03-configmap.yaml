@@ -7,14 +7,14 @@ metadata:
     k8s-app: kubeedge
     kubeedge: edgemesh
 data:
-  edgemesh.yaml: |
+  edgemesh-agent.yaml: |
     apiVersion: agent.edgemesh.config.kubeedge.io/v1alpha1
     kind: EdgeMeshAgent
     kubeAPIConfig:
       burst: 200
       contentType: application/vnd.kubernetes.protobuf
-      kubeConfig: ""
-      master: "http://127.0.0.1:10550"
+      kubeConfig: "/root/.kube/config"
+      master: ""
       qps: 100
     goChassisConfig:
       protocol:
@@ -38,7 +38,7 @@ data:
         listenPort: 53
       edgeProxy:
         enable: true
-        subNet: 10.10.0.0/16
+        subNet: 10.96.0.0/12
         listenInterface: docker0
         listenPort: 40001
       edgeGateway:
@@ -46,3 +46,6 @@ data:
         nic: "*"
         includeIP: "*"
         excludeIP: "*"
+      tunnel:
+        enable: true
+        tunnelServer: "/ip4/119.8.58.38/tcp/10004/p2p/QmVeLajGh7sTDq1Hq3aWBKnaY2nuQGkYRnt2GHkg8LB1XN"

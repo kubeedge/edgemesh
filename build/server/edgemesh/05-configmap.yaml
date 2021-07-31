@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edgemesh-server
+  namespace: kubeedge
+  labels:
+    k8s-app: kubeedge
+    kubeedge: edgemesh-server
+data:
+  edgemesh-server.yaml: |
+    modules:
+      tunnel:
+        enable: true
+        httpServer: "https://127.0.0.1:10002"
+        publicIP: "127.0.0.1"

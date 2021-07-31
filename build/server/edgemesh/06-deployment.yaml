@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    k8s-app: kubeedge
+    kubeedge: edgemesh-server
+  name: edgemesh-server
+  namespace: kubeedge
+spec:
+  selector:
+    matchLabels:
+      k8s-app: kubeedge
+      kubeedge: edgemesh-server
+  template:
+    metadata:
+      labels:
+        k8s-app: kubeedge
+        kubeedge: edgemesh-server
+    spec:
+      hostNetwork: true
+#     use label to selector node
+      nodeName: h00525479-dev-02
+      containers:
+      - name: edgemesh-server
+        image: kubeedge/edgemesh-server:latest
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: MY_NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+        ports:
+        - containerPort: 10004
+          name: relay
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 200m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 512Mi
+        volumeMounts:
+          - name: conf
+            mountPath: /etc/kubeedge/config
+          - name: edgemesh
+            mountPath: /etc/kubeedge/edgemesh
+      restartPolicy: Always
+      serviceAccountName: edgemesh-server
+      volumes:
+        - name: conf
+          configMap:
+            name: edgemesh-server
+        - name: edgemesh
+          hostPath:
+            path: /etc/kubeedge/edgemesh
+            type: DirectoryOrCreate
+
+
