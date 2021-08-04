@@ -117,7 +117,7 @@ func (dns *EdgeDNS) lookup(serviceURL string) (exist bool, ip string) {
 }
 
 // getFromRealDNS returns a dns response from real dns servers
-func (dns *EdgeDNS ) getFromRealDNS(req []byte, from *net.UDPAddr) {
+func (dns *EdgeDNS) getFromRealDNS(req []byte, from *net.UDPAddr) {
 	rsp := make([]byte, 0)
 	ips, err := dns.parseNameServer()
 	if err != nil {
@@ -168,9 +168,9 @@ func (dns *EdgeDNS ) getFromRealDNS(req []byte, from *net.UDPAddr) {
 
 // parseNameServer gets all real nameservers from the resolv.conf
 func (dns *EdgeDNS) parseNameServer() ([]net.IP, error) {
-	file, err := os.Open("/etc/resolv.conf")
+	file, err := os.Open(hostResolv)
 	if err != nil {
-		return nil, fmt.Errorf("error opening /etc/resolv.conf: %v", err)
+		return nil, fmt.Errorf("error opening %s: %v", hostResolv, err)
 	}
 	defer file.Close()
 
@@ -191,7 +191,7 @@ func (dns *EdgeDNS) parseNameServer() ([]net.IP, error) {
 		}
 	}
 	if len(ip) == 0 {
-		return nil, fmt.Errorf("there is no nameserver in /etc/resolv.conf")
+		return nil, fmt.Errorf("there is no nameserver in %s", hostResolv)
 	}
 	return ip, nil
 }
