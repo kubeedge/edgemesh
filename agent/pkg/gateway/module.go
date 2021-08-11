@@ -12,7 +12,7 @@ import (
 
 // EdgeGateway is a edge ingress gateway
 type EdgeGateway struct {
-	Config  *config.EdgeGatewayConfig
+	Config *config.EdgeGatewayConfig
 }
 
 func newEdgeGateway(c *config.EdgeGatewayConfig, ifm *informers.Manager) (gw *EdgeGateway, err error) {

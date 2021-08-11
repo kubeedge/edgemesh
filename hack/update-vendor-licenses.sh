@@ -226,6 +226,27 @@ for PACKAGE in $(go list -m -json all | jq -r .Path | sort -f); do
     echo "${PACKAGE}, temporarily skipping" >&2
     continue
   fi
+  if [[ "${PACKAGE}" = "github.com/libp2p/go-libp2p-noise" ]]; then
+    # this package doesn't use, but has v2 subdirectory as a different package
+    # so it can't be  filtered by the previous rule
+    # temporarily treat this way until find out a better rule
+    echo "${PACKAGE}, temporarily skipping" >&2
+    continue
+  fi
+  if [[ "${PACKAGE}" = "github.com/klauspost/cpuid" ]]; then
+    # this package doesn't use, but has v2 subdirectory as a different package
+    # so it can't be  filtered by the previous rule
+    # temporarily treat this way until find out a better rule
+    echo "${PACKAGE}, temporarily skipping" >&2
+    continue
+  fi
+  if [[ "${PACKAGE}" = "github.com/libp2p/go-yamux" ]]; then
+    # this package doesn't use, but has v2 subdirectory as a different package
+    # so it can't be  filtered by the previous rule
+    # temporarily treat this way until find out a better rule
+    echo "${PACKAGE}, temporarily skipping" >&2
+    continue
+  fi
   echo "${PACKAGE}"
 
   process_content "${PACKAGE}" LICENSE

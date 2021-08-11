@@ -11,11 +11,6 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/beehive/pkg/core"
-	"github.com/kubeedge/kubeedge/pkg/util"
-	"github.com/kubeedge/kubeedge/pkg/util/flag"
-	"github.com/kubeedge/kubeedge/pkg/version"
-	"github.com/kubeedge/kubeedge/pkg/version/verflag"
-
 	"github.com/kubeedge/edgemesh/agent/cmd/edgemesh-agent/app/config"
 	"github.com/kubeedge/edgemesh/agent/cmd/edgemesh-agent/app/config/validation"
 	"github.com/kubeedge/edgemesh/agent/cmd/edgemesh-agent/app/options"
@@ -23,14 +18,19 @@ import (
 	"github.com/kubeedge/edgemesh/agent/pkg/dns"
 	"github.com/kubeedge/edgemesh/agent/pkg/gateway"
 	"github.com/kubeedge/edgemesh/agent/pkg/proxy"
+	"github.com/kubeedge/edgemesh/agent/pkg/tunnel"
 	"github.com/kubeedge/edgemesh/common/informers"
+	"github.com/kubeedge/kubeedge/pkg/util"
+	"github.com/kubeedge/kubeedge/pkg/util/flag"
+	"github.com/kubeedge/kubeedge/pkg/version"
+	"github.com/kubeedge/kubeedge/pkg/version/verflag"
 )
 
 func NewEdgeMeshAgentCommand() *cobra.Command {
 	opts := options.NewEdgeMeshAgentOptions()
 	cmd := &cobra.Command{
 		Use: "edgemesh-agent",
-		Long: `edgemesh-agent is a part of KubeEdge, and provides a simple network solution
+		Long: `edgemesh-agent is a part of EdgeMesh which provides a simple network solution
 for the inter-communications between services at edge scenarios.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			verflag.PrintAndExitIfRequested()
@@ -127,6 +127,9 @@ func registerModules(c *config.EdgeMeshAgentConfig, ifm *informers.Manager) []er
 		errs = append(errs, err)
 	}
 	if err := gateway.Register(c.Modules.EdgeGatewayConfig, ifm); err != nil {
+		errs = append(errs, err)
+	}
+	if err := tunnel.Register(c.Modules.TunnelAgentConfig, ifm); err != nil {
 		errs = append(errs, err)
 	}
 	return errs

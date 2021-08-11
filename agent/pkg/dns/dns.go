@@ -117,7 +117,7 @@ func (dns *EdgeDNS) lookup(serviceURL string) (exist bool, ip string) {
 }
 
 // getFromRealDNS returns a dns response from real dns servers
-func (dns *EdgeDNS ) getFromRealDNS(req []byte, from *net.UDPAddr) {
+func (dns *EdgeDNS) getFromRealDNS(req []byte, from *net.UDPAddr) {
 	rsp := make([]byte, 0)
 	ips, err := dns.parseNameServer()
 	if err != nil {
