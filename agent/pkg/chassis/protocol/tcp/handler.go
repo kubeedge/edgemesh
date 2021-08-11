@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/klog/v2"
 	"github.com/go-chassis/go-chassis/core/handler"
 	"github.com/go-chassis/go-chassis/core/invocation"
+	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/edgemesh/agent/pkg/chassis/config"
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel"

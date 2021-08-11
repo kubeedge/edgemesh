@@ -19,11 +19,10 @@ spec:
     spec:
       hostNetwork: true
 #     use label to selector node
-      nodeName: h00525479-dev-02
+      nodeName: cloud-node
       containers:
       - name: edgemesh-server
         image: kubeedge/edgemesh-server:latest
-        imagePullPolicy: IfNotPresent
         env:
           - name: MY_NODE_NAME
             valueFrom:

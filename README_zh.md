@@ -108,7 +108,7 @@ EdgeMesh 满足边缘场景下的新需求（如边缘资源有限，边云网�
 	</tr>
 	<tr>
 	 	<td align="center">跨局域网边边通信</td>
-		<td align="center">+</td>
+		<td align="center">✓</td>
 	</tr>
   <tr>
 		<td align="center">边缘CNI</td>
@@ -127,36 +127,41 @@ EdgeMesh 满足边缘场景下的新需求（如边缘资源有限，边云网�
 
 
 #### 未来工作
-
-<img src="./images/em-intro.png" style="zoom:80%;" />
-
+![image](./images/em-intro.png)  
 目前， EdgeMesh 的功能实现依赖于主机网络的连通性。未来， EdgeMesh 将会实现 CNI 插件的能力，以兼容主流 CNI 插件（例如 flannel / calico 等）的方式实现边缘节点和云上节点、跨局域网边缘节点之间的 Pod 网络连通。最终， EdgeMesh 甚至可以将部分自身组件替换成云原生组件（例如替换 [kube-proxy](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-proxy/) 实现 Cluster IP 层的能力、替换 [node local dns cache](https://kubernetes.io/docs/tasks/administer-cluster/nodelocaldns/) 实现节点级 dns 的能力、替换 [envoy](https://www.envoyproxy.io/) 实现 mesh 层的能力）。
-
 
 
 
 
 ## 架构
 
-<img src="images/em-arch.png" style="zoom:67%;" />
-
-为了保证一些低版本内核、低版本 iptables 边缘设备的服务发现能力，EdgeMesh 在流量代理的实现上采用了 userspace 模式，除此之外还自带了一个轻量级的DNS解析器。如图所示，EdgeMesh的核心组件包括：
-
+![image](./images/em-arch.png)  
+为了保证一些低版本内核、低版本 iptables 边缘设备的服务发现能力，EdgeMesh 在流量代理的实现上采用了 
+userspace 模式，除此之外还自带了一个轻量级的DNS解析器。 如图所示，EdgeMesh包含两个微服务： EdgeMesh-Server和Edgemesh-Agent。  
+EdgeMesh-Server的核心组件包括：
+- **Tunnel-Server**: 基于[libp2p](https://github.com/libp2p/go-libp2p) 实现，与EdgeMesh-Agent建立连接，为EdgeMesh-Agent提供中继能力和打洞能力
+  
+EdgeMesh-Agent的核心组件包括：
 - **Proxier**: 负责配置内核的iptables规则，将请求拦截到EdgeMesh进程内
 - **DNS**: 内置的DNS解析器，将节点内的域名请求解析成一个服务的集群IP
 - **Traffic**: 基于Go-chassis框架的流量转发模块，负责转发应用间的流量
 - **Controller**: 通过KubeEdge的边缘侧list-watch能力获取Service、Endpoints、Pod等元数据
+- **Tunnel-Agent**: 基于[libp2p](https://github.com/libp2p/go-libp2p) 实现，利用中继和打洞来提供跨子网通讯的能力
+
 
 
 
 #### **工作原理**
 
-- EdgeMesh 通过 KubeEdge 边缘侧 list-watch 的能力，监听Service、Endpoints等元数据的增删改，再根据 Service、Endpoints 的信息创建iptables规则
-- EdgeMesh 使用与 K8s Service 相同的 Cluster IP 和域名的方式来访问服务
-- 当 client 访问服务的请求到达带有EdgeMesh的节点后，它首先会进入内核的 iptables
-- EdgeMesh 之前配置的 iptables 规则会将请求重定向，全部转发到 EdgeMesh 进程的40001端口里（数据包从内核态->用户态）
-- 请求进入 EdgeMesh 进程后，由 EdgeMesh 进程完成后端 Pod 的选择（负载均衡在这里发生），然后将请求发到这个 Pod 所在的主机上
-
+- EdgeMesh-Agent 通过 KubeEdge 边缘侧 list-watch 的能力，监听Service、Endpoints等元数据的增删改，维护访问服务所需要的元数据; 同时
+  配置iptables规则拦截Cluster IP网段的请求
+- EdgeMesh-Agent 使用与 K8s Service 相同的 Cluster IP 和域名的方式来访问服务
+- 假设我们有APP-A和APP-B两个服务，当APP-A服务基于域名访问APP-B时，域名解析请求会被本节点的EdgeMesh-Agent拦截并返回Cluster IP，这个请求会被 EdgeMesh-Agent 之前配置的 
+  iptables 规则重定向，转发到 EdgeMesh-Agent 进程的40001端口里（数据包从内核态->用户态）
+- 请求进入 EdgeMesh-Agent 进程后，由 EdgeMesh-Agent 进程完成后端 Pod 的选择（负载均衡在这里发生），
+  然后这个请求会通过tunnel模块发到APP-B所在主机的EdgeMesh-Agent上（通过中继转发或者打洞直接传输）
+- App-B所在节点的EdgeMesh-Agent负责将流量转发到APP-B的服务端口上，并获取响应返回给APP-A所在节点的EdgeMesh-Agent
+- APP-A所在节点的EdgeMesh-Agent负责将响应数据反馈给APP-A服务
 
 
 ## 入门指南
@@ -167,7 +172,26 @@ EdgeMesh 满足边缘场景下的新需求（如边缘资源有限，边云网�
 - 使用 DestinationRule 时，要求 DestinationRule 的名字与相应的 Service 的名字要一致，EdgeMesh 会根据 Service 的名字来确定同命名空间下面的DestinationRule
 - Service 的端口必须命名。端口名键值对必须按以下格式：name: \<protocol>[-\<suffix>]
 
+#### 获取EdgeMesh
+```Shell
+git clone https://github.com/kubeedge/edgemesh.git
+cd edgemesh
+```
 
+#### 构建镜像
+构建EdgeMesh-Server镜像
+```shell
+make serverimage
+```
+构建EdgeMesh-Agent镜像
+```shell
+make agentimage
+```
+
+#### 安装 CRDS
+```shell
+kubectl apply -f build/crds/istio/
+```
 
 #### 部署
 
@@ -213,7 +237,18 @@ $ curl 127.0.0.1:10550/api/v1/services
 {"apiVersion":"v1","items":[{"apiVersion":"v1","kind":"Service","metadata":{"creationTimestamp":"2021-04-14T06:30:05Z","labels":{"component":"apiserver","provider":"kubernetes"},"name":"kubernetes","namespace":"default","resourceVersion":"147","selfLink":"default/services/kubernetes","uid":"55eeebea-08cf-4d1a-8b04-e85f8ae112a9"},"spec":{"clusterIP":"10.96.0.1","ports":[{"name":"https","port":443,"protocol":"TCP","targetPort":6443}],"sessionAffinity":"None","type":"ClusterIP"},"status":{"loadBalancer":{}}},{"apiVersion":"v1","kind":"Service","metadata":{"annotations":{"prometheus.io/port":"9153","prometheus.io/scrape":"true"},"creationTimestamp":"2021-04-14T06:30:07Z","labels":{"k8s-app":"kube-dns","kubernetes.io/cluster-service":"true","kubernetes.io/name":"KubeDNS"},"name":"kube-dns","namespace":"kube-system","resourceVersion":"203","selfLink":"kube-system/services/kube-dns","uid":"c221ac20-cbfa-406b-812a-c44b9d82d6dc"},"spec":{"clusterIP":"10.96.0.10","ports":[{"name":"dns","port":53,"protocol":"UDP","targetPort":53},{"name":"dns-tcp","port":53,"protocol":"TCP","targetPort":53},{"name":"metrics","port":9153,"protocol":"TCP","targetPort":9153}],"selector":{"k8s-app":"kube-dns"},"sessionAffinity":"None","type":"ClusterIP"},"status":{"loadBalancer":{}}}],"kind":"ServiceList","metadata":{"resourceVersion":"377360","selfLink":"/api/v1/services"}}
 ```
 
-部署 edgemesh-agent 组件
+部署 edgemesh-server 服务
+
+```shell
+$ kubectl apply -f build/server/edgemesh/02-serviceaccount.yaml
+$ kubeclt apply -f build/server/edgemesh/03-clusterrole.yaml
+$ kubeclt apply -f build/server/edgemesh/04-clusterrolebinding.yaml
+# 这里要把edgemsh-server的公网IP，也就是让边缘节点可以访问到的IP填入到05-configmap的publicIP上
+$ kubeclt apply -f build/server/edgemesh/05-configmap.yaml
+$ kubeclt apply -f build/server/edgemesh/06-deployment.yaml
+```
+
+部署 edgemesh-agent 服务
 
 ```shell
 # 请将03-configmap.yaml里面的subNet配置成kube-apiserver的service-cluster-ip-range的值
@@ -225,7 +260,6 @@ daemonset.apps/edgemesh-agent created
 ```
 
 
-
 #### 测试样例
 
 **HTTP协议**
@@ -233,7 +267,7 @@ daemonset.apps/edgemesh-agent created
 在边缘节点上，部署支持 http 协议的容器应用和相关服务
 
 ```shell
-$ kubectl apply -f example/hostname.yaml
+$ kubectl apply -f examples/hostname.yaml
 ```
 
 到边缘节点上，使用 curl 去访问相关服务，打印出容器的 hostname
@@ -249,7 +283,7 @@ $ curl hostname-lb-svc.edgemesh-test:12345
 在边缘节点1，部署支持 tcp 协议的容器应用和相关服务
 
 ```shell
-$ kubectl apply -f example/tcp-echo-service.yaml
+$ kubectl apply -f examples/tcp-echo-service.yaml
 ```
 
 在边缘节点2，使用 telnet 去访问相关服务
@@ -265,7 +299,7 @@ $ telnet tcp-echo-service.edgemesh-test 2701
 在边缘节点1，部署支持 websocket 协议的容器应用和相关服务
 
 ```shell
-$ kubectl apply -f example/websocket-pod-svc.yaml
+$ kubectl apply -f examples/websocket-pod-svc.yaml
 ```
 
 进入 websocket 的容器环境，并使用 client 去访问相关服务
@@ -279,16 +313,10 @@ $ ./client --addr ws-svc.edgemesh-test:12348
 
 **负载均衡**
 
-负载均衡功能需要添加 DestinationRule 用户自定义资源
-```shell
-$ kubectl apply -f build/crds/istio/destinationrule-crd.yaml
-customresourcedefinition.apiextensions.k8s.io/destinationrules.networking.istio.io created
-```
-
 使用 DestinationRule 中的 loadBalancer 属性来选择不同的负载均衡模式
 
 ```shell
-$ vim example/hostname-lb-random.yaml
+$ vim examples/hostname-lb-random.yaml
 spec
 ..
   trafficPolicy:
@@ -307,15 +335,6 @@ EdgeMesh ingress gateway 提供了外部访问集群里服务的能力。
 
 #### HTTP网关
 
-创建 Gateway 和 VirtualService 用户自定义资源
-
-```shell
-$ kubectl apply -f build/crds/istio/gateway-crd.yaml
-customresourcedefinition.apiextensions.k8s.io/gateways.networking.istio.io created
-$ kubectl apply -f build/crds/istio/virtualservice-crd.yaml
-customresourcedefinition.apiextensions.k8s.io/virtualservices.networking.istio.io created
-```
-
 部署 edgemesh-gateway
 
 ```shell
@@ -328,7 +347,7 @@ deployment.apps/edgemesh-gateway created
 创建 Gateway 资源对象和路由规则 VirtualService
 
 ```shell
-$ kubectl apply -f example/hostname-lb-random-gateway.yaml
+$ kubectl apply -f examples/hostname-lb-random-gateway.yaml
 pod/hostname-lb-edge2 created
 pod/hostname-lb-edge3 created
 service/hostname-lb-svc created
@@ -373,7 +392,7 @@ secret/gw-secret created
 
 创建绑定了 Secret 的 Gateway 资源对象和路由规则 VirtualService
 ```bash
-$ kubectl apply -f example/hostname-lb-random-gateway-tls.yaml
+$ kubectl apply -f examples/hostname-lb-random-gateway-tls.yaml
 pod/hostname-lb-edge2 created
 pod/hostname-lb-edge3 created
 service/hostname-lb-svc created

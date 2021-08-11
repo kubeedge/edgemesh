@@ -32,7 +32,6 @@ spec:
           securityContext:
             privileged: true
           image: kubeedge/edgemesh-agent:latest
-          imagePullPolicy: IfNotPresent
           env:
             - name: MY_NODE_NAME
               valueFrom:
@@ -52,8 +51,6 @@ spec:
               mountPath: /etc/resolv.conf
             - name: edgemesh
               mountPath: /etc/kubeedge/edgemesh
-            - name: kubeconfig
-              mountPath: /root/.kube/config
       volumes:
         - name: conf
           configMap:
@@ -65,7 +62,4 @@ spec:
           hostPath:
             path: /etc/kubeedge/edgemesh
             type: DirectoryOrCreate
-        - name: kubeconfig
-          hostPath:
-            path: /root/.kube/config
 
