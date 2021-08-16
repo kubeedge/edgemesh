@@ -24,7 +24,6 @@ spec:
           securityContext:
             privileged: true
           image: kubeedge/edgemesh-agent:latest
-          imagePullPolicy: IfNotPresent
           resources:
             limits:
               cpu: 200m
