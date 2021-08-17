@@ -20,7 +20,6 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/edgemesh/agent/pkg/chassis/protocol"
-	"github.com/kubeedge/edgemesh/agent/pkg/chassis/protocol/http"
 	"github.com/kubeedge/edgemesh/agent/pkg/chassis/protocol/tcp"
 	"github.com/kubeedge/edgemesh/agent/pkg/gateway/config"
 	"github.com/kubeedge/edgemesh/agent/pkg/gateway/util"
@@ -196,7 +195,6 @@ func (mgr *Manager) AddGateway(gw *istioapi.Gateway) {
 				klog.Warningf("new gateway server on port %d error: %v", int(s.Port.Number), err)
 				if strings.Contains(err.Error(), "address already in use") {
 					klog.Errorf("new gateway server on port %d error: %v. please wait, maybe old pod is deleting.", int(s.Port.Number), err)
-					os.Exit(1)
 				}
 				continue
 			}
@@ -424,9 +422,12 @@ func (srv *Server) newProto(conn net.Conn) (protocol.Protocol, error) {
 		// get protocol
 		if srv.options.Protocol == "HTTP" || srv.options.Protocol == "HTTPS" {
 			for _, vs := range vss {
-				proto := &http.HTTP{
-					Conn:           conn,
-					VirtualService: vs,
+				// TODO: switch to http process when tunnel http proxy implemented
+				proto := &tcp.TCP{
+					Conn:         conn,
+					SvcNamespace: srv.options.Namespace,
+					SvcName:      vs.Spec.Http[0].Route[0].Destination.Host,
+					Port:         int(vs.Spec.Http[0].Route[0].Destination.Port.Number),
 				}
 				return proto, nil
 			}
