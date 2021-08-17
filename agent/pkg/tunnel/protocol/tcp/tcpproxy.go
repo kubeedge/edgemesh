@@ -120,7 +120,7 @@ func (tp *TCPProxyService) GetProxyStream(targetNodeName, targetIP string, targe
 		if err != nil {
 			return nil, fmt.Errorf("connect to %s err: %v", targetNodeName, err)
 		}
-		klog.V(4).Infof("Data transfer between %s is really mode", targetNodeName)
+		klog.V(4).Infof("Data transfer between %s is p2p mode", targetNodeName)
 	}
 
 	stream, err := tp.host.NewStream(context.Background(), destInfo.ID, TCPProxyProtocol)
