@@ -7,6 +7,7 @@ import (
 	"time"
 
 	mdns "github.com/miekg/dns"
+	"github.com/vishvananda/netlink"
 	"k8s.io/klog/v2"
 
 	beehiveContext "github.com/kubeedge/beehive/pkg/core/context"
@@ -14,7 +15,42 @@ import (
 	"github.com/kubeedge/edgemesh/common/util"
 )
 
-const hostResolv = "/etc/resolv.conf"
+const (
+	hostResolv    = "/etc/resolv.conf"
+	interfaceName = "edgemesh"
+)
+
+func (dns *EdgeDNS) addInterface() error {
+	la := netlink.NewLinkAttrs()
+	la.Name = interfaceName
+	err := netlink.LinkAdd(&netlink.Bridge{LinkAttrs: la})
+	if err != nil {
+		return err
+	}
+
+	addr, err := netlink.ParseAddr(InterfaceAddress)
+	if err != nil {
+		return err
+	}
+
+	ifi, err := netlink.LinkByName(interfaceName)
+	if err != nil {
+		return err
+	}
+
+	err = netlink.AddrAdd(ifi, addr)
+	return err
+}
+
+func (dns *EdgeDNS) delInterface() error {
+	ifi, err := netlink.LinkByName(interfaceName)
+	if err != nil {
+		return err
+	}
+
+	err = netlink.LinkDel(ifi)
+	return err
+}
 
 type handler struct{}
 
@@ -84,7 +120,7 @@ func (dns *EdgeDNS) ensureResolvForHost() {
 
 	resolv := strings.Split(string(bs), "\n")
 	if resolv == nil {
-		nameserver := "nameserver " + dns.ListenIP.String()
+		nameserver := "nameserver " + net.ParseIP(InterfaceAddress).To16().String()
 		if err := ioutil.WriteFile(hostResolv, []byte(nameserver), 0600); err != nil {
 			klog.Errorf("write file %s err: %v", hostResolv, err)
 		}
@@ -95,7 +131,7 @@ func (dns *EdgeDNS) ensureResolvForHost() {
 	dnsIdx := 0
 	startIdx := 0
 	for idx, item := range resolv {
-		if strings.Contains(item, dns.ListenIP.String()) {
+		if strings.Contains(item, net.ParseIP(InterfaceAddress).To16().String()) {
 			configured = true
 			dnsIdx = idx
 			break
@@ -122,7 +158,7 @@ func (dns *EdgeDNS) ensureResolvForHost() {
 	for idx := 0; idx < len(resolv); {
 		if idx == startIdx {
 			startIdx = -1
-			nameserver = nameserver + "nameserver " + dns.ListenIP.String() + "\n"
+			nameserver = nameserver + "nameserver " + net.ParseIP(InterfaceAddress).To16().String() + "\n"
 			continue
 		}
 		nameserver = nameserver + resolv[idx] + "\n"
@@ -166,7 +202,7 @@ func (dns *EdgeDNS) cleanResolvForHost() {
 	}
 	nameserver := ""
 	for _, item := range resolv {
-		if strings.Contains(item, dns.ListenIP.String()) || item == "" {
+		if strings.Contains(item, net.ParseIP(InterfaceAddress).To16().String()) || item == "" {
 			continue
 		}
 		nameserver = nameserver + item + "\n"

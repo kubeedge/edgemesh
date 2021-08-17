@@ -11,14 +11,13 @@ import (
 	"github.com/kubeedge/edgemesh/agent/pkg/dns/controller"
 	"github.com/kubeedge/edgemesh/common/informers"
 	"github.com/kubeedge/edgemesh/common/modules"
-	"github.com/kubeedge/edgemesh/common/util"
 )
+
+const InterfaceAddress = "172.17.0.1/24"
 
 // EdgeDNS is a node-level dns resolver
 type EdgeDNS struct {
 	Config   *config.EdgeDNSConfig
-	ListenIP net.IP
-	Server   *mdns.Server
 }
 
 func newEdgeDNS(c *config.EdgeDNSConfig, ifm *informers.Manager) (dns *EdgeDNS, err error) {
@@ -36,8 +35,14 @@ func newEdgeDNS(c *config.EdgeDNSConfig, ifm *informers.Manager) (dns *EdgeDNS, 
 		return dns, fmt.Errorf("get dns listen ip err: %v", err)
 	}
 
-	addr := fmt.Sprintf("%v:%v", dns.ListenIP, dns.Config.ListenPort)
-	dns.Server = &mdns.Server{Addr: addr, Net: "udp"}
+	laddr := &net.UDPAddr{
+		IP:   net.ParseIP(InterfaceAddress),
+		Port: dns.Config.ListenPort,
+	}
+	dns.DNSConn, err = net.ListenUDP("udp", laddr)
+	if err != nil {
+		return dns, fmt.Errorf("dns server listen on %v error: %v", laddr, err)
+	}
 
 	return dns, nil
 }

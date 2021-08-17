@@ -34,12 +34,10 @@ data:
     modules:
       edgeDNS:
         enable: false
-        listenInterface: docker0
         listenPort: 53
       edgeProxy:
         enable: false
         subNet: 10.96.0.0/12
-        listenInterface: docker0
         listenPort: 40001
       edgeGateway:
         enable: true

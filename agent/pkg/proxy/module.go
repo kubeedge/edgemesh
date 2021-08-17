@@ -4,12 +4,12 @@ import (
 	"fmt"
 
 	"github.com/kubeedge/beehive/pkg/core"
+	"github.com/kubeedge/edgemesh/agent/pkg/dns"
 	"github.com/kubeedge/edgemesh/agent/pkg/proxy/config"
 	"github.com/kubeedge/edgemesh/agent/pkg/proxy/controller"
 	"github.com/kubeedge/edgemesh/agent/pkg/proxy/protocol"
 	"github.com/kubeedge/edgemesh/common/informers"
 	"github.com/kubeedge/edgemesh/common/modules"
-	"github.com/kubeedge/edgemesh/common/util"
 )
 
 // EdgeProxy is used for traffic proxy
@@ -30,11 +30,7 @@ func newEdgeProxy(c *config.EdgeProxyConfig, ifm *informers.Manager) (proxy *Edg
 	// init proxy controller
 	controller.Init(ifm)
 
-	// get proxy listen ip
-	listenIP, err := util.GetInterfaceIP(proxy.Config.ListenInterface)
-	if err != nil {
-		return proxy, fmt.Errorf("get proxy listen ip err: %v", err)
-	}
+	listenIP := net.ParseIP(dns.InterfaceAddress)
 
 	// get tcp proxy
 	proxy.TCPProxy = &protocol.TCPProxy{Name: protocol.TCP}
