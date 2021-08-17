@@ -15,5 +15,5 @@ const (
 	StreamReset      = "stream reset"
 
 	// env
-	MY_NODE_NAME     = "MY_NODE_NAME"
+	MY_NODE_NAME = "MY_NODE_NAME"
 )
