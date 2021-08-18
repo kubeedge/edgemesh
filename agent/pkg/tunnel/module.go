@@ -3,6 +3,7 @@ package tunnel
 import (
 	"context"
 	"fmt"
+	"k8s.io/klog/v2"
 
 	"github.com/libp2p/go-libp2p"
 	circuit "github.com/libp2p/go-libp2p-circuit"
@@ -17,6 +18,16 @@ import (
 	"github.com/kubeedge/edgemesh/common/modules"
 )
 
+type TunnelMode string
+
+const (
+	ServerMode       TunnelMode = "ServerOnly"
+	ClientMode       TunnelMode = "ClientOnly"
+	ServerClientMode TunnelMode = "ServerAndClient"
+	UnknownMode      TunnelMode = "Unknown"
+	DefaultMode                 = UnknownMode
+)
+
 var Agent *TunnelAgent
 
 // TunnelAgent is used for solving cross subset communication
@@ -24,9 +35,10 @@ type TunnelAgent struct {
 	Config      *config.TunnelAgentConfig
 	Host        host.Host
 	TCPProxySvc *tcp.TCPProxyService
+	Mode        TunnelMode
 }
 
-func newTunnelAgent(c *config.TunnelAgentConfig, ifm *informers.Manager) (*TunnelAgent, error) {
+func newTunnelAgent(c *config.TunnelAgentConfig, ifm *informers.Manager, mode TunnelMode) (*TunnelAgent, error) {
 	Agent = &TunnelAgent{Config: c}
 	if !c.Enable {
 		return Agent, nil
@@ -53,14 +65,19 @@ func newTunnelAgent(c *config.TunnelAgentConfig, ifm *informers.Manager) (*Tunne
 
 	Agent.Host = h
 	Agent.TCPProxySvc = tcp.NewTCPProxyService(h)
-	h.SetStreamHandler(tcp.TCPProxyProtocol, Agent.TCPProxySvc.ProxyStreamHandler)
+	Agent.Mode = mode
+	klog.V(4).Infof("tunnel agent mode is %v", mode)
+
+	if mode == ServerClientMode || mode == ServerMode {
+		h.SetStreamHandler(tcp.TCPProxyProtocol, Agent.TCPProxySvc.ProxyStreamHandler)
+	}
 
 	return Agent, nil
 }
 
 // Register register tunnelagent to beehive modules
-func Register(c *config.TunnelAgentConfig, ifm *informers.Manager) error {
-	agent, err := newTunnelAgent(c, ifm)
+func Register(c *config.TunnelAgentConfig, ifm *informers.Manager, mode TunnelMode) error {
+	agent, err := newTunnelAgent(c, ifm, mode)
 	if err != nil {
 		return fmt.Errorf("register module tunnelagent error: %v", err)
 	}

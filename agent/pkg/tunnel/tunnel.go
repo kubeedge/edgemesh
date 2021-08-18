@@ -37,13 +37,16 @@ func (t *TunnelAgent) Run() {
 					continue
 				}
 
-				err = controller.APIConn.SetPeerAddrInfo(t.Config.NodeName, InfoFromHostAndRelay(t.Host, relay))
-				if err != nil {
-					klog.Warningf("Set peer addr info to secret err: %v", err)
-					time.Sleep(2 * time.Second)
-					retryTime++
-					continue
+				if t.Mode == ServerMode || t.Mode == ServerClientMode {
+					err = controller.APIConn.SetPeerAddrInfo(t.Config.NodeName, InfoFromHostAndRelay(t.Host, relay))
+					if err != nil {
+						klog.Warningf("Set peer addr info to secret err: %v", err)
+						time.Sleep(2 * time.Second)
+						retryTime++
+						continue
+					}
 				}
+
 				klog.Infof("agent success connected to server %v", relay.Addrs)
 				break
 			}
