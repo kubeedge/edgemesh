@@ -13,7 +13,6 @@ import (
 
 	"github.com/kubeedge/edgemesh/agent/pkg/chassis/controller"
 	"github.com/kubeedge/edgemesh/common/util"
-
 )
 
 const (

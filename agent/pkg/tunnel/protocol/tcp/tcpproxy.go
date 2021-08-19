@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	MAX_READ_SIZE = 4 * 1024
+	MAX_READ_SIZE           = 4 * 1024
 	MAX_RETRY_CONNCECT_TIME = 3
 )
 
@@ -97,7 +97,6 @@ func (tp *TCPProxyService) ProxyStreamHandler(s network.Stream) {
 			dst.Close()
 			src.Close()
 		})
-
 	}
 
 	go cp(proxyClient, s)
@@ -121,7 +120,7 @@ func (tp *TCPProxyService) GetProxyStream(targetNodeName, targetIP string, targe
 		if err != nil {
 			return nil, fmt.Errorf("connect to %s err: %v", targetNodeName, err)
 		}
-		klog.V(4).Infof("Data transfer between %s is realy mode", targetNodeName)
+		klog.V(4).Infof("Data transfer between %s is p2p mode", targetNodeName)
 	}
 
 	stream, err := tp.host.NewStream(context.Background(), destInfo.ID, TCPProxyProtocol)

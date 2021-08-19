@@ -3,9 +3,8 @@ package hashring
 import (
 	"sync"
 
-	"k8s.io/klog/v2"
-
 	"github.com/buraksezer/consistent"
+	"k8s.io/klog/v2"
 )
 
 // cache store hash ring in memory
