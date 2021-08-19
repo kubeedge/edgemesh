@@ -10,13 +10,15 @@ import (
 	"github.com/kubeedge/edgemesh/common/informers"
 	"github.com/kubeedge/edgemesh/common/modules"
 	"github.com/kubeedge/edgemesh/common/util"
+
+	mdns "github.com/miekg/dns"
 )
 
 // EdgeDNS is a node-level dns resolver
 type EdgeDNS struct {
 	Config   *config.EdgeDNSConfig
 	ListenIP net.IP
-	DNSConn  *net.UDPConn
+	Server   *mdns.Server
 }
 
 func newEdgeDNS(c *config.EdgeDNSConfig, ifm *informers.Manager) (dns *EdgeDNS, err error) {
@@ -34,14 +36,8 @@ func newEdgeDNS(c *config.EdgeDNSConfig, ifm *informers.Manager) (dns *EdgeDNS, 
 		return dns, fmt.Errorf("get dns listen ip err: %v", err)
 	}
 
-	laddr := &net.UDPAddr{
-		IP:   dns.ListenIP,
-		Port: dns.Config.ListenPort,
-	}
-	dns.DNSConn, err = net.ListenUDP("udp", laddr)
-	if err != nil {
-		return dns, fmt.Errorf("dns server listen on %v error: %v", laddr, err)
-	}
+	addr := fmt.Sprintf("%v:%v", dns.ListenIP, dns.Config.ListenPort)
+	dns.Server = &mdns.Server{Addr: addr, Net: "udp"}
 
 	return dns, nil
 }
