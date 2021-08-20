@@ -38,7 +38,7 @@ func (s *Strategy) ReceiveData(inv *invocation.Invocation,
 	s.instances = instances
 	s.mtx.Unlock()
 	name, namespace := util.SplitServiceKey(serviceName)
-	s.ring = fmt.Sprintf("%s.%s", namespace, name)
+	s.ring = fmt.Sprintf("%s.%s", name, namespace)
 
 	// find destination rule bound to service
 	dr, err := controller.APIConn.GetDrLister().DestinationRules(namespace).Get(name)

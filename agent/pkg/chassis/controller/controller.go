@@ -82,7 +82,7 @@ func (c *ChassisController) epUpdate(oldObj, newObj interface{}) {
 	// service, endpoints and destinationRule should have the same name
 	dr, err := c.drLister.DestinationRules(ep.Namespace).Get(ep.Name)
 	if err == nil && dr != nil && isConsistentHashLB(dr) {
-		key := fmt.Sprintf("%s.%s", ep.Namespace, ep.Name)
+		key := fmt.Sprintf("%s.%s", ep.Name, ep.Namespace)
 		svc, err := c.svcLister.Services(ep.Namespace).Get(ep.Name)
 		if err != nil || svc == nil {
 			klog.Errorf("no service %s exists", key)
@@ -116,7 +116,7 @@ func (c *ChassisController) drUpdate(oldObj, newObj interface{}) {
 		klog.Errorf("invalid type %v", newObj)
 		return
 	}
-	key := fmt.Sprintf("%s.%s", newDr.Namespace, newDr.Name)
+	key := fmt.Sprintf("%s.%s", newDr.Name, newDr.Namespace)
 	if isConsistentHashLB(oldDr) && !isConsistentHashLB(newDr) {
 		// If the loadbalance strategy is updated, if it is no longer a `consistentHash` strategy,
 		// we need to delete the exists hash ring.
@@ -135,7 +135,7 @@ func (c *ChassisController) drDelete(obj interface{}) {
 		return
 	}
 	if isConsistentHashLB(dr) {
-		key := fmt.Sprintf("%s.%s", dr.Namespace, dr.Name)
+		key := fmt.Sprintf("%s.%s", dr.Name, dr.Namespace)
 		hashring.DeleteHashRing(key)
 	}
 }
@@ -152,7 +152,7 @@ func isConsistentHashLB(dr *istioapi.DestinationRule) (ok bool) {
 
 // createHashRing create hash ring if needed
 func (c *ChassisController) createHashRing(namespace, name string) {
-	key := fmt.Sprintf("%s.%s", namespace, name)
+	key := fmt.Sprintf("%s.%s", name, namespace)
 	if _, ok := hashring.GetHashRing(key); ok {
 		klog.Warningf("hash ring %s already exists in cache", key)
 		return
@@ -188,7 +188,7 @@ func (c *ChassisController) createHashRingByService(svc *v1.Service) {
 	// create hash ring
 	hr := hashring.NewServiceInstanceHashRing(instances)
 	// store hash ring
-	key := fmt.Sprintf("%s.%s", svc.Namespace, svc.Name)
+	key := fmt.Sprintf("%s.%s", svc.Name, svc.Namespace)
 	hashring.AddOrUpdateHashRing(key, hr)
 }
 

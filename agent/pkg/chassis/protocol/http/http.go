@@ -168,7 +168,7 @@ func (p *HTTP) route(requestURI string) error {
 				svcName := httpRoute.Route[0].Destination.Host
 				svcNamespace := p.VirtualService.Namespace
 				// find a service
-				key := fmt.Sprintf("%s.%s", svcNamespace, svcName)
+				key := fmt.Sprintf("%s.%s", svcName, svcNamespace)
 				if _, err := controller.APIConn.GetSvcLister().Services(svcNamespace).Get(svcName); err != nil {
 					return fmt.Errorf("service bound to the destination %s does not exist, reason: %v", key, err)
 				}
