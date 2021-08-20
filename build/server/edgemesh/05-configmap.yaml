@@ -8,6 +8,11 @@ metadata:
     kubeedge: edgemesh-server
 data:
   edgemesh-server.yaml: |
+    kubeAPIConfig:
+      burst: 200
+      contentType: application/vnd.kubernetes.protobuf
+      kubeConfig: "/root/.kube/config"
+      qps: 100
     modules:
       tunnel:
         enable: true
