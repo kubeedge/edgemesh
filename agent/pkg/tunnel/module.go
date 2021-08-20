@@ -3,11 +3,11 @@ package tunnel
 import (
 	"context"
 	"fmt"
-	"k8s.io/klog/v2"
 
 	"github.com/libp2p/go-libp2p"
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-core/host"
+	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/beehive/pkg/core"
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/config"

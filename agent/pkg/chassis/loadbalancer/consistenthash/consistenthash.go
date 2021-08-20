@@ -34,7 +34,9 @@ type Strategy struct {
 // ReceiveData receive data.
 func (s *Strategy) ReceiveData(inv *invocation.Invocation,
 	instances []*registry.MicroServiceInstance, serviceName string) {
+	s.mtx.Lock()
 	s.instances = instances
+	s.mtx.Unlock()
 	name, namespace := util.SplitServiceKey(serviceName)
 	s.ring = fmt.Sprintf("%s.%s", namespace, name)
 
@@ -69,24 +71,22 @@ func (s *Strategy) Pick() (*registry.MicroServiceInstance, error) {
 	if !ok {
 		return nil, fmt.Errorf("can't find service instance hash ring %s", s.ring)
 	}
-	i := s.pick(hr)
-	if i < 0 {
-		klog.Errorf("can't find a service instance %d", i)
-		return nil, fmt.Errorf("can't find a service instance")
-	}
-	return s.instances[i], nil
+
+	return s.pick(hr)
 }
 
-func (s *Strategy) pick(hr *consistent.Consistent) int {
+func (s *Strategy) pick(hr *consistent.Consistent) (*registry.MicroServiceInstance, error) {
 	member := hr.LocateKey([]byte(s.key))
 	if member == nil {
-		klog.Errorf("can't find a home for given key %s", s.key)
-		return -1
+		errMsg := fmt.Errorf("can't find a home for given key %s", s.key)
+		klog.Errorf("%v", errMsg)
+		return nil, errMsg
 	}
 	si, ok := member.(hashring.ServiceInstance)
 	if !ok {
-		klog.Errorf("can't convert to ServiceInstance")
-		return -1
+		errMsg := fmt.Errorf("%T can't convert to ServiceInstance", member)
+		klog.Errorf("%v", errMsg)
+		return nil, errMsg
 	}
 
 	s.mtx.Lock()
@@ -94,10 +94,10 @@ func (s *Strategy) pick(hr *consistent.Consistent) int {
 
 	for i, instance := range s.instances {
 		if instance.ServiceID == si.String() {
-			return i
+			return s.instances[i], nil
 		}
 	}
-	return -1
+	return nil, fmt.Errorf("service instance not exist")
 }
 
 func (s *Strategy) getKeyFromHTTP(inv *invocation.Invocation, dr *istioapi.DestinationRule) (string, error) {

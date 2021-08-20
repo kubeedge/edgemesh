@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"net"
 
+	mdns "github.com/miekg/dns"
+
 	"github.com/kubeedge/beehive/pkg/core"
 	"github.com/kubeedge/edgemesh/agent/pkg/dns/config"
 	"github.com/kubeedge/edgemesh/agent/pkg/dns/controller"
 	"github.com/kubeedge/edgemesh/common/informers"
 	"github.com/kubeedge/edgemesh/common/modules"
 	"github.com/kubeedge/edgemesh/common/util"
-
-	mdns "github.com/miekg/dns"
 )
 
 // EdgeDNS is a node-level dns resolver
