@@ -45,6 +45,9 @@ spec:
               cpu: 100m
               memory: 128Mi
           volumeMounts:
+            - name: config
+              mountPath: /root/.kube/config
+              readOnly: true
             - name: conf
               mountPath: /etc/kubeedge/config
             - name: resolv
@@ -52,6 +55,10 @@ spec:
             - name: edgemesh
               mountPath: /etc/kubeedge/edgemesh
       volumes:
+        - name: config
+          hostPath:
+            path: "/root/.kube/config"
+            type: File
         - name: conf
           configMap:
             name: edgemesh-agent-cfg
