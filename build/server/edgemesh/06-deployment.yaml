@@ -40,6 +40,9 @@ spec:
             cpu: 100m
             memory: 512Mi
         volumeMounts:
+          - name: config
+            mountPath: /root/.kube/config
+            readOnly: true
           - name: conf
             mountPath: /etc/kubeedge/config
           - name: edgemesh
@@ -47,6 +50,10 @@ spec:
       restartPolicy: Always
       serviceAccountName: edgemesh-server
       volumes:
+        - name: config
+          hostPath:
+            path: "/root/.kube/config"
+            type: File
         - name: conf
           configMap:
             name: edgemesh-server
@@ -54,5 +61,3 @@ spec:
           hostPath:
             path: /etc/kubeedge/edgemesh
             type: DirectoryOrCreate
-
-
