@@ -78,6 +78,14 @@ func (tp *TCPProxyService) ProxyStreamHandler(s network.Stream) {
 		return
 	}
 
+	close := sync.Once{}
+	defer func() {
+		close.Do(func() {
+			proxyClient.Close()
+			s.Close()
+		})
+	}()
+
 	msg.Reset()
 	msg.Type = tcp_pb.TCPProxy_SUCCESS.Enum()
 	if err = streamWriter.WriteMsg(msg); err != nil {
@@ -87,7 +95,6 @@ func (tp *TCPProxyService) ProxyStreamHandler(s network.Stream) {
 
 	msg.Reset()
 
-	close := sync.Once{}
 	cp := func(dst io.WriteCloser, src io.ReadCloser) {
 		_, err = io.Copy(dst, src)
 		if err != nil && err != io.EOF && !strings.Contains(err.Error(), constants.ConnectionClosed) && !strings.Contains(err.Error(), constants.StreamReset) {

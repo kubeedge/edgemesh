@@ -41,7 +41,7 @@ type ServiceInstance struct {
 
 // String gets service instance key
 func (si ServiceInstance) String() string {
-	// key format: Namespace.Name.InstanceIP
+	// key format: Namespace#Name#InstanceIP
 	return fmt.Sprintf("%s#%s#%s", si.Namespace, si.Name, si.InstanceIP)
 }
 
