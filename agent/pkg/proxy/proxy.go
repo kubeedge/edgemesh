@@ -61,6 +61,7 @@ func realServerAddress(conn *net.Conn) (string, int, error) {
 	if err != nil {
 		return "", -1, err
 	}
+	defer file.Close()
 
 	// To avoid potential problems from making the socket non-blocking.
 	tcpConn.Close()
@@ -69,7 +70,6 @@ func realServerAddress(conn *net.Conn) (string, int, error) {
 		return "", -1, err
 	}
 
-	defer file.Close()
 	fd := file.Fd()
 
 	var addr sockAddr
