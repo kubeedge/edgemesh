@@ -17,6 +17,7 @@ func (t *TunnelServer) Run() {
 	err := controller.APIConn.SetPeerAddrInfo(constants.ServerAddrName, host.InfoFromHost(t.Host))
 	if err != nil {
 		klog.Errorf("failed update [%s] addr %v to secret: %v", constants.ServerAddrName, t.Host.Addrs(), err)
+		return
 	}
 	klog.Infof("success update [%s] addr %v to secret", constants.ServerAddrName, t.Host.Addrs())
 }
