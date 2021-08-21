@@ -169,10 +169,14 @@ func NewGatewayManager(c *config.EdgeGatewayConfig) *Manager {
 
 // AddGateway add a gateway server
 func (mgr *Manager) AddGateway(gw *istioapi.Gateway) {
+	mgr.lock.Lock()
+	defer mgr.lock.Unlock()
+
 	if gw == nil {
 		klog.Errorf("gateway is nil")
 		return
 	}
+
 	key := fmt.Sprintf("%s.%s", gw.Namespace, gw.Name)
 	var gatewayServers []*Server
 	for _, ip := range mgr.ipArray {
@@ -202,9 +206,7 @@ func (mgr *Manager) AddGateway(gw *istioapi.Gateway) {
 		}
 	}
 
-	mgr.lock.Lock()
 	mgr.serversByGateway[key] = gatewayServers
-	mgr.lock.Unlock()
 }
 
 // UpdateGateway update a gateway server
