@@ -54,7 +54,7 @@ EdgeMesh 满足边缘场景下的新需求（如边缘资源有限，边云网�
 	<tr>
 		<th align="center">功能</th>
 		<th align="center">子功能</th>
-		<th align="center">实现度</th>  
+		<th align="center">实现度</th>
 	</tr >
 	<tr >
 		<td align="center">服务发现</td>
@@ -104,7 +104,7 @@ EdgeMesh 满足边缘场景下的新需求（如边缘资源有限，边云网�
   <tr>
 		<td rowspan="2" align="center">跨子网通信</td>
 	 	<td align="center">跨边云通信</td>
-		<td align="center">+</td>
+		<td align="center">✓</td>
 	</tr>
 	<tr>
 	 	<td align="center">跨局域网边边通信</td>
@@ -127,7 +127,7 @@ EdgeMesh 满足边缘场景下的新需求（如边缘资源有限，边云网�
 
 
 #### 未来工作
-![image](./images/em-intro.png)  
+![image](./images/em-intro.png)
 目前， EdgeMesh 的功能实现依赖于主机网络的连通性。未来， EdgeMesh 将会实现 CNI 插件的能力，以兼容主流 CNI 插件（例如 flannel / calico 等）的方式实现边缘节点和云上节点、跨局域网边缘节点之间的 Pod 网络连通。最终， EdgeMesh 甚至可以将部分自身组件替换成云原生组件（例如替换 [kube-proxy](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-proxy/) 实现 Cluster IP 层的能力、替换 [node local dns cache](https://kubernetes.io/docs/tasks/administer-cluster/nodelocaldns/) 实现节点级 dns 的能力、替换 [envoy](https://www.envoyproxy.io/) 实现 mesh 层的能力）。
 
 
@@ -135,12 +135,12 @@ EdgeMesh 满足边缘场景下的新需求（如边缘资源有限，边云网�
 
 ## 架构
 
-![image](./images/em-arch.png)  
-为了保证一些低版本内核、低版本 iptables 边缘设备的服务发现能力，EdgeMesh 在流量代理的实现上采用了 
-userspace 模式，除此之外还自带了一个轻量级的DNS解析器。 如图所示，EdgeMesh包含两个微服务： EdgeMesh-Server和Edgemesh-Agent。  
+![image](./images/em-arch.png)
+为了保证一些低版本内核、低版本 iptables 边缘设备的服务发现能力，EdgeMesh 在流量代理的实现上采用了
+userspace 模式，除此之外还自带了一个轻量级的DNS解析器。 如图所示，EdgeMesh包含两个微服务： EdgeMesh-Server和Edgemesh-Agent。
 EdgeMesh-Server的核心组件包括：
 - **Tunnel-Server**: 基于[libp2p](https://github.com/libp2p/go-libp2p) 实现，与EdgeMesh-Agent建立连接，为EdgeMesh-Agent提供中继能力和打洞能力
-  
+
 EdgeMesh-Agent的核心组件包括：
 - **Proxier**: 负责配置内核的iptables规则，将请求拦截到EdgeMesh进程内
 - **DNS**: 内置的DNS解析器，将节点内的域名请求解析成一个服务的集群IP
@@ -156,7 +156,7 @@ EdgeMesh-Agent的核心组件包括：
 - EdgeMesh-Agent 通过 KubeEdge 边缘侧 list-watch 的能力，监听Service、Endpoints等元数据的增删改，维护访问服务所需要的元数据; 同时
   配置iptables规则拦截Cluster IP网段的请求
 - EdgeMesh-Agent 使用与 K8s Service 相同的 Cluster IP 和域名的方式来访问服务
-- 假设我们有APP-A和APP-B两个服务，当APP-A服务基于域名访问APP-B时，域名解析请求会被本节点的EdgeMesh-Agent拦截并返回Cluster IP，这个请求会被 EdgeMesh-Agent 之前配置的 
+- 假设我们有APP-A和APP-B两个服务，当APP-A服务基于域名访问APP-B时，域名解析请求会被本节点的EdgeMesh-Agent拦截并返回Cluster IP，这个请求会被 EdgeMesh-Agent 之前配置的
   iptables 规则重定向，转发到 EdgeMesh-Agent 进程的40001端口里（数据包从内核态->用户态）
 - 请求进入 EdgeMesh-Agent 进程后，由 EdgeMesh-Agent 进程完成后端 Pod 的选择（负载均衡在这里发生），
   然后这个请求会通过tunnel模块发到APP-B所在主机的EdgeMesh-Agent上（通过中继转发或者打洞直接传输）
@@ -178,16 +178,6 @@ git clone https://github.com/kubeedge/edgemesh.git
 cd edgemesh
 ```
 
-#### 构建镜像
-构建EdgeMesh-Server镜像
-```shell
-make serverimage
-```
-构建EdgeMesh-Agent镜像
-```shell
-make agentimage
-```
-
 #### 安装 CRDS
 ```shell
 kubectl apply -f build/crds/istio/
@@ -195,7 +185,7 @@ kubectl apply -f build/crds/istio/
 
 #### 部署
 
-在边缘节点，关闭 edgeMesh模块，打开 metaServer模块，并重启 edgecore
+在边缘节点，关闭 edgeMesh模块，打开 metaServer 模块，并重启 edgecore
 
 ```shell
 $ vim /etc/kubeedge/config/edgecore.yaml
@@ -203,6 +193,7 @@ modules:
   ..
   edgeMesh:
     enable: false
+  ..
   metaManager:
     metaServer:
       enable: true
@@ -248,15 +239,59 @@ $ kubeclt apply -f build/server/edgemesh/05-configmap.yaml
 $ kubeclt apply -f build/server/edgemesh/06-deployment.yaml
 ```
 
-部署 edgemesh-agent 服务
+获取 K8s 集群 serviceCIDR，后续需要用到
+```shell
+$ kubectl cluster-info dump | grep "service-cluster-ip-range"
+      "--service-cluster-ip-range=10.96.0.0/12",
+      "--service-cluster-ip-range=10.96.0.0/12",
+```
+
+部署 edgemesh-agent-cloud 服务
 
 ```shell
-# 请将03-configmap.yaml里面的subNet配置成kube-apiserver的service-cluster-ip-range的值
-# 你可以在k8s master节点上的/etc/kubernetes/manifests/kube-apiserver.yaml文件中找到这个配置项的值
-$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/03-configmap.yaml
-configmap/edgemesh-agent-cfg created
-$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/04-daemonset.yaml
+$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/03-serviceaccount.yaml
+serviceaccount/edgemesh-agent created
+$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/04-clusterrole.yaml
+clusterrole.rbac.authorization.k8s.io/edgemesh-agent created
+$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/05-clusterrolebinding.yaml
+clusterrolebinding.rbac.authorization.k8s.io/edgemesh-agent created
+# 请将06-configmap-cloud.yaml里面的subNet配置成kube-apiserver的service-cluster-ip-range的值
+$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/06-configmap-cloud.yaml
+configmap/edgemesh-agent-cloud-cfg created
+$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/07-daemonset-cloud.yaml
+daemonset.apps/edgemesh-agent-cloud created
+```
+
+部署 edgemesh-agent-edge 服务
+
+```shell
+# 请将06-configmap-edge.yaml里面的subNet配置成kube-apiserver的service-cluster-ip-range的值
+$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/06-configmap-edge.yaml
+configmap/edgemesh-agent-edge-cfg created
+$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/07-daemonset-edge.yaml
 daemonset.apps/edgemesh-agent created
+```
+
+检验部署结果
+
+```shell
+$ kubectl get all -n kubeedge
+NAME                                   READY   STATUS    RESTARTS   AGE
+pod/edgemesh-agent-cloud-pcphk         1/1     Running   0          19h
+pod/edgemesh-agent-cloud-qkcpx         1/1     Running   0          19h
+pod/edgemesh-agent-edge-b4hf7          1/1     Running   0          19h
+pod/edgemesh-agent-edge-ktl6b          1/1     Running   0          19h
+pod/edgemesh-server-7f97d77469-dml4j   1/1     Running   0          2d21h
+
+NAME                                  DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+daemonset.apps/edgemesh-agent-cloud   2         2         2       2            2           <none>          19h
+daemonset.apps/edgemesh-agent-edge    2         2         2       2            2           <none>          19h
+
+NAME                              READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/edgemesh-server   1/1     1            1           2d21h
+
+NAME                                         DESIRED   CURRENT   READY   AGE
+replicaset.apps/edgemesh-server-7f97d77469   1         1         1       2d21h
 ```
 
 
@@ -322,7 +357,51 @@ spec
   trafficPolicy:
     loadBalancer:
       simple: RANDOM
-..    
+..
+```
+
+
+
+**跨边云服务发现**
+
+处于 edgezone 的 busybox-edge 应用能够访问云上的 tcp-echo-cloud 应用，处于 cloudzone 的 busybox-cloud 能够访问边缘的 tcp-echo-edge 应用
+
+```shell
+$ kubectl apply -f examples/cloudzone.yaml
+pod/tcp-echo-cloud created
+service/tcp-echo-cloud-svc created
+pod/busybox-sleep-cloud created
+
+$ kubectl apply -f examples/edgezone.yaml
+pod/tcp-echo-edge created
+service/tcp-echo-edge-svc created
+pod/busybox-sleep-edge created
+```
+
+云访问边
+```shell
+$ kubectl -n cloudzone exec busybox-sleep-cloud -c busybox -i -t -- sh
+/ # telnet tcp-echo-edge-svc.edgezone 2701
+Welcome, you are connected to node ke-edge1.
+Running on Pod tcp-echo-edge.
+In namespace edgezone.
+With IP address 172.17.0.2.
+Service default.
+I'm Cloud Buxybox
+I'm Cloud Buxybox
+```
+
+边访问云
+```shell
+$ docker exec -it 4c57a4ff8974 sh
+/ # telnet tcp-echo-cloud-svc.cloudzone 2701
+Welcome, you are connected to node k8s-master.
+Running on Pod tcp-echo-cloud.
+In namespace cloudzone.
+With IP address 10.244.0.8.
+Service default.
+I'm Edge Busybox
+I'm Edge Busybox
 ```
 
 

@@ -54,7 +54,7 @@ EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge re
 	<tr>
 		<th align="center">Feature</th>
 		<th align="center">Sub-Feature</th>
-		<th align="center">Realization Degree</th>  
+		<th align="center">Realization Degree</th>
 	</tr >
 	<tr >
 		<td align="center">Service Discovery</td>
@@ -104,7 +104,7 @@ EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge re
   <tr>
 		<td rowspan="2" align="center">Cross-Subnet Communication</td>
 	 	<td align="center">Cross-Cloud Communication</td>
-		<td align="center">+</td>
+		<td align="center">✓</td>
 	</tr>
 	<tr>
 	 	<td align="center">Cross-LAN E2E Communication</td>
@@ -120,7 +120,7 @@ EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge re
 
 **Noting:**
 
-- `✓` Features supported by the EdgeMesh version 
+- `✓` Features supported by the EdgeMesh version
 - `+` Features not available in the EdgeMesh version, but will be supported in subsequent versions
 - `-` Features not available in the EdgeMesh version, or deprecated features
 
@@ -128,7 +128,7 @@ EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge re
 
 #### Future Works
 
-![image](./images/em-intro.png)  
+![image](./images/em-intro.png)
 
 At present, the implementation of EdgeMesh relies on the connectivity of the host network. In the future, EdgeMesh will realize the capabilities of CNI plug-ins, and realize the Pod network connectivity between edge nodes and nodes on the cloud, or edge nodes across LANs in a  compatible manner with mainstream CNI plug-ins (e.g., flannel / calico, etc). Finally, EdgeMesh can even replace part of its own components with cloud-native components (e.g., replacing [kube-proxy](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-proxy/) to achieve the capabilities of the Cluster IP, replacing [node local dns cache ](https://kubernetes.io/docs/tasks/administer-cluster/nodelocaldns/) to achieve node-level dns capabilities, and replace [envoy](https://www.envoyproxy.io/) to achieve mesh-layer capabilities).
 
@@ -136,14 +136,14 @@ At present, the implementation of EdgeMesh relies on the connectivity of the hos
 
 ## Architecture
 
-![image](./images/em-arch.png)  
+![image](./images/em-arch.png)
 
 To ensure the capability of service discovery in some edge devices with low-version kernels or low-version iptables, EdgeMesh adopts the userspace mode in its implementation of the traffic proxy. In addition, it also comes with a lightweight DNS resolver.
-As shown in the figure above, EdgeMesh contains EdgeMesh-Server microservices and EdgeMesh-Agent components.  
+As shown in the figure above, EdgeMesh contains EdgeMesh-Server microservices and EdgeMesh-Agent components.
 The core components of EdgeMesh-Server include:
 - **Tunnel-Server**: Based on [libp2p](https://github.com/libp2p/go-libp2p), establish a connection with EdgeMesh-Agent to provide relay capability and hole punching capability
 
-The core components of EdgeMesh-Agent include: 
+The core components of EdgeMesh-Agent include:
 - **Proxier**: Responsible for configuring the kernel's iptables rules, and intercepting requests to the EdgeMesh process
 - **DNS**: Built-in DNS resolver, which resolves the DNS request in the node into a service cluster IP
 - **Traffic**: A traffic forwarding module based on the Go-chassis framework, which is responsible for forwarding traffic between applications
@@ -153,18 +153,18 @@ The core components of EdgeMesh-Agent include:
 
 #### How It Works
 
-- Through the capability of list-watch on the edge of KubeEdge, EdgeMesh monitors the addition, deletion and modification of metadata (e.g., Services and Endpoints), 
+- Through the capability of list-watch on the edge of KubeEdge, EdgeMesh monitors the addition, deletion and modification of metadata (e.g., Services and Endpoints),
   and then maintain the metadata required to access the services. At the same time configure iptables rules to intercept requests for the Cluster IP network segment.
 - EdgeMesh uses the same ways (e.g., Cluster IP, domain name) as the K8s Service to access services
-- Suppose we have two services, APP-A and APP2, and now the APP-A service tries to access APP-B based on the domain name, the domain name resolution 
-  request will be intercepted by the EdgeMesh-Agent of the node and EdgeMesh-Agent will return 
-  the Cluster IP. This request will be redirected by the iptables rules previously configured 
+- Suppose we have two services, APP-A and APP2, and now the APP-A service tries to access APP-B based on the domain name, the domain name resolution
+  request will be intercepted by the EdgeMesh-Agent of the node and EdgeMesh-Agent will return
+  the Cluster IP. This request will be redirected by the iptables rules previously configured
   by EdgeMesh-Agent and forwarded to the port 40001 which is occupied by the EdgeMesh process (data packet from kernel mode -> user mode)
-- After the request enters the EdgeMesh-Agent process, the EdgeMesh-Agent process completes the 
-  selection of the backend Pod (load balancing occurs here), and then the request will be sent 
-  to the EdgeMesh-Agent of the host where APP-B is located through the tunnel module (via relay 
+- After the request enters the EdgeMesh-Agent process, the EdgeMesh-Agent process completes the
+  selection of the backend Pod (load balancing occurs here), and then the request will be sent
+  to the EdgeMesh-Agent of the host where APP-B is located through the tunnel module (via relay
   forwarding or direct transmission through holes punch)
-- The EdgeMesh-Agent of the node where APP-B is located is responsible for forwarding traffic to the service port of APP-B, and get 
+- The EdgeMesh-Agent of the node where APP-B is located is responsible for forwarding traffic to the service port of APP-B, and get
   the response back to the EdgeMesh-Agent where APP-A is located
 - The EdgeMesh-Agent of the node where APP-A is located is responsible for feeding back the response data to the APP-A service
 
@@ -184,17 +184,6 @@ git clone https://github.com/kubeedge/edgemesh.git
 cd edgemesh
 ```
 
-#### Build Images
-Build EdgeMesh-Server image
-```shell
-make serverimage
-```
-
-Build EdgeMesh-Agent image
-```shell
-make agentimage
-````
-
 #### Create CRDS
 ```shell
 kubectl apply -f build/crds/istio/
@@ -210,6 +199,7 @@ modules:
   ..
   edgeMesh:
     enable: false
+  ..
   metaManager:
     metaServer:
       enable: true
@@ -249,21 +239,62 @@ Deploy edgemesh-server
 $ kubectl apply -f build/server/edgemesh/02-serviceaccount.yaml
 $ kubeclt apply -f build/server/edgemesh/03-clusterrole.yaml
 $ kubeclt apply -f build/server/edgemesh/04-clusterrolebinding.yaml
-#  Please set the value of 05-configmap's publicIP to the node's public IP so that edge nodes can access it.
+# Please set the value of 05-configmap's publicIP to the node's public IP so that edge nodes can access it.
 $ kubeclt apply -f build/server/edgemesh/05-configmap.yaml
 $ kubeclt apply -f build/server/edgemesh/06-deployment.yaml
 ```
 
-Deploy edgemesh-agent
+Get K8s cluster serviceCIDR, which will be used later
 ```shell
-# Please set the subNet to the value of service-cluster-ip-range of kube-apiserver.
-# You can obtain the value from the /etc/kubernetes/manifests/kube-apiserver.yaml file on the master node
-$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/03-configmap.yaml
-configmap/edgemesh-agent-cfg created
-$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/04-daemonset.yaml
-daemonset.apps/edgemesh-agent created
+$ kubectl cluster-info dump | grep "service-cluster-ip-range"
+      "--service-cluster-ip-range=10.96.0.0/12",
+      "--service-cluster-ip-range=10.96.0.0/12",
 ```
 
+Deploy edgemesh-agent-cloud
+```shell
+$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/03-serviceaccount.yaml
+serviceaccount/edgemesh-agent created
+$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/04-clusterrole.yaml
+clusterrole.rbac.authorization.k8s.io/edgemesh-agent created
+$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/05-clusterrolebinding.yaml
+clusterrolebinding.rbac.authorization.k8s.io/edgemesh-agent created
+# Please set the subNet to the value of service-cluster-ip-range of kube-apiserver
+$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/06-configmap-cloud.yaml
+configmap/edgemesh-agent-cloud-cfg created
+$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/07-daemonset-cloud.yaml
+daemonset.apps/edgemesh-agent-cloud created
+```
+
+Deploy edgemesh-agent-edge
+```shell
+# Please set the subNet to the value of service-cluster-ip-range of kube-apiserver
+$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/06-configmap-edge.yaml
+configmap/edgemesh-agent-edge-cfg created
+$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/07-daemonset-edge.yaml
+daemonset.apps/edgemesh-agent-edge created
+```
+
+Check it out
+```shell
+$ kubectl get all -n kubeedge
+NAME                                   READY   STATUS    RESTARTS   AGE
+pod/edgemesh-agent-cloud-pcphk         1/1     Running   0          19h
+pod/edgemesh-agent-cloud-qkcpx         1/1     Running   0          19h
+pod/edgemesh-agent-edge-b4hf7          1/1     Running   0          19h
+pod/edgemesh-agent-edge-ktl6b          1/1     Running   0          19h
+pod/edgemesh-server-7f97d77469-dml4j   1/1     Running   0          2d21h
+
+NAME                                  DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+daemonset.apps/edgemesh-agent-cloud   2         2         2       2            2           <none>          19h
+daemonset.apps/edgemesh-agent-edge    2         2         2       2            2           <none>          19h
+
+NAME                              READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/edgemesh-server   1/1     1            1           2d21h
+
+NAME                                         DESIRED   CURRENT   READY   AGE
+replicaset.apps/edgemesh-server-7f97d77469   1         1         1       2d21h
+```
 
 
 #### Test Case
@@ -286,13 +317,13 @@ $ curl hostname-lb-svc.edgemesh-test:12345
 
 **TCP**
 
-At the edge node 1, deploy a TCP container application, and relevant service	
+At the edge node 1, deploy a TCP container application, and relevant service
 
 ```shell
 $ kubectl apply -f examples/tcp-echo-service.yaml
 ```
 
-At the edge node 1, use ‘telnet’ to access the service		
+At the edge node 1, use ‘telnet’ to access the service
 
 ```shell
 $ telnet tcp-echo-service.edgemesh-test 2701
@@ -302,7 +333,7 @@ $ telnet tcp-echo-service.edgemesh-test 2701
 
 **Websocket**
 
-At the edge node 1, deploy a websocket container application, and relevant service	
+At the edge node 1, deploy a websocket container application, and relevant service
 
 ```shell
 $ kubectl apply -f examples/websocket-pod-svc.yaml
@@ -319,7 +350,7 @@ $ ./client --addr ws-svc.edgemesh-test:12348
 
 **Load Balance**
 
-Use the 'loadBalancer' in 'DestinationRule' to select LB modes	
+Use the 'loadBalancer' in 'DestinationRule' to select LB modes
 
 ```shell
 $ vim examples/hostname-lb-random.yaml
@@ -328,7 +359,51 @@ spec
   trafficPolicy:
     loadBalancer:
       simple: RANDOM
-..    
+..
+```
+
+
+
+**Cross-Edge-Cloud service discovery**
+
+The busybox-edge in the edgezone can access the tcp-echo-cloud on the cloud, and the busybox-cloud in the cloudzone can access the tcp-echo-edge on the edge
+
+```shell
+$ kubectl apply -f examples/cloudzone.yaml
+pod/tcp-echo-cloud created
+service/tcp-echo-cloud-svc created
+pod/busybox-sleep-cloud created
+
+$ kubectl apply -f examples/edgezone.yaml
+pod/tcp-echo-edge created
+service/tcp-echo-edge-svc created
+pod/busybox-sleep-edge created
+```
+
+Cloud access edge
+```shell
+$ kubectl -n cloudzone exec busybox-sleep-cloud -c busybox -i -t -- sh
+/ # telnet tcp-echo-edge-svc.edgezone 2701
+Welcome, you are connected to node ke-edge1.
+Running on Pod tcp-echo-edge.
+In namespace edgezone.
+With IP address 172.17.0.2.
+Service default.
+I'm Cloud Buxybox
+I'm Cloud Buxybox
+```
+
+Edge access cloud
+```shell
+$ docker exec -it 4c57a4ff8974 sh
+/ # telnet tcp-echo-cloud-svc.cloudzone 2701
+Welcome, you are connected to node k8s-master.
+Running on Pod tcp-echo-cloud.
+In namespace cloudzone.
+With IP address 10.244.0.8.
+Service default.
+I'm Edge Busybox
+I'm Edge Busybox
 ```
 
 

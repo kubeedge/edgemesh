@@ -24,11 +24,11 @@ type sockAddr struct {
 
 func (proxy *EdgeProxy) Run() {
 	// ensure ipatbles
-	proxy.Proxier.start()
+	proxy.Proxier.Start()
 
-	// start server
+	// start tcp proxy
 	for {
-		conn, err := proxy.Listener.Accept()
+		conn, err := proxy.TCPProxy.Listener.Accept()
 		if err != nil {
 			klog.Warningf("get tcp conn error: %v", err)
 			continue

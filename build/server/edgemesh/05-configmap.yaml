@@ -1,13 +1,21 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: edgemesh-server
+  name: edgemesh-server-cfg
   namespace: kubeedge
   labels:
     k8s-app: kubeedge
     kubeedge: edgemesh-server
 data:
   edgemesh-server.yaml: |
+    apiVersion: server.edgemesh.config.kubeedge.io/v1alpha1
+    kind: EdgeMeshServer
+    kubeAPIConfig:
+      burst: 200
+      contentType: application/vnd.kubernetes.protobuf
+      kubeConfig: ""
+      master: ""
+      qps: 100
     modules:
       tunnel:
         enable: true

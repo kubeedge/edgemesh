@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: edgemesh-agent-cfg
+  name: edgemesh-agent-edge-cfg
   namespace: kubeedge
   labels:
     k8s-app: kubeedge
-    kubeedge: edgemesh
+    kubeedge: edgemesh-agent
 data:
   edgemesh-agent.yaml: |
     apiVersion: agent.edgemesh.config.kubeedge.io/v1alpha1

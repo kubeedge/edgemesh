@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: edgemesh-agent
+  name: edgemesh-agent-edge
   namespace: kubeedge
   labels:
     k8s-app: kubeedge
@@ -51,10 +51,11 @@ spec:
               mountPath: /etc/resolv.conf
             - name: edgemesh
               mountPath: /etc/kubeedge/edgemesh
+      restartPolicy: Always
       volumes:
         - name: conf
           configMap:
-            name: edgemesh-agent-cfg
+            name: edgemesh-agent-edge-cfg
         - name: resolv
           hostPath:
             path: /etc/resolv.conf
@@ -62,4 +63,3 @@ spec:
           hostPath:
             path: /etc/kubeedge/edgemesh
             type: DirectoryOrCreate
-

@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tcp-echo-edge
+  namespace: edgezone
+  labels:
+    app: tcp-echo-edge
+spec:
+  nodeName: ke-edge1
+  containers:
+    - name: tcp-echo-container
+      image: cjimti/go-echo:latest
+      imagePullPolicy: Always
+      env:
+        - name: TCP_PORT
+          value: "2701"
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: SERVICE_ACCOUNT
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
+      ports:
+        - name: tcp-echo-port
+          containerPort: 2701
+          hostPort: 2701
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tcp-echo-edge-svc
+  namespace: edgezone
+  labels:
+    app: tcp-echo-edge
+spec:
+  selector:
+    app: tcp-echo-edge
+  ports:
+    - name: tcp-0
+      protocol: TCP
+      port: 2701
+      targetPort: 2701
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox-sleep-edge
+  namespace: edgezone
+spec:
+  nodeName: ke-edge1
+  containers:
+    - name: busybox
+      image: busybox:1.28
+      imagePullPolicy: IfNotPresent
+      args:
+        - sleep
+        - "12000"

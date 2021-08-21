@@ -2,13 +2,11 @@ package proxy
 
 import (
 	"fmt"
-	"net"
-
-	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/beehive/pkg/core"
 	"github.com/kubeedge/edgemesh/agent/pkg/proxy/config"
 	"github.com/kubeedge/edgemesh/agent/pkg/proxy/controller"
+	"github.com/kubeedge/edgemesh/agent/pkg/proxy/protocol"
 	"github.com/kubeedge/edgemesh/common/informers"
 	"github.com/kubeedge/edgemesh/common/modules"
 	"github.com/kubeedge/edgemesh/common/util"
@@ -17,8 +15,10 @@ import (
 // EdgeProxy is used for traffic proxy
 type EdgeProxy struct {
 	Config   *config.EdgeProxyConfig
-	Listener *net.TCPListener
+	TCPProxy *protocol.TCPProxy
 	Proxier  *Proxier
+	// TODO(Poorunga) realize the proxy of UDP protocol
+	// UDPProxy *protocol.UDPProxy
 }
 
 func newEdgeProxy(c *config.EdgeProxyConfig, ifm *informers.Manager) (proxy *EdgeProxy, err error) {
@@ -36,31 +36,17 @@ func newEdgeProxy(c *config.EdgeProxyConfig, ifm *informers.Manager) (proxy *Edg
 		return proxy, fmt.Errorf("get proxy listen ip err: %v", err)
 	}
 
-	// get tcp listener
-	tmpPort := 0
-	listenAddr := &net.TCPAddr{
-		IP:   listenIP,
-		Port: proxy.Config.ListenPort + tmpPort,
-	}
-	for {
-		ln, err := net.ListenTCP("tcp", listenAddr)
-		if err == nil {
-			proxy.Listener = ln
-			break
-		}
-		klog.Warningf("listen on address %v error: %v", listenAddr, err)
-		tmpPort++
-		listenAddr = &net.TCPAddr{
-			IP:   listenIP,
-			Port: proxy.Config.ListenPort + tmpPort,
-		}
+	// get tcp proxy
+	proxy.TCPProxy = &protocol.TCPProxy{Name: protocol.TCP}
+	if err := proxy.TCPProxy.SetListener(listenIP, proxy.Config.ListenPort); err != nil {
+		return proxy, fmt.Errorf("set tcp proxy err: %v", err)
 	}
 
 	// new proxier
-	proxy.Proxier, err = newProxier(proxy.Config.SubNet, proxy.Config.ListenInterface,
-		listenIP, proxy.Config.ListenPort)
+	protoProxies := []protocol.ProtoProxy{proxy.TCPProxy}
+	proxy.Proxier, err = NewProxier(proxy.Config.SubNet, protoProxies, ifm.GetKubeClient())
 	if err != nil {
-		return proxy, fmt.Errorf("new proxier error: %v", err)
+		return proxy, fmt.Errorf("new proxier err: %v", err)
 	}
 
 	return proxy, nil

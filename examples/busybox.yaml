@@ -3,10 +3,19 @@ kind: Pod
 metadata:
   name: busybox-sleep-resources-cloud
 spec:
-  nodeName: ke-edge2
+  nodeName: cloud-node
   containers:
     - name: busybox
-      image: busybox:latest
+      # Image `busybox:latest` cannot get DNS answer from kube-dns:
+      #   / # nslookup kubernetes.default
+      #   Server:         10.96.0.10
+      #   Address:        10.96.0.10:53
+      #
+      #   ** server can't find kubernetes.default: NXDOMAIN
+      #
+      #   *** Can't find kubernetes.default: No answer
+      # But busybox:1.28 can get DNS answer normally, so...
+      image: busybox:1.28
       imagePullPolicy: IfNotPresent
       args:
         - sleep
