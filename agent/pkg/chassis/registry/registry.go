@@ -109,11 +109,17 @@ func (esd *EdgeServiceDiscovery) FindMicroServiceInstances(consumerID, microServ
 		hostPort = int32(targetPort)
 	} else {
 		// container network
+		isFound := false
 		for _, container := range pods[0].Spec.Containers {
 			for _, port := range container.Ports {
 				if port.ContainerPort == int32(targetPort) {
 					hostPort = port.HostPort
+					isFound = true
+					break
 				}
+			}
+			if isFound {
+				break
 			}
 		}
 	}
