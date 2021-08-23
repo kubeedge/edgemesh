@@ -12,7 +12,7 @@ data:
     kind: EdgeMeshAgent
     kubeAPIConfig:
       burst: 200
-      contentType: application/vnd.kubernetes.protobuf
+      contentType: application/json
       kubeConfig: ""
       master: "http://127.0.0.1:10550"
       qps: 100

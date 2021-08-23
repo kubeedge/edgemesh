@@ -5,6 +5,7 @@ import (
 	"path"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
@@ -58,10 +59,10 @@ func NewEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 		},
 		KubeAPIConfig: &v1alpha1.KubeAPIConfig{
 			Master:      "",
-			ContentType: constants.DefaultKubeContentType,
+			ContentType: runtime.ContentTypeJSON,
 			QPS:         constants.DefaultKubeQPS,
 			Burst:       constants.DefaultKubeBurst,
-			KubeConfig:  constants.DefaultKubeConfig,
+			KubeConfig:  "",
 		},
 		GoChassisConfig: chassisconfig.NewGoChassisConfig(),
 		Modules: &Modules{
