@@ -38,7 +38,7 @@ func NewManager(config *v1alpha1.KubeAPIConfig) (*Manager, error) {
 	}
 	kubeConfig.QPS = float32(config.QPS)
 	kubeConfig.Burst = int(config.Burst)
-	kubeConfig.ContentType = runtime.ContentTypeProtobuf
+	kubeConfig.ContentType = config.ContentType
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
 	istioKubeConfig := rest.CopyConfig(kubeConfig)
