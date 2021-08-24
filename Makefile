@@ -96,6 +96,24 @@ lint:
 	hack/make-rules/lint.sh
 endif
 
+define E2E_HELP_INFO
+# e2e test.
+#
+# Example:
+#   make e2e
+#   make e2e HELP=y
+#
+endef
+.PHONY: e2e
+ifeq ($(HELP),y)
+e2e:
+	@echo "$$E2E_HELP_INFO"
+else
+e2e:
+#	This has been commented temporarily since there is an issue of CI using same master for all PRs, which is causing failures when run parallelly
+	tests/e2e/scripts/execute.sh
+endif
+
 
 define CLEAN_HELP_INFO
 # Clean up the output of make.
