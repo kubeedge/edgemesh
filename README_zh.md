@@ -168,9 +168,9 @@ EdgeMesh-Agent的核心组件包括：
 #### 预备知识
 在使用EdgeMesh之前，您需要先了解以下预备知识：
 
-- 使用 EdgeMesh 能力时，必须要求 Pod 要开启一个 HostPort，例子可看 /examples/ 目录下面的文件
 - 使用 DestinationRule 时，要求 DestinationRule 的名字与相应的 Service 的名字要一致，EdgeMesh 会根据 Service 的名字来确定同命名空间下面的DestinationRule
 - Service 的端口必须命名。端口名键值对必须按以下格式：name: \<protocol>[-\<suffix>]
+- 使用 EdgeMesh 能力时，必须要求 Pod 要开启一个 HostPort，例子可看 /examples/ 目录下面的文件（此限制已移除）
 
 #### 获取EdgeMesh
 ```Shell

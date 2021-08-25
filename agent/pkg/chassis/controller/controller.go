@@ -2,7 +2,6 @@ package controller
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/buraksezer/consistent"
@@ -16,7 +15,6 @@ import (
 
 	"github.com/kubeedge/edgemesh/agent/pkg/chassis/loadbalancer/consistenthash/hashring"
 	"github.com/kubeedge/edgemesh/common/informers"
-	"github.com/kubeedge/edgemesh/common/util"
 )
 
 var (
@@ -25,6 +23,8 @@ var (
 )
 
 type ChassisController struct {
+	mu sync.Mutex
+
 	podLister k8slisters.PodLister
 	svcLister k8slisters.ServiceLister
 	epLister  k8slisters.EndpointsLister
@@ -74,22 +74,16 @@ func (c *ChassisController) GetDrLister() istiolisters.DestinationRuleLister {
 }
 
 func (c *ChassisController) epUpdate(oldObj, newObj interface{}) {
-	ep, ok := newObj.(*v1.Endpoints)
+	eps, ok := newObj.(*v1.Endpoints)
 	if !ok {
 		klog.Errorf("invalid type %v", newObj)
 		return
 	}
 	// service, endpoints and destinationRule should have the same name
-	dr, err := c.drLister.DestinationRules(ep.Namespace).Get(ep.Name)
+	dr, err := c.drLister.DestinationRules(eps.Namespace).Get(eps.Name)
 	if err == nil && dr != nil && isConsistentHashLB(dr) {
-		key := fmt.Sprintf("%s.%s", ep.Namespace, ep.Name)
-		svc, err := c.svcLister.Services(ep.Namespace).Get(ep.Name)
-		if err != nil || svc == nil {
-			klog.Errorf("no service %s exists", key)
-			return
-		}
 		// may need to update hash ring
-		c.updateHashRingByService(key, svc)
+		c.updateHashRing(eps)
 	}
 }
 
@@ -152,64 +146,75 @@ func isConsistentHashLB(dr *istioapi.DestinationRule) (ok bool) {
 
 // createHashRing create hash ring if needed
 func (c *ChassisController) createHashRing(namespace, name string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// check hash ring cache
 	key := fmt.Sprintf("%s.%s", namespace, name)
 	if _, ok := hashring.GetHashRing(key); ok {
 		klog.Warningf("hash ring %s already exists in cache", key)
 		return
 	}
-	svc, err := c.svcLister.Services(namespace).Get(name)
-	if err != nil || svc == nil {
-		klog.Errorf("unable to get the service bound to the destinationRule, reason: %v", err)
-		return
-	}
-	// create new hash ring
-	c.createHashRingByService(svc)
-}
 
-// createHashRingByService create and store hash ring by Service
-func (c *ChassisController) createHashRingByService(svc *v1.Service) {
-	// get pods
-	pods, err := c.podLister.Pods(svc.Namespace).List(util.GetPodsSelector(svc))
-	if err != nil || pods == nil {
-		klog.Errorf("failed to get pod list, reason: %v", err)
+	// get endpoints
+	eps, err := c.epLister.Endpoints(namespace).Get(name)
+	if err != nil {
+		klog.Errorf("failed to get endpoints %s.%s, reason: %v", namespace, name, err)
 		return
 	}
-	// create service instances
+	if eps == nil {
+		klog.Errorf("endpoints %s.%s is nil", namespace, name)
+		return
+	}
+
+	// create service instances from endpoints
 	var instances []hashring.ServiceInstance
-	for _, p := range pods {
-		if p.Status.Phase == v1.PodRunning {
+	for _, subset := range eps.Subsets {
+		for _, addr := range subset.Addresses {
 			instances = append(instances, hashring.ServiceInstance{
-				Namespace:  svc.Namespace,
-				Name:       svc.Name,
-				InstanceIP: p.Status.HostIP,
+				Namespace:  namespace,
+				Name:       name,
+				InstanceIP: addr.IP,
 			})
 		}
 	}
+
 	// create hash ring
 	hr := hashring.NewServiceInstanceHashRing(instances)
 	// store hash ring
-	key := fmt.Sprintf("%s.%s", svc.Namespace, svc.Name)
 	hashring.AddOrUpdateHashRing(key, hr)
 }
 
-// updateHashRingByService update hash ring by Service
-func (c *ChassisController) updateHashRingByService(ring string, svc *v1.Service) {
+// updateHashRing update hash ring by endpoints
+func (c *ChassisController) updateHashRing(eps *v1.Endpoints) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if eps == nil {
+		klog.Errorf("endpoints is nil")
+		return
+	}
+
 	// get hash ring
+	ring := fmt.Sprintf("%s.%s", eps.Namespace, eps.Name)
 	hr, ok := hashring.GetHashRing(ring)
 	if !ok {
-		klog.Errorf("cannot find hash ring %s", ring)
+		klog.Warningf("cannot find hash ring %s, create it", ring)
+		c.createHashRing(eps.Namespace, eps.Name)
 		return
 	}
-	// get pods
-	pods, err := c.podLister.Pods(svc.Namespace).List(util.GetPodsSelector(svc))
-	if err != nil || pods == nil {
-		klog.Errorf("failed to get pod list, reason: %v", err)
-		return
-	}
-	added, deleted := lookForDifference(hr, pods, ring)
+
+	// find the difference
+	added, deleted := findDiff(eps, hr)
+
+	// update hash ring
 	for _, key := range added {
 		klog.Infof("add ServiceInstance %s to hash ring %s", key, ring)
-		namespace, name, instanceIP := splitServiceInstanceKey(key)
+		namespace, name, instanceIP, err := hashring.SplitKey(key)
+		if err != nil {
+			klog.Warningf("failed to split key, reason: %v", err)
+			continue
+		}
 		hr.Add(hashring.ServiceInstance{
 			Namespace:  namespace,
 			Name:       name,
@@ -220,24 +225,17 @@ func (c *ChassisController) updateHashRingByService(ring string, svc *v1.Service
 		klog.Infof("delete ServiceInstance %s from hash ring %s", key, ring)
 		hr.Remove(key)
 	}
+
 	// refresh cache
 	if len(added) != 0 || len(deleted) != 0 {
 		hashring.AddOrUpdateHashRing(ring, hr)
 	}
 }
 
-func splitServiceInstanceKey(key string) (namespace, name, instanceIP string) {
-	parts := strings.Split(key, "#")
-	if len(parts) != 3 {
-		klog.Errorf("invalid key format")
-		return
-	}
-	return parts[0], parts[1], parts[2]
-}
-
-// lookForDifference look for the difference between v1.Pods and HashRing.Members
-func lookForDifference(hr *consistent.Consistent, pods []*v1.Pod, key string) ([]string, []string) {
+// findDiff look for the difference between v1.Endpoints and HashRing.Members
+func findDiff(eps *v1.Endpoints, hr *consistent.Consistent) ([]string, []string) {
 	var src, dest []string
+
 	// get source array from hr.Members
 	for _, member := range hr.GetMembers() {
 		si, ok := member.(hashring.ServiceInstance)
@@ -247,23 +245,20 @@ func lookForDifference(hr *consistent.Consistent, pods []*v1.Pod, key string) ([
 		}
 		src = append(src, si.String())
 	}
-	klog.Infof("src: %+v", src)
-	// build destination array from v1.Pods
-	namespace, name := util.SplitServiceKey(key)
-	for _, p := range pods {
-		if p.DeletionTimestamp != nil {
-			continue
-		}
-		if p.Status.Phase == v1.PodRunning {
-			key := fmt.Sprintf("%s#%s#%s", namespace, name, p.Status.HostIP)
-			dest = append(dest, key)
+	klog.V(4).Infof("src: %+v", src)
+
+	// build destination array from endpoints
+	for _, subset := range eps.Subsets {
+		for _, addr := range subset.Addresses {
+			dest = append(dest, fmt.Sprintf("%s#%s#%s", eps.Namespace, eps.Name, addr.IP))
 		}
 	}
-	klog.Infof("dest: %+v", dest)
+	klog.V(4).Infof("dest: %+v", dest)
+
 	return arrayCompare(src, dest)
 }
 
-// arrayCompare finds the difference between two arrays.
+// arrayCompare finds the difference between two string arrays.
 func arrayCompare(src []string, dest []string) ([]string, []string) {
 	msrc := make(map[string]byte) // source array set
 	mall := make(map[string]byte) // union set
@@ -276,8 +271,13 @@ func arrayCompare(src []string, dest []string) ([]string, []string) {
 	}
 	// 2.Elements that cannot be stored in the destination array are duplicate elements.
 	for _, v := range dest {
+		l := len(mall)
 		mall[v] = 1
-		set = append(set, v)
+		if l != len(mall) {
+			l = len(mall)
+		} else {
+			set = append(set, v)
+		}
 	}
 	// 3.union - intersection = all variable elements
 	for _, v := range set {
@@ -294,5 +294,6 @@ func arrayCompare(src []string, dest []string) ([]string, []string) {
 			added = append(added, v)
 		}
 	}
+
 	return added, deleted
 }

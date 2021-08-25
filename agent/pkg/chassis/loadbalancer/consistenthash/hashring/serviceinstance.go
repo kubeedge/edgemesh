@@ -18,6 +18,7 @@ package hashring
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/buraksezer/consistent"
 	"github.com/cespare/xxhash"
@@ -36,13 +37,22 @@ func (h defaultHasher) Sum64(data []byte) uint64 {
 type ServiceInstance struct {
 	Namespace  string
 	Name       string
-	InstanceIP string // TODO: Now it is host ip, and later it will be pod ip@Poorunga
+	InstanceIP string
 }
 
 // String gets service instance key
 func (si ServiceInstance) String() string {
-	// key format: Namespace.Name.InstanceIP
+	// key format: Namespace#Name#InstanceIP
 	return fmt.Sprintf("%s#%s#%s", si.Namespace, si.Name, si.InstanceIP)
+}
+
+func SplitKey(key string) (namespace, name, instanceIP string, err error) {
+	parts := strings.Split(key, "#")
+	if len(parts) != 3 {
+		err = fmt.Errorf("invalid ServiceInstance key format")
+		return
+	}
+	return parts[0], parts[1], parts[2], nil
 }
 
 func NewServiceInstanceHashRing(instances []ServiceInstance) *consistent.Consistent {
