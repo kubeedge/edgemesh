@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: edgemesh-agent-cloud
+  namespace: kubeedge
+  labels:
+    k8s-app: kubeedge
+    kubeedge: edgemesh-agent
+spec:
+  selector:
+    matchLabels:
+      k8s-app: kubeedge
+      kubeedge: edgemesh-agent
+  template:
+    metadata:
+      labels:
+        k8s-app: kubeedge
+        kubeedge: edgemesh-agent
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/edge
+                    operator: DoesNotExist
+                  - key: node-role.kubernetes.io/agent
+                    operator: DoesNotExist
+      hostNetwork: true
+      containers:
+        - name: edgemesh-agent
+          securityContext:
+            privileged: true
+          image: kubeedge/edgemesh-agent:latest
+          env:
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: conf
+              mountPath: /etc/kubeedge/config
+            - name: resolv
+              mountPath: /etc/resolv.conf
+            - name: edgemesh
+              mountPath: /etc/kubeedge/edgemesh
+      restartPolicy: Always
+      serviceAccountName: edgemesh-agent
+      volumes:
+        - name: conf
+          configMap:
+            name: edgemesh-agent-cloud-cfg
+        - name: resolv
+          hostPath:
+            path: /etc/resolv.conf
+        - name: edgemesh
+          hostPath:
+            path: /etc/kubeedge/edgemesh
+            type: DirectoryOrCreate

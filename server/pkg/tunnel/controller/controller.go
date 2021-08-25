@@ -47,7 +47,7 @@ func Init(ifm *informers.Manager) *TunnelServerController {
 }
 
 func (c *TunnelServerController) SetPeerAddrInfo(nodeName string, info *peer.AddrInfo) error {
-	peerAddrINfoBytes, err := info.MarshalJSON()
+	peerAddrInfoBytes, err := info.MarshalJSON()
 	if err != nil {
 		return fmt.Errorf("Marshal node %s peer info err: %v", nodeName, err)
 	}
@@ -61,7 +61,7 @@ func (c *TunnelServerController) SetPeerAddrInfo(nodeName string, info *peer.Add
 			},
 			Data: map[string][]byte{},
 		}
-		newSecret.Data[nodeName] = peerAddrINfoBytes
+		newSecret.Data[nodeName] = peerAddrInfoBytes
 		_, err = c.secretOperator.Create(context.Background(), newSecret, metav1.CreateOptions{})
 		if err != nil {
 			return fmt.Errorf("Create secret %s in %s failed: %v", constants.SecretName, constants.SecretNamespace, err)
@@ -74,11 +74,11 @@ func (c *TunnelServerController) SetPeerAddrInfo(nodeName string, info *peer.Add
 
 	if secret.Data == nil {
 		secret.Data = make(map[string][]byte)
-	} else if bytes.Equal(secret.Data[nodeName], peerAddrINfoBytes) {
+	} else if bytes.Equal(secret.Data[nodeName], peerAddrInfoBytes) {
 		return nil
 	}
 
-	secret.Data[nodeName] = peerAddrINfoBytes
+	secret.Data[nodeName] = peerAddrInfoBytes
 	secret, err = c.secretOperator.Update(context.Background(), secret, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("Update secret %v err: %v", secret, err)

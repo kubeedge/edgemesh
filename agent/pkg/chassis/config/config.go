@@ -63,7 +63,6 @@ func NewGoChassisConfig() *GoChassisConfig {
 	nodeName, isExist := os.LookupEnv(meshConstants.MY_NODE_NAME)
 	if !isExist {
 		klog.Fatalf("env %s not exist", meshConstants.MY_NODE_NAME)
-		os.Exit(1)
 	}
 
 	return &GoChassisConfig{

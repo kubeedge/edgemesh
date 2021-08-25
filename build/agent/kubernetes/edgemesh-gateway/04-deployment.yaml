@@ -36,6 +36,7 @@ spec:
               mountPath: /etc/kubeedge/config
             - name: resolv
               mountPath: /etc/resolv.conf
+      restartPolicy: Always
       volumes:
         - name: conf
           configMap:

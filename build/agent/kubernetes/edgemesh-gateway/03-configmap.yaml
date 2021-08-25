@@ -38,7 +38,7 @@ data:
         listenPort: 53
       edgeProxy:
         enable: false
-        subNet: 10.10.0.0/16
+        subNet: 10.96.0.0/12
         listenInterface: docker0
         listenPort: 40001
       edgeGateway:

@@ -49,10 +49,8 @@ spec:
       volumes:
         - name: conf
           configMap:
-            name: edgemesh-server
+            name: edgemesh-server-cfg
         - name: edgemesh
           hostPath:
             path: /etc/kubeedge/edgemesh
             type: DirectoryOrCreate
-
-
