@@ -170,7 +170,7 @@ EdgeMesh-Agent的核心组件包括：
 
 - 使用 DestinationRule 时，要求 DestinationRule 的名字与相应的 Service 的名字要一致，EdgeMesh 会根据 Service 的名字来确定同命名空间下面的DestinationRule
 - Service 的端口必须命名。端口名键值对必须按以下格式：name: \<protocol>[-\<suffix>]
-- 使用 EdgeMesh 能力时，必须要求 Pod 要开启一个 HostPort，例子可看 /examples/ 目录下面的文件（此限制已移除）
+- 使用 EdgeMesh 能力时，已经不再要求 Pod 必须开启一个 HostPort，例子可看 /examples/ 目录下面的文件
 
 #### 获取EdgeMesh
 ```Shell
@@ -232,17 +232,16 @@ $ curl 127.0.0.1:10550/api/v1/services
 
 ```shell
 $ kubectl apply -f build/server/edgemesh/02-serviceaccount.yaml
-$ kubeclt apply -f build/server/edgemesh/03-clusterrole.yaml
-$ kubeclt apply -f build/server/edgemesh/04-clusterrolebinding.yaml
+$ kubectl apply -f build/server/edgemesh/03-clusterrole.yaml
+$ kubectl apply -f build/server/edgemesh/04-clusterrolebinding.yaml
 # 这里要把edgemsh-server的公网IP，也就是让边缘节点可以访问到的IP填入到05-configmap的publicIP上
-$ kubeclt apply -f build/server/edgemesh/05-configmap.yaml
-$ kubeclt apply -f build/server/edgemesh/06-deployment.yaml
+$ kubectl apply -f build/server/edgemesh/05-configmap.yaml
+$ kubectl apply -f build/server/edgemesh/06-deployment.yaml
 ```
 
 获取 K8s 集群 serviceCIDR，后续需要用到
 ```shell
-$ kubectl cluster-info dump | grep "service-cluster-ip-range"
-      "--service-cluster-ip-range=10.96.0.0/12",
+$ kubectl cluster-info dump | grep -m 1 service-cluster-ip-range
       "--service-cluster-ip-range=10.96.0.0/12",
 ```
 

@@ -176,7 +176,7 @@ Before using EdgeMesh, you need to understand the following prerequisites at fir
 
 - while using DestinationRule, the name of the DestinationRule must be equal to the name of the corresponding Service. Edgemesh will determine the DestinationRule in the same namespace according to the name of the Service
 - Service ports must be named. The key/value pairs of port name must have the following syntax: name: \<protocol>[-\<suffix>]
-- when using edgemesh's capabilities, the Pod is required a hostPort. You can refer to the files in the /examples/ directory. (This restriction removed now)
+- Now the Pod is **NOT** required a hostPort. You can refer to the files in the /examples/ directory.
 
 #### Download Edgemesh
 ```Shell
@@ -237,17 +237,16 @@ $ curl 127.0.0.1:10550/api/v1/services
 Deploy edgemesh-server
 ```shell
 $ kubectl apply -f build/server/edgemesh/02-serviceaccount.yaml
-$ kubeclt apply -f build/server/edgemesh/03-clusterrole.yaml
-$ kubeclt apply -f build/server/edgemesh/04-clusterrolebinding.yaml
+$ kubectl apply -f build/server/edgemesh/03-clusterrole.yaml
+$ kubectl apply -f build/server/edgemesh/04-clusterrolebinding.yaml
 # Please set the value of 05-configmap's publicIP to the node's public IP so that edge nodes can access it.
-$ kubeclt apply -f build/server/edgemesh/05-configmap.yaml
-$ kubeclt apply -f build/server/edgemesh/06-deployment.yaml
+$ kubectl apply -f build/server/edgemesh/05-configmap.yaml
+$ kubectl apply -f build/server/edgemesh/06-deployment.yaml
 ```
 
 Get K8s cluster serviceCIDR, which will be used later
 ```shell
-$ kubectl cluster-info dump | grep "service-cluster-ip-range"
-      "--service-cluster-ip-range=10.96.0.0/12",
+$ kubectl cluster-info dump | grep -m 1 service-cluster-ip-range
       "--service-cluster-ip-range=10.96.0.0/12",
 ```
 
