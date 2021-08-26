@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"fmt"
+	"net"
 
 	"github.com/kubeedge/beehive/pkg/core"
 	"github.com/kubeedge/edgemesh/agent/pkg/dns"

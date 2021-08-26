@@ -15,8 +15,8 @@ type EdgeProxyConfig struct {
 
 func NewEdgeProxyConfig() *EdgeProxyConfig {
 	return &EdgeProxyConfig{
-		Enable:          true,
-		SubNet:          "10.96.0.0/12",
-		ListenPort:      40001,
+		Enable:     true,
+		SubNet:     "10.96.0.0/12",
+		ListenPort: 40001,
 	}
 }
