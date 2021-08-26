@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - bugfix-e2e-retry
     tags:
   pull_request:
 
