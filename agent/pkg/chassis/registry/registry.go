@@ -57,11 +57,14 @@ func (esd *EdgeServiceDiscovery) GetAllMicroServices() ([]*registry.MicroService
 
 // FindMicroServiceInstances find micro-service instances (subnets)
 func (esd *EdgeServiceDiscovery) FindMicroServiceInstances(consumerID, microServiceName string, tags utiltags.Tags) ([]*registry.MicroServiceInstance, error) {
+	var microServiceInstances instanceList
+
 	// parse microServiceName
 	name, namespace, svcPort, err := parseServiceURL(microServiceName)
 	if err != nil {
 		return nil, err
 	}
+
 	// get service
 	svc, err := controller.APIConn.GetSvcLister().Services(namespace).Get(name)
 	if err != nil {
@@ -70,29 +73,21 @@ func (esd *EdgeServiceDiscovery) FindMicroServiceInstances(consumerID, microServ
 	if svc == nil {
 		return nil, fmt.Errorf("service %s.%s is nil", namespace, name)
 	}
+
 	// get endpoints
 	eps, err := controller.APIConn.GetEpLister().Endpoints(namespace).Get(name)
 	if err != nil {
 		return nil, err
 	}
 	if eps == nil {
-		return nil, fmt.Errorf("endpoint %s.%s is nil", namespace, name)
-	}
-	// get pods
-	pods, err := controller.APIConn.GetPodLister().Pods(namespace).List(util.GetPodsSelector(svc))
-	if err != nil {
-		return nil, err
-	}
-	if len(pods) == 0 {
-		return nil, fmt.Errorf("pod list is empty")
+		return nil, fmt.Errorf("endpoints %s.%s is nil", namespace, name)
 	}
 
-	// get targetPort and Protocol from Service
+	// get targetPort and protocol from Service
 	targetPort, proto := getPortAndProtocol(svc, svcPort)
-	// port not found
+	// targetPort not found
 	if targetPort == 0 {
-		klog.Errorf("port %d not found in svc: %s.%s", svcPort, namespace, name)
-		return nil, fmt.Errorf("port %d not found in svc: %s.%s", svcPort, namespace, name)
+		return nil, fmt.Errorf("targetPort %d not found in service: %s.%s", svcPort, namespace, name)
 	}
 
 	// transport http data through tcp transparently
@@ -100,54 +95,34 @@ func (esd *EdgeServiceDiscovery) FindMicroServiceInstances(consumerID, microServ
 		proto = "tcp"
 	}
 
-	// gen
-	var microServiceInstances instanceList
-	var hostPort int32
-	// all pods share the same host port, get from pods[0]
-	if pods[0].Spec.HostNetwork {
-		// host network
-		hostPort = int32(targetPort)
-	} else {
-		// container network
-		for _, container := range pods[0].Spec.Containers {
-			for _, port := range container.Ports {
-				if port.ContainerPort == int32(targetPort) {
-					hostPort = port.HostPort
+	// gen MicroServiceInstances
+	for _, subset := range eps.Subsets {
+		if len(subset.Ports) > 0 && subset.Ports[0].Port == int32(targetPort) {
+			for _, addr := range subset.Addresses {
+				if addr.NodeName == nil {
+					// Each backend(Address) must have a nodeName, so we do not support custom Endpoints now.
+					// This means that external services cannot be used.
+					continue
 				}
-			}
-		}
-	}
-	// set targetPort from endpoints if hostPort == 0 still
-	if hostPort == 0 {
-		for _, a := range eps.Subsets {
-			for _, port := range a.Ports {
-				if port.Port != 0 {
-					microServiceInstances = append(microServiceInstances, &registry.MicroServiceInstance{
-						InstanceID:   fmt.Sprintf("%s.%s|%s.%d", namespace, name, a.Addresses[0].IP, port.Port),
-						ServiceID:    fmt.Sprintf("%s#%s#%s", namespace, name, a.Addresses[0].IP),
-						HostName:     "",
-						EndpointsMap: map[string]string{proto: fmt.Sprintf("%s:%d", a.Addresses[0].IP, port.Port)},
-					})
-				}
-			}
-		}
-	} else {
-		// set Pod ip if hostPort != 0
-		for _, p := range pods {
-			if p.Status.Phase == v1.PodRunning {
 				microServiceInstances = append(microServiceInstances, &registry.MicroServiceInstance{
-					InstanceID:   fmt.Sprintf("%s.%s|%s.%d", namespace, name, p.Status.HostIP, hostPort),
-					ServiceID:    fmt.Sprintf("%s#%s#%s", namespace, name, p.Status.HostIP),
+					InstanceID:   fmt.Sprintf("%s.%s|%s.%d", namespace, name, addr.IP, targetPort),
+					ServiceID:    fmt.Sprintf("%s#%s#%s", namespace, name, addr.IP),
 					HostName:     "",
-					EndpointsMap: map[string]string{proto: fmt.Sprintf("%s:%s:%d", p.Spec.NodeName, p.Status.HostIP, hostPort)},
+					EndpointsMap: map[string]string{proto: fmt.Sprintf("%s:%s:%d", *addr.NodeName, addr.IP, targetPort)},
 				})
 			}
 		}
 	}
 
+	// no instances found
+	if len(microServiceInstances) == 0 {
+		return nil, fmt.Errorf("service %s.%s has no instances", namespace, name)
+	}
+
 	// Why do we need to sort microServiceInstances?
 	// That's because the pod list obtained by the PodLister is out of order.
 	sort.Sort(microServiceInstances)
+
 	return microServiceInstances, nil
 }
 
@@ -195,6 +170,7 @@ func parseServiceURL(serviceURL string) (string, string, int, error) {
 	return name, namespace, port, nil
 }
 
+// getPortAndProtocol get targetPort and protocol, targetPort is equal to containerPort
 func getPortAndProtocol(svc *v1.Service, svcPort int) (targetPort int, protocol string) {
 	for _, p := range svc.Spec.Ports {
 		if p.Protocol == "TCP" && int(p.Port) == svcPort {
