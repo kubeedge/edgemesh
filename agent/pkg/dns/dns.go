@@ -77,6 +77,16 @@ func (h *handler) ServeDNS(w mdns.ResponseWriter, r *mdns.Msg) {
 }
 
 func (dns *EdgeDNS) Run() {
+	if err := dns.addInterface(); err != nil {
+		klog.Fatalf("create interface error: %v", err)
+	}
+
+	defer func() {
+		if err := dns.delInterface(); err != nil {
+			klog.Errorf("delete interface error: %v", err)
+		}
+	}()
+
 	// ensure /etc/resolv.conf have dns nameserver
 	go func() {
 		dns.ensureResolvForHost()
