@@ -10,3 +10,6 @@ __pycache__
 
 _output
 local-up-tmp
+node_modules
+.temp
+.cache
