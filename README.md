@@ -16,7 +16,7 @@ EdgeMesh is a part of KubeEdge, and provides a simple network solution for the i
 
 #### Background
 
-KubeEdge is build based on Kubernetes, extending cloud-native containerized application orchestration capabilities to the edge. However, at the scenario of edge computer, the network topology is more complex. Edge nodes in different areas are offen not interconnected, and the inter-communication of traffic between applications is the primary requirement of the business. For this scenairo, EdgeMesh offers a solution.
+KubeEdge is build based on Kubernetes, extending cloud-native containerized application orchestration capabilities to the edge. However, at the scenario of edge computer, the network topology is more complex. Edge nodes in different areas are often not interconnected, and the inter-communication of traffic between applications is the primary requirement of the business. For this scenairo, EdgeMesh offers a solution.
 
 
 
