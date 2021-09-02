@@ -17,6 +17,7 @@ import (
 
 	beehiveContext "github.com/kubeedge/beehive/pkg/core/context"
 	"github.com/kubeedge/edgemesh/agent/pkg/proxy/protocol"
+	"github.com/kubeedge/edgemesh/common/util"
 )
 
 const meshRootChain utiliptables.Chain = "EDGE-MESH"
@@ -66,14 +67,14 @@ func NewProxier(subnet string, protoProxies []protocol.ProtoProxy, kubeClient ku
 		dnatRules:    make([]iptablesEnsureInfo, 2),
 	}
 
-	// Initialize iptables rules
+	// iptables rule cleaning and writing
+	proxier.CleanResidue()
 	if err = proxier.InitRules(); err != nil {
 		return proxier, err
 	}
-	proxier.CleanRules()
+	proxier.FlushRules()
 	proxier.EnsureRules()
-	// TODO(Poorunga) delete this code
-	klog.V(5).Infof("ntf router: %d", netlink.NTF_ROUTER)
+
 	return proxier, nil
 }
 
@@ -86,7 +87,7 @@ func (proxier *Proxier) Start() {
 			case <-ticker.C:
 				proxier.EnsureRules()
 			case <-beehiveContext.Done():
-				proxier.CleanRules()
+				proxier.FlushRules()
 				return
 			}
 		}
@@ -94,6 +95,9 @@ func (proxier *Proxier) Start() {
 }
 
 func (proxier *Proxier) InitRules() (err error) {
+	proxier.mu.Lock()
+	defer proxier.mu.Unlock()
+
 	proxier.ignoreRules, err = proxier.createIgnoreRules()
 	if err != nil {
 		return fmt.Errorf("failed to create ignore rules: %v", err)
@@ -249,8 +253,8 @@ func (proxier *Proxier) EnsureRules() {
 	}
 }
 
-// CleanRules flush root chain and proxy chains
-func (proxier *Proxier) CleanRules() {
+// FlushRules flush root chain and proxy chains
+func (proxier *Proxier) FlushRules() {
 	proxier.mu.Lock()
 	defer proxier.mu.Unlock()
 
@@ -263,6 +267,51 @@ func (proxier *Proxier) CleanRules() {
 	for _, rule := range proxier.proxyRules {
 		if err := proxier.iptables.FlushChain(rule.table, rule.dstChain); err != nil {
 			klog.V(4).Error(err, "Failed flush proxy chain %s", rule.dstChain)
+		}
+	}
+}
+
+// CleanResidue will clean up some iptables or ip routes that may be left on the host
+func (proxier *Proxier) CleanResidue() {
+	proxier.mu.Lock()
+	defer proxier.mu.Unlock()
+
+	// clean up non-interface iptables rules
+	nonIfiRuleArgs := strings.Split(fmt.Sprintf("-p tcp -d %s -j EDGE-MESH", proxier.serviceCIDR), " ")
+	if err := proxier.iptables.DeleteRule(utiliptables.TableNAT, utiliptables.ChainPrerouting, nonIfiRuleArgs...); err != nil {
+		klog.V(4).Error(err, "Failed clean residual non-interface rule %v", nonIfiRuleArgs)
+	}
+	if err := proxier.iptables.DeleteRule(utiliptables.TableNAT, utiliptables.ChainOutput, nonIfiRuleArgs...); err != nil {
+		klog.V(4).Error(err, "Failed clean residual non-interface rule %v", nonIfiRuleArgs)
+	}
+
+	// clean up interface iptables rules
+	ifiList := []string{"docker0", "cni0"}
+	for _, ifi := range ifiList {
+		inboundRuleArgs := strings.Split(fmt.Sprintf("-p tcp -d %s -i %s -j EDGE-MESH", proxier.serviceCIDR, ifi), " ")
+		if err := proxier.iptables.DeleteRule(utiliptables.TableNAT, utiliptables.ChainPrerouting, inboundRuleArgs...); err != nil {
+			klog.V(4).Error(err, "Failed clean residual inbound rule %v", inboundRuleArgs)
+		}
+		outboundRuleAgrs := strings.Split(fmt.Sprintf("-p tcp -d %s -o %s -j EDGE-MESH", proxier.serviceCIDR, ifi), " ")
+		if err := proxier.iptables.DeleteRule(utiliptables.TableNAT, utiliptables.ChainOutput, outboundRuleAgrs...); err != nil {
+			klog.V(4).Error(err, "Failed clean residual outbound rule %v", outboundRuleAgrs)
+		}
+	}
+
+	// clean up ip routes
+	dst, err := netlink.ParseIPNet(proxier.serviceCIDR)
+	if err != nil {
+		klog.Errorf("parse subnet(serviceCIDR) error: %v", err)
+		return
+	}
+
+	// try to delete the route that may exist
+	for _, ifi := range ifiList {
+		if gw, err := util.GetInterfaceIP(ifi); err == nil {
+			route := netlink.Route{Dst: dst, Gw: gw}
+			if err := netlink.RouteDel(&route); err != nil {
+				klog.V(4).Error(err, "Failed delete route %v", route)
+			}
 		}
 	}
 }

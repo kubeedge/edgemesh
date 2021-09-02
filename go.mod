@@ -16,6 +16,8 @@ require (
 	github.com/libp2p/go-msgio v0.0.6
 	github.com/miekg/dns v1.1.43
 	github.com/multiformats/go-multiaddr v0.3.1
+	github.com/onsi/ginkgo v1.16.4
+	github.com/onsi/gomega v1.10.1
 	github.com/spf13/cobra v1.0.0
 	github.com/vishvananda/netlink v1.1.0
 	istio.io/api v0.0.0-20210131044048-bfeb10697307
