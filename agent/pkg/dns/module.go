@@ -13,7 +13,10 @@ import (
 	"github.com/kubeedge/edgemesh/common/modules"
 )
 
-const InterfaceAddress = "169.254.0.0/16"
+const (
+	InterfaceAddress = "169.254.0.0/16"
+	InterfaceName    = "edgemesh"
+)
 
 // EdgeDNS is a node-level dns resolver
 type EdgeDNS struct {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/vishvananda/netlink"
 	"k8s.io/apimachinery/pkg/util/wait"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/cli/globalflag"
@@ -110,6 +111,15 @@ func Run(cfg *config.EdgeMeshAgentConfig) error {
 	ifm.Start(wait.NeverStop)
 	trace++
 
+	if err := addInterface(); err != nil {
+		return err
+	}
+	defer func() {
+		if err := delInterface(); err != nil {
+			klog.Infof("delete interface error: %v", err)
+		}
+	}()
+
 	klog.Infof("[%d] Start all modules", trace)
 	core.Run()
 
@@ -142,4 +152,36 @@ func registerModules(c *config.EdgeMeshAgentConfig, ifm *informers.Manager) []er
 		errs = append(errs, err)
 	}
 	return errs
+}
+
+func addInterface() error {
+	la := netlink.NewLinkAttrs()
+	la.Name = dns.InterfaceName
+	err := netlink.LinkAdd(&netlink.Bridge{LinkAttrs: la})
+	if err != nil {
+		return err
+	}
+
+	addr, err := netlink.ParseAddr(dns.InterfaceAddress)
+	if err != nil {
+		return err
+	}
+
+	ifi, err := netlink.LinkByName(dns.InterfaceName)
+	if err != nil {
+		return err
+	}
+
+	err = netlink.AddrAdd(ifi, addr)
+	return err
+}
+
+func delInterface() error {
+	ifi, err := netlink.LinkByName(dns.InterfaceName)
+	if err != nil {
+		return err
+	}
+
+	err = netlink.LinkDel(ifi)
+	return err
 }

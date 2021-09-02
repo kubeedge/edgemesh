@@ -7,7 +7,6 @@ import (
 	"time"
 
 	mdns "github.com/miekg/dns"
-	"github.com/vishvananda/netlink"
 	"k8s.io/klog/v2"
 
 	beehiveContext "github.com/kubeedge/beehive/pkg/core/context"
@@ -16,41 +15,8 @@ import (
 )
 
 const (
-	hostResolv    = "/etc/resolv.conf"
-	interfaceName = "edgemesh"
+	hostResolv = "/etc/resolv.conf"
 )
-
-func (dns *EdgeDNS) addInterface() error {
-	la := netlink.NewLinkAttrs()
-	la.Name = interfaceName
-	err := netlink.LinkAdd(&netlink.Bridge{LinkAttrs: la})
-	if err != nil {
-		return err
-	}
-
-	addr, err := netlink.ParseAddr(InterfaceAddress)
-	if err != nil {
-		return err
-	}
-
-	ifi, err := netlink.LinkByName(interfaceName)
-	if err != nil {
-		return err
-	}
-
-	err = netlink.AddrAdd(ifi, addr)
-	return err
-}
-
-func (dns *EdgeDNS) delInterface() error {
-	ifi, err := netlink.LinkByName(interfaceName)
-	if err != nil {
-		return err
-	}
-
-	err = netlink.LinkDel(ifi)
-	return err
-}
 
 type handler struct{}
 
@@ -77,16 +43,6 @@ func (h *handler) ServeDNS(w mdns.ResponseWriter, r *mdns.Msg) {
 }
 
 func (dns *EdgeDNS) Run() {
-	if err := dns.addInterface(); err != nil {
-		klog.Fatalf("create interface error: %v", err)
-	}
-
-	defer func() {
-		if err := dns.delInterface(); err != nil {
-			klog.Errorf("delete interface error: %v", err)
-		}
-	}()
-
 	// ensure /etc/resolv.conf have dns nameserver
 	go func() {
 		dns.ensureResolvForHost()
