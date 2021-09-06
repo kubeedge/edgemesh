@@ -20,6 +20,7 @@ require (
 	github.com/onsi/gomega v1.10.1
 	github.com/spf13/cobra v1.0.0
 	github.com/vishvananda/netlink v1.1.0
+	golang.org/x/tools v0.1.5 // indirect
 	istio.io/api v0.0.0-20210131044048-bfeb10697307
 	istio.io/client-go v0.0.0-20210218000043-b598dd019200
 	k8s.io/api v0.19.10
