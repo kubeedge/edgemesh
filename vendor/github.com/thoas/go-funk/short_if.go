@@ -6,3 +6,4 @@ func ShortIf(condition bool, a interface{}, b interface{}) interface{} {
 	}
 	return b
 }
+
