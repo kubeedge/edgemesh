@@ -97,13 +97,14 @@ func (esd *EdgeServiceDiscovery) FindMicroServiceInstances(consumerID, microServ
 
 	// gen MicroServiceInstances
 	for _, subset := range eps.Subsets {
-		if len(subset.Ports) > 0 && subset.Ports[0].Port == int32(targetPort) {
-			for _, addr := range subset.Addresses {
-				if addr.NodeName == nil {
+		for _, addr := range subset.Addresses {
+			for _, port := range subset.Ports {
+				if addr.NodeName == nil || port.Port != int32(targetPort) {
 					// Each backend(Address) must have a nodeName, so we do not support custom Endpoints now.
 					// This means that external services cannot be used.
 					continue
 				}
+
 				microServiceInstances = append(microServiceInstances, &registry.MicroServiceInstance{
 					InstanceID:   fmt.Sprintf("%s.%s|%s.%d", namespace, name, addr.IP, targetPort),
 					ServiceID:    fmt.Sprintf("%s#%s#%s", namespace, name, addr.IP),
