@@ -1,0 +1,16 @@
+{
+  "name": "edgemesh",
+  "version": "1.0.0",
+  "description": "EdgeMesh Documentation",
+  "license": "Apache",
+  "scripts": {
+    "docs:dev": "vuepress dev docs",
+    "docs:build": "vuepress build docs"
+  },
+  "devDependencies": {
+    "vuepress": "^2.0.0-beta.24"
+  },
+  "dependencies": {
+    "@vuepress/plugin-docsearch": "^2.0.0-beta.24"
+  }
+}
