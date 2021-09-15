@@ -497,3 +497,7 @@ $ curl -k --cert ./tls.crt --key ./tls.key https://192.168.0.129:12345
 If you need support, start with the 'Operation Guidance', and then follow the process that we've outlined
 
 If you have any question, please contact us through the recommended information on [KubeEdge](https://github.com/kubeedge/kubeedge#contact)
+
+
+## Contributing
+If you are interested in EdgeMesh and would like to contribute to EdgeMesh project, please refer to [CONTRIBUTING](./CONTRIBUTING.md) for detailed contribution process guide.
