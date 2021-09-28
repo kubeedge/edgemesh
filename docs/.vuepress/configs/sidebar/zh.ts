@@ -17,6 +17,7 @@ export const zh: SidebarConfig = {
       text: '深入',
       children: [
         '/zh/advanced/architecture.md',
+        '/zh/advanced/hybirdnat.md',
       ],
     },
   ]
