@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 
 	"github.com/kubeedge/edgemesh/tests/e2e/k8s"
 	"github.com/kubeedge/kubeedge/tests/e2e/constants"
@@ -40,21 +39,16 @@ var _ = Describe("Traffic", func() {
 			testTimer.End()
 			// Print result
 			testTimer.PrintResult()
-			var podlist corev1.PodList
 			var deploymentList appsv1.DeploymentList
 			err := utils.GetDeployments(&deploymentList, ctx.Cfg.K8SMasterForKubeEdge+constants.DeploymentHandler)
 			Expect(err).To(BeNil())
 			for _, deployment := range deploymentList.Items {
 				if deployment.Name == UID {
-					labels := deployment.Spec.Selector.MatchLabels
-					podlist, err = k8s.GetPodByLabels(labels, ctx)
-					Expect(err).To(BeNil())
 					err := k8s.CleanupApplication(UID, ctx)
 					Expect(err).To(BeNil())
+					break
 				}
 			}
-			utils.Infof("podlist len %v", len(podlist.Items))
-			utils.CheckPodDeleteState(ctx.Cfg.K8SMasterForKubeEdge+constants.AppHandler, podlist)
 			utils.PrintTestcaseNameandStatus()
 		})
 

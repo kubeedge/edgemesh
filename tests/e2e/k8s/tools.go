@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	"github.com/kubeedge/edgemesh/tests/e2e/errors"
 	"github.com/kubeedge/kubeedge/tests/e2e/constants"
 	"github.com/kubeedge/kubeedge/tests/e2e/utils"
 )
@@ -19,6 +19,7 @@ import (
 const (
 	retryTime    = 5
 	interValTime = 5 * time.Second
+	waitPodTime  = 15 * time.Second
 )
 
 var (
@@ -58,34 +59,41 @@ func CreateBusyboxTool(name string, labels, nodeSelector map[string]string, ctx 
 		utils.Fatalf("Marshalling body failed: %v", err)
 		return nil, err
 	}
-	err = handlePostRequest2K8s(podURL, podBytes)
-	if err != nil {
-		utils.Fatalf("Frame HTTP request to k8s failed: %v", err)
-		return nil, err
-	}
-	gomega.Expect(err).To(gomega.BeNil())
-	// wait pod ready
-	// busyboxPodURL := podURL + "/" + name
 	var pod *v1.Pod
 	var podList v1.PodList
 	for i := 0; i < retryTime; i++ {
-		utils.Infof("Get Busybox tool pod round: %v", i)
-		time.Sleep(interValTime)
+		err = handlePostRequest2K8s(podURL, podBytes)
+		if err != nil {
+			utils.Fatalf("Frame HTTP request to k8s failed: %v", err)
+			return nil, err
+		}
+		// wait pod ready
+		// busyboxPodURL := podURL + "/" + name
+		time.Sleep(waitPodTime)
 		podList, err = GetPodByLabels(labels, ctx)
 		if err != nil {
-			utils.Infof("GetPodByLabels failed: %v", err)
+			utils.Errorf("GetPodByLabels failed: %v", err)
 			continue
 		}
 		if len(podList.Items) == 0 {
 			continue
 		}
 		pod = &podList.Items[0]
-		break
+		err := WaitforPodsRunning(ctx.Cfg.KubeConfigPath, podList, 240*time.Second)
+		if err == nil {
+			break
+		}
+		if errors.IsTimeout(err) {
+			err := CleanBusyBoxTool(name, ctx)
+			if err != nil {
+				utils.Errorf("clean up busybox failed %v", err)
+				return nil, err
+			}
+			utils.Infof("CleanUp finish, Start retry create busybox tool, round %d", i)
+			time.Sleep(interValTime)
+		}
 	}
-	if pod == nil {
-		return nil, fmt.Errorf("can not get busybox tools pod")
-	}
-	utils.WaitforPodsRunning(ctx.Cfg.KubeConfigPath, podList, 240*time.Second)
+
 	return pod, nil
 }
 
@@ -181,20 +189,38 @@ func createApplication(config *ApplicationConfig) error {
 		utils.Fatalf("Marshalling body failed: %v", err)
 		return err
 	}
-	err = handlePostRequest2K8s(deployURL, deployBytes)
-	if err != nil {
-		utils.Fatalf("Frame HTTP request to k8s failed: %v", err)
-		return err
+	for i := 0; i < retryTime; i++ {
+		err = handlePostRequest2K8s(deployURL, deployBytes)
+		if err != nil {
+			utils.Fatalf("Frame HTTP request to k8s failed: %v", err)
+			return err
+		}
+		time.Sleep(waitPodTime)
+		// wait deployment ready
+		podlist, err := GetPodByLabels(config.Labels, config.Ctx)
+		if err != nil {
+			utils.Fatalf("GetPods failed: %v", err)
+			return err
+		}
+		err = WaitforPodsRunning(config.Ctx.Cfg.KubeConfigPath, podlist, 240*time.Second)
+		if err == nil {
+			break
+		}
+		if errors.IsTimeout(err) {
+			utils.Errorf("CreateApplication failed for timeout: %v", err)
+			utils.Infof("Start clean up application and retry")
+			err := CleanupApplication(config.Name, config.Ctx)
+			if err != nil {
+				utils.Fatalf("Cleanup Application failed, %v", err)
+				return err
+			}
+			utils.Infof("CleanUp finish, Start retry CreateApplication, round %d", i)
+			time.Sleep(interValTime)
+		} else {
+			utils.Fatalf("CreateApplication failed, %v", err)
+			return err
+		}
 	}
-
-	time.Sleep(interValTime)
-	// wait deployment ready
-	podlist, err := GetPodByLabels(config.Labels, config.Ctx)
-	if err != nil {
-		utils.Fatalf("GetPods failed: %v", err)
-		return err
-	}
-	utils.WaitforPodsRunning(config.Ctx.Cfg.KubeConfigPath, podlist, 240*time.Second)
 
 	serviceURL := config.Ctx.Cfg.K8SMasterForKubeEdge + ServiceHandler
 	serviceBytes, err := json.Marshal(service)
@@ -211,6 +237,20 @@ func createApplication(config *ApplicationConfig) error {
 }
 
 func CleanupApplication(name string, ctx *utils.TestContext) error {
+	// fetch pod list for waiting delete
+	service, err := GetService(GenServiceNameFromUID(name), ctx)
+	if err != nil {
+		utils.Fatalf("HTTP request is failed: %v", err)
+		return err
+	}
+	labels := service.Spec.Selector
+	podlist, err := GetPodByLabels(labels, ctx)
+	if err != nil {
+		utils.Fatalf("HTTP request is failed: %v", err)
+		return err
+	}
+
+	// delete deployment
 	deploymentURL := ctx.Cfg.K8SMasterForKubeEdge + constants.DeploymentHandler
 	resp, err := utils.SendHTTPRequest(http.MethodDelete, deploymentURL+"/"+GenDeploymentNameFromUID(name))
 	if err != nil {
@@ -222,6 +262,10 @@ func CleanupApplication(name string, ctx *utils.TestContext) error {
 		return fmt.Errorf("status code not equal to %d", http.StatusOK)
 	}
 
+	// wait pod delete
+	utils.CheckPodDeleteState(ctx.Cfg.K8SMasterForKubeEdge+constants.AppHandler, podlist)
+
+	// delete service
 	serviceURL := ctx.Cfg.K8SMasterForKubeEdge + ServiceHandler
 	resp, err = utils.SendHTTPRequest(http.MethodDelete, serviceURL+"/"+GenServiceNameFromUID(name))
 	if err != nil {
@@ -232,6 +276,7 @@ func CleanupApplication(name string, ctx *utils.TestContext) error {
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("status code not equal to %d", http.StatusOK)
 	}
+
 	return nil
 }
 
