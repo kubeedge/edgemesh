@@ -5,9 +5,9 @@ type EdgeProxyConfig struct {
 	// Enable indicates whether enable edgeproxy
 	// default true
 	Enable bool `json:"enable,omitempty"`
-	// SubNet indicates the subnet of proxier
-	// default "10.96.0.0/12", equals to k8s default service-cluster-ip-range
-	SubNet string `json:"subNet,omitempty"`
+	// SubNet indicates the subnet of proxier, which equals to k8s service-cluster-ip-range
+	// no need for user manual configuration
+	SubNet string
 	// ListenInterface indicates the listen interface of edgeproxy
 	// do not allow users to configure manually
 	ListenInterface string
@@ -19,7 +19,6 @@ type EdgeProxyConfig struct {
 func NewEdgeProxyConfig() *EdgeProxyConfig {
 	return &EdgeProxyConfig{
 		Enable:     true,
-		SubNet:     "10.96.0.0/12",
 		ListenPort: 40001,
 	}
 }

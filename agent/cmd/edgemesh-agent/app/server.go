@@ -153,15 +153,22 @@ func registerModules(c *config.EdgeMeshAgentConfig, ifm *informers.Manager) []er
 
 // prepareRun prepares edgemesh-agent to run
 func prepareRun(c *config.EdgeMeshAgentConfig, ifm *informers.Manager) error {
-	if err := commonutil.CreateDummyDevice(c.CommonConfig.DummyDeviceName, c.CommonConfig.DummyDeviceIP); err != nil {
-		return fmt.Errorf("create dummy device %s err: %v", c.CommonConfig.DummyDeviceName, err)
-	}
 	// set dns and proxy modules listenInterface
-	if c.Modules.EdgeDNSConfig.Enable {
+	if c.Modules.EdgeDNSConfig.Enable || c.Modules.EdgeProxyConfig.Enable {
+		if err := commonutil.CreateDummyDevice(c.CommonConfig.DummyDeviceName, c.CommonConfig.DummyDeviceIP); err != nil {
+			return fmt.Errorf("create dummy device %s err: %v", c.CommonConfig.DummyDeviceName, err)
+		}
 		c.Modules.EdgeDNSConfig.ListenInterface = c.CommonConfig.DummyDeviceName
-	}
-	if c.Modules.EdgeProxyConfig.Enable {
 		c.Modules.EdgeProxyConfig.ListenInterface = c.CommonConfig.DummyDeviceName
+	}
+
+	// set proxy module subNet
+	if c.Modules.EdgeProxyConfig.Enable {
+		subNet, err := informers.GetClusterServiceCIDR(ifm.GetKubeClient())
+		if err != nil {
+			return fmt.Errorf("get cluster-service-ip-range err: %v", err)
+		}
+		c.Modules.EdgeProxyConfig.SubNet = subNet
 	}
 
 	return nil
