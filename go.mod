@@ -7,7 +7,7 @@ require (
 	github.com/cespare/xxhash v1.1.0
 	github.com/go-chassis/go-archaius v0.20.0
 	github.com/go-chassis/go-chassis v1.7.1
-	github.com/golang/protobuf v1.4.3
+	github.com/golang/protobuf v1.5.2
 	github.com/kubeedge/beehive v0.0.0
 	github.com/kubeedge/kubeedge v1.6.2
 	github.com/libp2p/go-libp2p v0.13.1-0.20210224102305-f981b25d2738
@@ -17,19 +17,20 @@ require (
 	github.com/miekg/dns v1.1.43
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/onsi/ginkgo v1.16.4
-	github.com/onsi/gomega v1.10.1
+	github.com/onsi/gomega v1.13.0
 	github.com/spf13/cobra v1.0.0
 	github.com/thoas/go-funk v0.9.1
 	github.com/vishvananda/netlink v1.1.0
 	istio.io/api v0.0.0-20210131044048-bfeb10697307
 	istio.io/client-go v0.0.0-20210218000043-b598dd019200
-	k8s.io/api v0.19.10
-	k8s.io/apimachinery v0.19.10
-	k8s.io/client-go v0.19.10
-	k8s.io/component-base v0.19.10
-	k8s.io/klog/v2 v2.2.0
-	k8s.io/kubernetes v1.19.10
-	k8s.io/utils v0.0.0-20200729134348-d5654de09c73
+	k8s.io/api v0.21.1
+	k8s.io/apimachinery v0.21.1
+	k8s.io/client-go v0.21.1
+	k8s.io/component-base v0.21.1
+	k8s.io/dns v0.0.0-20210922232110-28b748057b41
+	k8s.io/klog/v2 v2.8.0
+	k8s.io/kubernetes v1.19.12
+	k8s.io/utils v0.0.0-20210527160623-6fdb442a123b
 	sigs.k8s.io/yaml v1.2.0
 )
 
@@ -51,7 +52,7 @@ replace (
 	k8s.io/csi-translation-lib v0.0.0 => k8s.io/csi-translation-lib v0.19.3
 	k8s.io/gengo v0.0.0 => k8s.io/gengo v0.19.3
 	k8s.io/heapster => k8s.io/heapster v1.2.0-beta.1 // indirect
-	k8s.io/klog/v2 => k8s.io/klog/v2 v2.2.0
+	k8s.io/klog/v2 => k8s.io/klog/v2 v2.10.0
 	k8s.io/kube-aggregator v0.0.0 => k8s.io/kube-aggregator v0.19.3
 	k8s.io/kube-controller-manager v0.0.0 => k8s.io/kube-controller-manager v0.19.3
 	k8s.io/kube-openapi v0.0.0 => k8s.io/kube-openapi v0.19.3
