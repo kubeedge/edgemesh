@@ -67,7 +67,7 @@ func NewEdgeMeshServerConfig() *EdgeMeshServerConfig {
 					TLSPrivateKeyFile: meshConstants.ServerDefaultKeyFile,
 				},
 				NodeName:   nodeName,
-				ListenPort: 10004,
+				ListenPort: 20004,
 				PublicIP:   "0.0.0.0",
 			}},
 	}

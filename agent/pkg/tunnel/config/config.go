@@ -19,7 +19,7 @@ type TunnelAgentConfig struct {
 	// NodeName indicates the node name of tunnel agent
 	NodeName string `json:"nodeName"`
 	// ListenPort indicates the listen port of tunnel agent
-	// default 10006
+	// default 20006
 	ListenPort int `json:"listenPort"`
 }
 
@@ -35,6 +35,6 @@ func NewTunnelAgentConfig() *TunnelAgentConfig {
 			TLSPrivateKeyFile: meshConstants.AgentDefaultKeyFile,
 		},
 		NodeName:   nodeName,
-		ListenPort: 10006,
+		ListenPort: 20006,
 	}
 }

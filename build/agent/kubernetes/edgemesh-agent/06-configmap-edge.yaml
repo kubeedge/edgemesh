@@ -48,4 +48,4 @@ data:
         excludeIP: "*"
       tunnel:
         enable: true
-        listenPort: 10006
+        listenPort: 20006
