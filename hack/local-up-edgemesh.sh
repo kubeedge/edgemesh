@@ -256,7 +256,7 @@ spec:
               fieldRef:
                 fieldPath: spec.nodeName
         ports:
-        - containerPort: 10004
+        - containerPort: 20004
           name: relay
           protocol: TCP
         resources:
@@ -332,12 +332,10 @@ data:
     modules:
       edgeDNS:
         enable: true
-        listenInterface: docker0
         listenPort: 53
       edgeProxy:
         enable: true
         subNet: 10.96.0.0/12
-        listenInterface: docker0
         listenPort: 40001
       edgeGateway:
         enable: false
@@ -346,7 +344,7 @@ data:
         excludeIP: "*"
       tunnel:
         enable: true
-        listenPort: 10006
+        listenPort: 20006
 EOF
 
   sleep 5
@@ -377,10 +375,10 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: node-role.kubernetes.io/edge
-                    operator: Exists
-                  - key: node-role.kubernetes.io/agent
-                    operator: Exists
+                - key: node-role.kubernetes.io/edge
+                  operator: Exists
+                - key: node-role.kubernetes.io/agent
+                  operator: Exists
       hostNetwork: true
       containers:
         - name: edgemesh-agent

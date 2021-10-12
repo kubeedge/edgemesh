@@ -22,11 +22,17 @@ const (
 	GroupName  = "agent.edgemesh.config.kubeedge.io"
 	APIVersion = "v1alpha1"
 	Kind       = "EdgeMeshAgent"
+
+	DefaultDummyDeviceName = "edgemesh0"
+	DefaultDummyDeviceIP   = "169.254.96.16"
 )
 
 // EdgeMeshAgentConfig indicates the config of edgeMeshAgent which get from edgeMeshAgent config file
 type EdgeMeshAgentConfig struct {
 	metav1.TypeMeta
+	// CommonConfig indicates common config for all modules
+	// +Required
+	CommonConfig *CommonConfig `json:"commonConfig,omitempty"`
 	// KubeAPIConfig indicates the kubernetes cluster info which edgeMeshAgent will connected
 	// +Required
 	KubeAPIConfig *v1alpha1.KubeAPIConfig `json:"kubeAPIConfig,omitempty"`
@@ -36,6 +42,16 @@ type EdgeMeshAgentConfig struct {
 	// Modules indicates edgeMeshAgent modules config
 	// +Required
 	Modules *Modules `json:"modules,omitempty"`
+}
+
+// CommonConfig defines some common configuration items
+type CommonConfig struct {
+	// DummyDeviceName indicates the name of the dummy device will be created
+	// default edgemesh0
+	DummyDeviceName string `json:"dummyDeviceName,omitempty"`
+	// DummyDeviceIP indicates the IP bound to the dummy device
+	// default "169.254.96.16"
+	DummyDeviceIP string `json:"dummyDeviceIP,omitempty"`
 }
 
 // Modules indicates the modules of edgeMeshAgent will be use
@@ -56,6 +72,10 @@ func NewEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 		TypeMeta: metav1.TypeMeta{
 			Kind:       Kind,
 			APIVersion: path.Join(GroupName, APIVersion),
+		},
+		CommonConfig: &CommonConfig{
+			DummyDeviceName: DefaultDummyDeviceName,
+			DummyDeviceIP:   DefaultDummyDeviceIP,
 		},
 		KubeAPIConfig: &v1alpha1.KubeAPIConfig{
 			Master:      "",
