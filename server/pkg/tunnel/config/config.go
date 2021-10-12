@@ -13,7 +13,7 @@ type TunnelServerConfig struct {
 	// NodeName indicates the node name of tunnel server
 	NodeName string `json:"nodeName"`
 	// ListenPort indicates the listen port of tunnel server
-	// default 10004
+	// default 20004
 	ListenPort int `json:"listenPort"`
 	// PublicIP indicates the public ip of tunnel server
 	PublicIP string `json:"publicIP"`

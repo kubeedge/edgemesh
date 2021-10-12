@@ -29,7 +29,7 @@ spec:
               fieldRef:
                 fieldPath: spec.nodeName
         ports:
-        - containerPort: 10004
+        - containerPort: 20004
           name: relay
           protocol: TCP
         resources:

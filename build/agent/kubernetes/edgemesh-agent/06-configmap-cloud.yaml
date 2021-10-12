@@ -48,3 +48,4 @@ data:
         excludeIP: "*"
       tunnel:
         enable: true
+        listenPort: 20006
