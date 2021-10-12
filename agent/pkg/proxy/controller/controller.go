@@ -20,7 +20,8 @@ var (
 )
 
 type ProxyController struct {
-	svcInformer cache.SharedIndexInformer
+	svcInformer      cache.SharedIndexInformer
+	svcEventHandlers map[string]cache.ResourceEventHandlerFuncs // key: service event handler name
 
 	sync.RWMutex
 	svcPortsByIP map[string]string // key: clusterIP, value: SvcPorts
@@ -30,19 +31,34 @@ type ProxyController struct {
 func Init(ifm *informers.Manager) {
 	once.Do(func() {
 		APIConn = &ProxyController{
-			svcInformer:  ifm.GetKubeFactory().Core().V1().Services().Informer(),
-			svcPortsByIP: make(map[string]string),
-			ipBySvc:      make(map[string]string),
+			svcInformer:      ifm.GetKubeFactory().Core().V1().Services().Informer(),
+			svcEventHandlers: make(map[string]cache.ResourceEventHandlerFuncs),
+			svcPortsByIP:     make(map[string]string),
+			ipBySvc:          make(map[string]string),
 		}
 		ifm.RegisterInformer(APIConn.svcInformer)
 		ifm.RegisterSyncedFunc(APIConn.onCacheSynced)
+
+		// set api-connection-service event handler funcs
+		APIConn.SetServiceEventHandlers("api-connection-service", cache.ResourceEventHandlerFuncs{
+			AddFunc: APIConn.svcAdd, UpdateFunc: APIConn.svcUpdate, DeleteFunc: APIConn.svcDelete})
 	})
 }
 
 func (c *ProxyController) onCacheSynced() {
-	// set informers event handler
-	c.svcInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: c.svcAdd, UpdateFunc: c.svcUpdate, DeleteFunc: c.svcDelete})
+	for name, funcs := range c.svcEventHandlers {
+		klog.V(4).Infof("enable service event handler funcs: %s", name)
+		c.svcInformer.AddEventHandler(funcs)
+	}
+}
+
+func (c *ProxyController) SetServiceEventHandlers(name string, handlerFuncs cache.ResourceEventHandlerFuncs) {
+	c.Lock()
+	if _, exist := c.svcEventHandlers[name]; exist {
+		klog.Warningf("service event handler %s already exists, it will be overwritten!", name)
+	}
+	c.svcEventHandlers[name] = handlerFuncs
+	c.Unlock()
 }
 
 func getSvcPorts(svc *v1.Service) string {
@@ -104,31 +120,31 @@ func (c *ProxyController) svcDelete(obj interface{}) {
 // AddOrUpdateService add or updates a service
 func (c *ProxyController) addOrUpdateService(svcName, ip, svcPorts string) {
 	c.Lock()
-	defer c.Unlock()
 	c.ipBySvc[svcName] = ip
 	c.svcPortsByIP[ip] = svcPorts
+	c.Unlock()
 }
 
 // DeleteService deletes a service
 func (c *ProxyController) deleteService(svcName, ip string) {
 	c.Lock()
-	defer c.Unlock()
 	delete(c.ipBySvc, svcName)
 	delete(c.svcPortsByIP, ip)
+	c.Unlock()
 }
 
 // GetSvcIP returns the ip by given service name
 func (c *ProxyController) GetSvcIP(svcName string) string {
 	c.RLock()
-	defer c.RUnlock()
 	ip := c.ipBySvc[svcName]
+	c.RUnlock()
 	return ip
 }
 
 // GetSvcPorts is a thread-safe operation to get from map
 func (c *ProxyController) GetSvcPorts(ip string) string {
 	c.RLock()
-	defer c.RUnlock()
 	svcPorts := c.svcPortsByIP[ip]
+	c.RUnlock()
 	return svcPorts
 }
