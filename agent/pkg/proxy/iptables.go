@@ -12,23 +12,27 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilexec "k8s.io/utils/exec"
 
 	beehiveContext "github.com/kubeedge/beehive/pkg/core/context"
+	"github.com/kubeedge/edgemesh/agent/pkg/proxy/controller"
 	"github.com/kubeedge/edgemesh/agent/pkg/proxy/protocol"
 	"github.com/kubeedge/edgemesh/common/util"
 )
 
 const (
 	meshRootChain        utiliptables.Chain = "EDGE-MESH"
-	None                                    = "None"
-	labelCoreDNS                            = "k8s-app=kube-dns"
-	labelNoProxyEdgeMesh                    = "noproxy=edgemesh"
+	None                 string             = "None"
+	labelCoreDNS         string             = "k8s-app=kube-dns"
+	labelNoProxyEdgeMesh string             = "noproxy=edgemesh"
 )
 
-type iptablesEnsureInfo struct {
+// iptablesJumpChain encapsulates the iptables rule information,
+// copy from https://github.com/kubernetes/kubernetes/blob/release-1.18/pkg/proxy/iptables/proxier.go#L368
+type iptablesJumpChain struct {
 	table     utiliptables.Table
 	dstChain  utiliptables.Chain
 	srcChain  utiliptables.Chain
@@ -36,7 +40,7 @@ type iptablesEnsureInfo struct {
 	extraArgs []string
 }
 
-var rootJumpChains = []iptablesEnsureInfo{
+var rootJumpChains = []iptablesJumpChain{
 	{utiliptables.TableNAT, meshRootChain, utiliptables.ChainOutput, "edgemesh root chain", nil},
 	{utiliptables.TableNAT, meshRootChain, utiliptables.ChainPrerouting, "edgemesh root chain", nil},
 }
@@ -54,13 +58,10 @@ type Proxier struct {
 	protoProxies []protocol.ProtoProxy
 
 	// iptables rules
-	ignoreRules []iptablesEnsureInfo
-	proxyRules  []iptablesEnsureInfo
-	dnatRules   []iptablesEnsureInfo
-
-	invalidIgnoreRules []iptablesEnsureInfo
-	invalidProxyRules  []iptablesEnsureInfo
-	invalidDNATRules   []iptablesEnsureInfo
+	ignoreRules        []iptablesJumpChain
+	expiredIgnoreRules []iptablesJumpChain
+	proxyRules         []iptablesJumpChain
+	dnatRules          []iptablesJumpChain
 }
 
 func NewProxier(subnet string, protoProxies []protocol.ProtoProxy, kubeClient kubernetes.Interface) (proxier *Proxier, err error) {
@@ -72,16 +73,20 @@ func NewProxier(subnet string, protoProxies []protocol.ProtoProxy, kubeClient ku
 		kubeClient:         kubeClient,
 		serviceCIDR:        subnet,
 		protoProxies:       protoProxies,
-		ignoreRules:        make([]iptablesEnsureInfo, 0),
-		proxyRules:         make([]iptablesEnsureInfo, 2),
-		dnatRules:          make([]iptablesEnsureInfo, 2),
-		invalidIgnoreRules: make([]iptablesEnsureInfo, 0),
+		ignoreRules:        make([]iptablesJumpChain, 0),
+		expiredIgnoreRules: make([]iptablesJumpChain, 0),
+		proxyRules:         make([]iptablesJumpChain, 2),
+		dnatRules:          make([]iptablesJumpChain, 2),
 	}
 
 	// iptables rule cleaning and writing
 	proxier.CleanResidue()
 	proxier.FlushRules()
 	proxier.EnsureRules()
+
+	// set iptables-auto-flush event handler funcs
+	controller.APIConn.SetServiceEventHandlers("iptables-auto-flush", cache.ResourceEventHandlerFuncs{
+		AddFunc: proxier.svcAdd, UpdateFunc: proxier.svcUpdate, DeleteFunc: proxier.svcDelete})
 
 	return proxier, nil
 }
@@ -102,7 +107,7 @@ func (proxier *Proxier) Start() {
 	}()
 }
 
-func (proxier *Proxier) ignoreRuleByService(svc *corev1.Service) iptablesEnsureInfo {
+func (proxier *Proxier) ignoreRuleByService(svc *corev1.Service) iptablesJumpChain {
 	var (
 		ruleExtraArgs = func(svc *corev1.Service) []string {
 			// Headless Service
@@ -134,7 +139,7 @@ func (proxier *Proxier) ignoreRuleByService(svc *corev1.Service) iptablesEnsureI
 			return fmt.Sprintf("ignore %s.%s service", svc.Name, svc.Namespace)
 		}
 	)
-	return iptablesEnsureInfo{
+	return iptablesJumpChain{
 		table:     utiliptables.TableNAT,
 		dstChain:  "RETURN", // return parent chain
 		srcChain:  meshRootChain,
@@ -144,7 +149,7 @@ func (proxier *Proxier) ignoreRuleByService(svc *corev1.Service) iptablesEnsureI
 }
 
 // createIgnoreRules exclude some services that must be ignored
-func (proxier *Proxier) createIgnoreRules() (ignoreRules, invalidIgnoreRules []iptablesEnsureInfo, err error) {
+func (proxier *Proxier) createIgnoreRules() (ignoreRules, expiredIgnoreRules []iptablesJumpChain, err error) {
 	ignoreRulesIptablesEnsureMap := make(map[string]*corev1.Service)
 	// kube-apiserver service
 	kubeAPI, err := proxier.kubeClient.CoreV1().Services("default").Get(context.Background(), "kubernetes", metav1.GetOptions{})
@@ -192,10 +197,11 @@ func (proxier *Proxier) createIgnoreRules() (ignoreRules, invalidIgnoreRules []i
 	for _, service := range ignoreRulesIptablesEnsureMap {
 		ignoreRules = append(ignoreRules, proxier.ignoreRuleByService(service))
 	}
-	// The go-funk library is used here for set operations and comparisons
+
+	// we need to find out the ignore rules that has expired
 	for _, haveIgnoredRule := range proxier.ignoreRules {
 		if !funk.Contains(ignoreRules, haveIgnoredRule) {
-			invalidIgnoreRules = append(invalidIgnoreRules, haveIgnoredRule)
+			expiredIgnoreRules = append(expiredIgnoreRules, haveIgnoredRule)
 		}
 	}
 
@@ -203,7 +209,7 @@ func (proxier *Proxier) createIgnoreRules() (ignoreRules, invalidIgnoreRules []i
 }
 
 // createProxyRules get proxy rules and DNAT rules
-func (proxier *Proxier) createProxyRules() (proxyRules, dnatRules []iptablesEnsureInfo) {
+func (proxier *Proxier) createProxyRules() (proxyRules, dnatRules []iptablesJumpChain) {
 	var (
 		newChainName utiliptables.Chain
 
@@ -226,14 +232,14 @@ func (proxier *Proxier) createProxyRules() (proxyRules, dnatRules []iptablesEnsu
 
 	for _, proto := range proxier.protoProxies {
 		newChainName = proxyChainName(proto.GetName())
-		proxyRules = append(proxyRules, iptablesEnsureInfo{
+		proxyRules = append(proxyRules, iptablesJumpChain{
 			table:     utiliptables.TableNAT,
 			dstChain:  newChainName,
 			srcChain:  meshRootChain,
 			comment:   proxyRuleComment(proto.GetName()),
 			extraArgs: proxyRuleArgs(proto.GetName()),
 		})
-		dnatRules = append(dnatRules, iptablesEnsureInfo{
+		dnatRules = append(dnatRules, iptablesJumpChain{
 			table:     utiliptables.TableNAT,
 			dstChain:  "DNAT",
 			srcChain:  newChainName,
@@ -267,23 +273,23 @@ func (proxier *Proxier) EnsureRules() {
 	}
 
 	// recollect need to ignore rules
-	proxier.ignoreRules, proxier.invalidIgnoreRules, err = proxier.createIgnoreRules()
+	proxier.ignoreRules, proxier.expiredIgnoreRules, err = proxier.createIgnoreRules()
 	if err != nil {
 		klog.Errorf("failed to create ignore rules: %v", err)
 	} else {
 		klog.V(5).Infof("ignore rules: %v", proxier.ignoreRules)
 	}
 
-	// clean the invalid ignore rules
-	err = proxier.setIgnoreRules("Delete", proxier.invalidIgnoreRules)
+	// clean expired ignore rules
+	err = proxier.setIgnoreRules("Delete", proxier.expiredIgnoreRules)
 	if err != nil {
 		klog.Errorf("clean the invalid ignore rules failed: %s", err)
 		return
 	} else {
-		klog.V(5).Infof("clean %d invalid ignore rules.", len(proxier.invalidIgnoreRules))
+		klog.V(5).Infof("clean %d invalid ignore rules.", len(proxier.expiredIgnoreRules))
 	}
 
-	// ensure ignore rules
+	// ensure new ignore rules
 	err = proxier.setIgnoreRules("Ensure", proxier.ignoreRules)
 	if err != nil {
 		klog.Errorf("ensure ignore rules failed: %s", err)
@@ -323,7 +329,7 @@ func (proxier *Proxier) EnsureRules() {
 }
 
 // setIgnoreRules Delete and Ensure ignore rule for EDGE-MESH chain
-func (proxier *Proxier) setIgnoreRules(ruleSetType string, ignoreRules []iptablesEnsureInfo) (err error) {
+func (proxier *Proxier) setIgnoreRules(ruleSetType string, ignoreRules []iptablesJumpChain) (err error) {
 	for _, ignoreRule := range ignoreRules {
 		if ignoreRule.extraArgs[0] == None {
 			headLessIps := ignoreRule.extraArgs[1:]
@@ -429,3 +435,7 @@ func (proxier *Proxier) CleanResidue() {
 		}
 	}
 }
+
+func (proxier *Proxier) svcAdd(obj interface{})               { proxier.EnsureRules() }
+func (proxier *Proxier) svcUpdate(oldObj, newObj interface{}) { proxier.EnsureRules() }
+func (proxier *Proxier) svcDelete(obj interface{})            { proxier.EnsureRules() }
