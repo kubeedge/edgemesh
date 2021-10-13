@@ -9,8 +9,8 @@ type EdgeProxyConfig struct {
 	// default "10.96.0.0/12", equals to k8s default service-cluster-ip-range
 	SubNet string `json:"subNet,omitempty"`
 	// ListenInterface indicates the listen interface of edgeproxy
-	// default "docker0"
-	ListenInterface string `json:"listenInterface,omitempty"`
+	// do not allow users to configure manually
+	ListenInterface string
 	// ListenPort indicates the listen port of edgeproxy
 	// default 40001
 	ListenPort int `json:"listenPort,omitempty"`
@@ -18,9 +18,8 @@ type EdgeProxyConfig struct {
 
 func NewEdgeProxyConfig() *EdgeProxyConfig {
 	return &EdgeProxyConfig{
-		Enable:          true,
-		SubNet:          "10.96.0.0/12",
-		ListenInterface: "docker0",
-		ListenPort:      40001,
+		Enable:     true,
+		SubNet:     "10.96.0.0/12",
+		ListenPort: 40001,
 	}
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/kubeedge/edgemesh/agent/pkg/proxy"
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel"
 	"github.com/kubeedge/edgemesh/common/informers"
+	commonutil "github.com/kubeedge/edgemesh/common/util"
 	"github.com/kubeedge/kubeedge/pkg/util"
 	"github.com/kubeedge/kubeedge/pkg/util/flag"
 	"github.com/kubeedge/kubeedge/pkg/version"
@@ -92,6 +93,12 @@ func Run(cfg *config.EdgeMeshAgentConfig) error {
 	}
 	trace++
 
+	klog.Infof("[%d] Prepare agent to run", trace)
+	if err = prepareRun(cfg, ifm); err != nil {
+		return err
+	}
+	trace++
+
 	klog.Infof("[%d] Register beehive modules", trace)
 	if errs := registerModules(cfg, ifm); len(errs) > 0 {
 		return fmt.Errorf(util.SpliceErrors(errs))
@@ -142,4 +149,20 @@ func registerModules(c *config.EdgeMeshAgentConfig, ifm *informers.Manager) []er
 		errs = append(errs, err)
 	}
 	return errs
+}
+
+// prepareRun prepares edgemesh-agent to run
+func prepareRun(c *config.EdgeMeshAgentConfig, ifm *informers.Manager) error {
+	if err := commonutil.CreateDummyDevice(c.CommonConfig.DummyDeviceName, c.CommonConfig.DummyDeviceIP); err != nil {
+		return fmt.Errorf("create dummy device %s err: %v", c.CommonConfig.DummyDeviceName, err)
+	}
+	// set dns and proxy modules listenInterface
+	if c.Modules.EdgeDNSConfig.Enable {
+		c.Modules.EdgeDNSConfig.ListenInterface = c.CommonConfig.DummyDeviceName
+	}
+	if c.Modules.EdgeProxyConfig.Enable {
+		c.Modules.EdgeProxyConfig.ListenInterface = c.CommonConfig.DummyDeviceName
+	}
+
+	return nil
 }

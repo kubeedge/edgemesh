@@ -22,10 +22,10 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: node-role.kubernetes.io/edge
-                    operator: DoesNotExist
-                  - key: node-role.kubernetes.io/agent
-                    operator: DoesNotExist
+                - key: node-role.kubernetes.io/edge
+                  operator: DoesNotExist
+                - key: node-role.kubernetes.io/agent
+                  operator: DoesNotExist
       hostNetwork: true
       containers:
         - name: edgemesh-agent
