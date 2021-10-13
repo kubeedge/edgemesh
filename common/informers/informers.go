@@ -1,15 +1,11 @@
 package informers
 
 import (
-	"context"
 	"fmt"
-	"strings"
 	"sync"
 
 	istio "istio.io/client-go/pkg/clientset/versioned"
 	istioinformers "istio.io/client-go/pkg/informers/externalversions"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -125,41 +121,4 @@ func (mgr *Manager) GetKubeFactory() k8sinformers.SharedInformerFactory {
 
 func (mgr *Manager) GetIstioFactory() istioinformers.SharedInformerFactory {
 	return mgr.istioFactory
-}
-
-// GetClusterServiceCIDR creates an impossible service to cause an error,
-// and obtains cluster-service-ip-range from the error message
-func GetClusterServiceCIDR(kubeClient kubernetes.Interface) (string, error) {
-	if kubeClient == nil {
-		return "", fmt.Errorf("kubeClient is nil")
-	}
-
-	badService := corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "bad-service",
-		},
-		Spec: corev1.ServiceSpec{
-			Type:      "ClusterIP",
-			ClusterIP: "0.0.0.0", // This is an impossible cluserip
-			Ports:     []corev1.ServicePort{{Port: 443}},
-		},
-	}
-
-	svc, err := kubeClient.CoreV1().Services(metav1.NamespaceDefault).Create(context.Background(), &badService, metav1.CreateOptions{})
-	if err == nil {
-		return "", fmt.Errorf("impossible happened, %s was created successfully", svc.Name)
-	}
-
-	errMsg := fmt.Sprintf("%v", err)
-	errKey := "The range of valid IPs is "
-	if ok := strings.Contains(errMsg, errKey); !ok {
-		return "", fmt.Errorf("unexpected error: %v", err)
-	}
-
-	info := strings.Split(errMsg, errKey)
-	if len(info) != 2 {
-		return "", fmt.Errorf("invalid info: %v", info)
-	}
-
-	return info[1], nil
 }

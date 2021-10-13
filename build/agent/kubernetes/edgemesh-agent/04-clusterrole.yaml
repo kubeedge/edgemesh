@@ -7,10 +7,10 @@ metadata:
     kubeedge: edgemesh-agent
 rules:
   - apiGroups: [""]
-    resources: ["pods", "services", "endpoints"]
-    verbs: ["get", "list", "watch", "create"]
+    resources: ["pods", "endpoints"]
+    verbs: ["get", "list", "watch"]
   - apiGroups: [""]
-    resources: ["secrets"]
+    resources: ["secrets", "services", "configmaps"]
     verbs: ["get", "list", "watch", "create", "update"]
   - apiGroups: ["networking.istio.io"]
     resources: ["*"]

@@ -25,6 +25,7 @@ const (
 
 	DefaultDummyDeviceName = "edgemesh0"
 	DefaultDummyDeviceIP   = "169.254.96.16"
+	DefaultConfigMapName   = "edgemesh-agent-cfg"
 )
 
 // EdgeMeshAgentConfig indicates the config of edgeMeshAgent which get from edgeMeshAgent config file
@@ -52,6 +53,10 @@ type CommonConfig struct {
 	// DummyDeviceIP indicates the IP bound to the dummy device
 	// default "169.254.96.16"
 	DummyDeviceIP string `json:"dummyDeviceIP,omitempty"`
+	// ConfigMapName indicates the configmap mounted by edgemesh-agent,
+	// which contains all the configuration information of edgemesh-agent
+	// default edgemesh-agent-cfg
+	ConfigMapName string `json:"configMapName,omitempty"`
 }
 
 // Modules indicates the modules of edgeMeshAgent will be use
@@ -76,6 +81,7 @@ func NewEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 		CommonConfig: &CommonConfig{
 			DummyDeviceName: DefaultDummyDeviceName,
 			DummyDeviceIP:   DefaultDummyDeviceIP,
+			ConfigMapName:   DefaultConfigMapName,
 		},
 		KubeAPIConfig: &v1alpha1.KubeAPIConfig{
 			Master:      "",
