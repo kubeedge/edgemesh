@@ -17,7 +17,16 @@ spec:
         app: tcp-echo-edge
         system: example
     spec:
-      nodeName: ke-edge2
+      #nodeName: ke-edge2
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/edge
+                    operator: Exists
+                  - key: node-role.kubernetes.io/agent
+                    operator: Exists
       containers:
         - name: tcp-echo-container
           image: cjimti/go-echo:latest
