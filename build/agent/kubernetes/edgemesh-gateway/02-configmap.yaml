@@ -10,11 +10,15 @@ data:
   edgemesh-agent.yaml: |
     apiVersion: agent.edgemesh.config.kubeedge.io/v1alpha1
     kind: EdgeMeshAgent
+    commonConfig:
+      dummyDeviceName: edgemesh0
+      dummyDeviceIP: 169.254.96.16
+      configMapName: edgemesh-gateway-cfg
     kubeAPIConfig:
       burst: 200
-      contentType: application/json
+      contentType: application/vnd.kubernetes.protobuf
       kubeConfig: ""
-      master: "http://127.0.0.1:10550"
+      master: ""
       qps: 100
     goChassisConfig:
       protocol:
@@ -34,12 +38,9 @@ data:
     modules:
       edgeDNS:
         enable: false
-        listenInterface: docker0
         listenPort: 53
       edgeProxy:
         enable: false
-        subNet: 10.96.0.0/12
-        listenInterface: docker0
         listenPort: 40001
       edgeGateway:
         enable: true
@@ -47,5 +48,5 @@ data:
         includeIP: "*"
         excludeIP: "*"
       tunnel:
-        enable: false
-        listenPort: 10008
+        enable: true
+        listenPort: 20008

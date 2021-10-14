@@ -1,6 +1,0 @@
-apiVersion: v1
-kind: Node
-metadata:
-  name: edgenode1
-  labels:
-    name: edge-node
