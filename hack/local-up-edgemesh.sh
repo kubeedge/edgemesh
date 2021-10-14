@@ -335,7 +335,6 @@ data:
         listenPort: 53
       edgeProxy:
         enable: true
-        subNet: 10.96.0.0/12
         listenPort: 40001
       edgeGateway:
         enable: false
