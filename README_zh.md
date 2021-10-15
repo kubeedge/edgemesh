@@ -239,35 +239,15 @@ $ kubectl apply -f build/server/edgemesh/05-configmap.yaml
 $ kubectl apply -f build/server/edgemesh/06-deployment.yaml
 ```
 
-获取 K8s 集群 serviceCIDR，后续需要用到
-```shell
-$ kubectl cluster-info dump | grep -m 1 service-cluster-ip-range
-      "--service-cluster-ip-range=10.96.0.0/12",
-```
-
-部署 edgemesh-agent-cloud 服务
+部署 edgemesh-agent 服务
 
 ```shell
-$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/03-serviceaccount.yaml
+$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/
+namespace/kubeedge configured
 serviceaccount/edgemesh-agent created
-$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/04-clusterrole.yaml
 clusterrole.rbac.authorization.k8s.io/edgemesh-agent created
-$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/05-clusterrolebinding.yaml
 clusterrolebinding.rbac.authorization.k8s.io/edgemesh-agent created
-# 请将06-configmap-cloud.yaml里面的subNet配置成kube-apiserver的service-cluster-ip-range的值
-$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/06-configmap-cloud.yaml
-configmap/edgemesh-agent-cloud-cfg created
-$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/07-daemonset-cloud.yaml
-daemonset.apps/edgemesh-agent-cloud created
-```
-
-部署 edgemesh-agent-edge 服务
-
-```shell
-# 请将06-configmap-edge.yaml里面的subNet配置成kube-apiserver的service-cluster-ip-range的值
-$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/06-configmap-edge.yaml
-configmap/edgemesh-agent-edge-cfg created
-$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/07-daemonset-edge.yaml
+configmap/edgemesh-agent-cfg created
 daemonset.apps/edgemesh-agent created
 ```
 
@@ -276,21 +256,19 @@ daemonset.apps/edgemesh-agent created
 ```shell
 $ kubectl get all -n kubeedge
 NAME                                   READY   STATUS    RESTARTS   AGE
-pod/edgemesh-agent-cloud-pcphk         1/1     Running   0          19h
-pod/edgemesh-agent-cloud-qkcpx         1/1     Running   0          19h
-pod/edgemesh-agent-edge-b4hf7          1/1     Running   0          19h
-pod/edgemesh-agent-edge-ktl6b          1/1     Running   0          19h
-pod/edgemesh-server-7f97d77469-dml4j   1/1     Running   0          2d21h
+pod/edgemesh-agent-4rhz4               1/1     Running   0          76s
+pod/edgemesh-agent-7wqgb               1/1     Running   0          76s
+pod/edgemesh-agent-9c697               1/1     Running   0          76s
+pod/edgemesh-server-5f6d5869ff-4568p   1/1     Running   0          5m8s
 
-NAME                                  DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
-daemonset.apps/edgemesh-agent-cloud   2         2         2       2            2           <none>          19h
-daemonset.apps/edgemesh-agent-edge    2         2         2       2            2           <none>          19h
+NAME                            DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+daemonset.apps/edgemesh-agent   3         3         3       3            3           <none>          76s
 
 NAME                              READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/edgemesh-server   1/1     1            1           2d21h
+deployment.apps/edgemesh-server   1/1     1            1           5m8s
 
 NAME                                         DESIRED   CURRENT   READY   AGE
-replicaset.apps/edgemesh-server-7f97d77469   1         1         1       2d21h
+replicaset.apps/edgemesh-server-5f6d5869ff   1         1         1       5m8s
 ```
 
 
@@ -416,9 +394,9 @@ EdgeMesh ingress gateway 提供了外部访问集群里服务的能力。
 部署 edgemesh-gateway
 
 ```shell
-$ kubectl apply -f build/agent/kubernetes/edgemesh-gateway/03-configmap.yaml
+$ kubectl apply -f build/agent/kubernetes/edgemesh-gateway/02-configmap.yaml
 configmap/edgemesh-gateway-cfg created
-$ kubectl apply -f build/agent/kubernetes/edgemesh-gateway/04-deployment.yaml
+$ kubectl apply -f build/agent/kubernetes/edgemesh-gateway/03-deployment.yaml
 deployment.apps/edgemesh-gateway created
 ```
 

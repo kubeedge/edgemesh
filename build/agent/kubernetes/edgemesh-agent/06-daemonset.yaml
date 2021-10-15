@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: edgemesh-agent-cloud
+  name: edgemesh-agent
   namespace: kubeedge
   labels:
     k8s-app: kubeedge
@@ -17,15 +17,6 @@ spec:
         k8s-app: kubeedge
         kubeedge: edgemesh-agent
     spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                - key: node-role.kubernetes.io/edge
-                  operator: DoesNotExist
-                - key: node-role.kubernetes.io/agent
-                  operator: DoesNotExist
       hostNetwork: true
       containers:
         - name: edgemesh-agent
@@ -56,7 +47,7 @@ spec:
       volumes:
         - name: conf
           configMap:
-            name: edgemesh-agent-cloud-cfg
+            name: edgemesh-agent-cfg
         - name: resolv
           hostPath:
             path: /etc/resolv.conf
