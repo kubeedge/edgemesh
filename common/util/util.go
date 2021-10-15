@@ -2,13 +2,22 @@ package util
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/klog/v2"
+)
+
+const (
+	timeout = 5 * time.Second
+	retry   = 3
 )
 
 // SplitServiceKey splits service name
@@ -50,4 +59,29 @@ func GetPodsSelector(svc *v1.Service) labels.Selector {
 		selector = selector.Add(*r)
 	}
 	return selector
+}
+
+func FetchPublicIP() string {
+	Client := http.Client{
+		Timeout: timeout,
+	}
+	var resp *http.Response
+	var err error
+	for i := 0; i < retry; i++ {
+		resp, err = Client.Get("https://ifconfig.me")
+		if err == nil {
+			break
+		}
+	}
+	if err != nil {
+		klog.Errorf("fetch public ip failed, %v", err)
+		return ""
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		klog.Errorf("fetch public ip failed, %v", err)
+		return ""
+	}
+	return string(body)
 }
