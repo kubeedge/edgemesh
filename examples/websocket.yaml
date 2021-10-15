@@ -1,18 +1,36 @@
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: ws-edge
   namespace: edgemesh-test
   labels:
     app: ws-edge
 spec:
-  nodeName: ke-edge2
-  containers:
-    - name: ws
-      image: kevindavis/websocket:0.1
-      imagePullPolicy: IfNotPresent
-      ports:
-        - containerPort: 8080
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ws-edge
+  template:
+    metadata:
+      labels:
+        app: ws-edge
+    spec:
+      #nodeName: ke-edge2
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/edge
+                    operator: Exists
+                  - key: node-role.kubernetes.io/agent
+                    operator: Exists
+      containers:
+        - name: ws
+          image: kevindavis/websocket:0.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
 ---
 apiVersion: v1
 kind: Service
