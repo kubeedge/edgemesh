@@ -250,7 +250,7 @@ func (proxier *Proxier) createProxyRules() (proxyRules, dnatRules []iptablesJump
 	return
 }
 
-// ensureRule ensures iptables rules exist
+// EnsureRules ensures iptables rules exist
 func (proxier *Proxier) EnsureRules() {
 	var err error
 	proxier.mu.Lock()
