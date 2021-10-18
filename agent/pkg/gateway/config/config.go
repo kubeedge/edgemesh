@@ -21,7 +21,7 @@ type EdgeGatewayConfig struct {
 
 func NewEdgeGatewayConfig() *EdgeGatewayConfig {
 	return &EdgeGatewayConfig{
-		Enable:    true,
+		Enable:    false,
 		NIC:       "*",
 		IncludeIP: "*",
 		ExcludeIP: "*",

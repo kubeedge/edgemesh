@@ -11,10 +11,10 @@ type TunnelServerConfig struct {
 	// TunnelACLConfig indicates the set of tunnel server config about acl
 	acl.TunnelACLConfig
 	// NodeName indicates the node name of tunnel server
-	NodeName string `json:"nodeName"`
+	NodeName string `json:"nodeName,omitempty"`
 	// ListenPort indicates the listen port of tunnel server
 	// default 20004
-	ListenPort int `json:"listenPort"`
+	ListenPort int `json:"listenPort,omitempty"`
 	// PublicIP indicates the public ip of tunnel server
-	PublicIP string `json:"publicIP"`
+	PublicIP string `json:"publicIP,omitempty"`
 }

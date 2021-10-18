@@ -8,7 +8,7 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 
 	"github.com/kubeedge/edgemesh/agent/cmd/edgemesh-agent/app/config"
-	meshconstants "github.com/kubeedge/edgemesh/common/constants"
+	meshConstants "github.com/kubeedge/edgemesh/common/constants"
 	"github.com/kubeedge/kubeedge/common/constants"
 	"github.com/kubeedge/kubeedge/pkg/util/validation"
 )
@@ -19,7 +19,7 @@ type EdgeMeshAgentOptions struct {
 
 func NewEdgeMeshAgentOptions() *EdgeMeshAgentOptions {
 	return &EdgeMeshAgentOptions{
-		ConfigFile: path.Join(constants.DefaultConfigDir, meshconstants.EdgeMeshAgentConfigFileName),
+		ConfigFile: path.Join(constants.DefaultConfigDir, meshConstants.EdgeMeshAgentConfigFileName),
 	}
 }
 

@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-server-cfg
+  namespace: kubeedge
+  labels:
+    k8s-app: kubeedge
+    kubeedge: edgemesh-server
+data:
+  edgemesh-server.yaml: |
+    apiVersion: {{ .Values.apiVersion }}
+    kind: {{ .Values.kind }}
+    kubeAPIConfig:
+      burst: {{ .Values.kubeAPIConfig.burst }}
+      contentType: {{ .Values.kubeAPIConfig.contentType }}
+      kubeConfig: {{ .Values.kubeAPIConfig.kubeConfig }}
+      master: {{ .Values.kubeAPIConfig.master }}
+      qps: {{ .Values.kubeAPIConfig.qps }}
+    modules:
+      tunnel:
+        enable: {{ .Values.modules.tunnel.enable }}
+        listenPort: {{ .Values.modules.tunnel.listenPort }}
+        publicIP: {{ .Values.publicIP }}

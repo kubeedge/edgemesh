@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-cfg
+  namespace: kubeedge
+  labels:
+    k8s-app: kubeedge
+    kubeedge: edgemesh-gateway
+data:
+  edgemesh-agent.yaml: |-
+    apiVersion: {{ .Values.apiVersion }}
+    kind: {{ .Values.kind }}
+    commonConfig:
+      dummyDeviceName: {{ .Values.commonConfig.dummyDeviceName }}
+      dummyDeviceIP: {{ .Values.commonConfig.dummyDeviceIP }}
+      configMapName: {{ .Values.commonConfig.configMapName }}
+    kubeAPIConfig:
+      burst: {{ .Values.kubeAPIConfig.burst }}
+      contentType: {{ .Values.kubeAPIConfig.contentType }}
+      kubeConfig: {{ .Values.kubeAPIConfig.kubeConfig }}
+      master: {{ .Values.kubeAPIConfig.master }}
+      qps: {{ .Values.kubeAPIConfig.qps }}
+    goChassisConfig:
+      protocol:
+        tcpBufferSize: {{ .Values.goChassisConfig.protocol.tcpBufferSize }}
+        tcpClientTimeout: {{ .Values.goChassisConfig.protocol.tcpClientTimeout }}
+        tcpReconnectTimes: {{ .Values.goChassisConfig.protocol.tcpReconnectTimes }}
+      loadBalancer:
+        defaultLBStrategy: {{ .Values.goChassisConfig.loadBalancer.defaultLBStrategy }}
+        supportLBStrategies:
+        {{- range .Values.goChassisConfig.loadBalancer.supportLBStrategies }}
+        - {{ . | title }}
+        {{- end }}
+        consistentHash:
+          partitionCount: {{ .Values.goChassisConfig.loadBalancer.consistentHash.partitionCount }}
+          replicationFactor: {{ .Values.goChassisConfig.loadBalancer.consistentHash.replicationFactor }}
+          load: {{ .Values.goChassisConfig.loadBalancer.consistentHash.load }}
+    modules:
+      edgeGateway:
+        enable: {{ .Values.modules.edgeGateway.enable }}
+        nic: {{ .Values.modules.edgeGateway.nic | quote }}
+        includeIP: {{ .Values.modules.edgeGateway.includeIP | quote }}
+        excludeIP: {{ .Values.modules.edgeGateway.excludeIP | quote }}
+      tunnel:
+        enable: {{ .Values.modules.tunnel.enable }}
+        listenPort: {{ .Values.modules.tunnel.listenPort }}

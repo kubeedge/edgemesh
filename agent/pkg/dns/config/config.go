@@ -7,7 +7,7 @@ type EdgeDNSConfig struct {
 	Enable bool `json:"enable,omitempty"`
 	// ListenInterface indicates the listen interface of edgedns
 	// do not allow users to configure manually
-	ListenInterface string
+	ListenInterface string `json:"listenInterface,omitempty"`
 	// ListenPort indicates the listen port of edgedns
 	// default 53
 	ListenPort int `json:"listenPort,omitempty"`
@@ -15,7 +15,7 @@ type EdgeDNSConfig struct {
 
 func NewEdgeDNSConfig() *EdgeDNSConfig {
 	return &EdgeDNSConfig{
-		Enable:     true,
+		Enable:     false,
 		ListenPort: 53,
 	}
 }

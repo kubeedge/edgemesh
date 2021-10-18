@@ -178,7 +178,7 @@ git clone https://github.com/kubeedge/edgemesh.git
 cd edgemesh
 ```
 
-#### 安装 CRDS
+#### 安装 CRDs
 ```shell
 kubectl apply -f build/crds/istio/
 ```

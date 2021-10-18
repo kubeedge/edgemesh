@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	cliflag "k8s.io/component-base/cli/flag"
 
-	meshconstants "github.com/kubeedge/edgemesh/common/constants"
+	meshConstants "github.com/kubeedge/edgemesh/common/constants"
 	"github.com/kubeedge/edgemesh/server/cmd/edgemesh-server/app/config"
 	"github.com/kubeedge/kubeedge/common/constants"
 	"github.com/kubeedge/kubeedge/pkg/util/validation"
@@ -19,7 +19,7 @@ type EdgeMeshServerOptions struct {
 
 func NewEdgeMeshServerOptions() *EdgeMeshServerOptions {
 	return &EdgeMeshServerOptions{
-		ConfigFile: path.Join(constants.DefaultConfigDir, meshconstants.EdgeMeshServerConfigFileName),
+		ConfigFile: path.Join(constants.DefaultConfigDir, meshConstants.EdgeMeshServerConfigFileName),
 	}
 }
 

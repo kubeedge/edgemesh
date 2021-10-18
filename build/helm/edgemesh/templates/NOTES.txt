@@ -1,0 +1,5 @@
+*******************
+***** WARNING *****
+*******************
+* Some values need to be modified according to your own cluster info.
+* Visit https://github.com/kubeedge/edgemesh for more information.
