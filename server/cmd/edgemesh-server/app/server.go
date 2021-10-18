@@ -29,8 +29,6 @@ func NewEdgeMeshServerCommand() *cobra.Command {
 		Long: `edgemesh-server is a part of EdgeMesh, and provides signal and relay service for edgemesh-agents.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			verflag.PrintAndExitIfRequested()
-			flag.PrintMinConfigAndExitIfRequested(config.NewEdgeMeshServerConfig())
-			flag.PrintDefaultConfigAndExitIfRequested(config.NewEdgeMeshServerConfig())
 			flag.PrintFlags(cmd.Flags())
 
 			if errs := opts.Validate(); len(errs) > 0 {

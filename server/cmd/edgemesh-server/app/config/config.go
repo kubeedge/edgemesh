@@ -11,6 +11,7 @@ import (
 
 	"github.com/kubeedge/edgemesh/common/acl"
 	meshConstants "github.com/kubeedge/edgemesh/common/constants"
+	"github.com/kubeedge/edgemesh/common/util"
 	tunnelserverconfig "github.com/kubeedge/edgemesh/server/pkg/tunnel/config"
 	"github.com/kubeedge/kubeedge/common/constants"
 	"github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1"
@@ -48,6 +49,12 @@ func NewEdgeMeshServerConfig() *EdgeMeshServerConfig {
 		os.Exit(1)
 	}
 
+	publicIP := util.FetchPublicIP()
+	if publicIP == "" {
+		publicIP = "0.0.0.0"
+	}
+	klog.Infof("Fetch public IP: %s", publicIP)
+
 	c := &EdgeMeshServerConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       Kind,
@@ -68,7 +75,7 @@ func NewEdgeMeshServerConfig() *EdgeMeshServerConfig {
 				},
 				NodeName:   nodeName,
 				ListenPort: 20004,
-				PublicIP:   "0.0.0.0",
+				PublicIP:   publicIP,
 			}},
 	}
 	return c
