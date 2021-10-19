@@ -15,24 +15,28 @@ import (
 	"github.com/kubeedge/kubeedge/edge/pkg/edgehub/common/certutil"
 )
 
-type ACLManager struct {
+type noCaManager struct {
 	keyFile string
 }
 
-// NewACLManager creates a ACLManager for edge acl management according to EdgeHub config
-func NewACLManager(tunnel TunnelACLConfig) *ACLManager {
-	return &ACLManager{
+func init() {
+	constructMap[TypeWithNoCA] = newNoCaManager
+}
+
+// newNoCaManager creates a noCaManager for edge acl management according to EdgeHub config
+func newNoCaManager(tunnel TunnelACLConfig) Manager {
+	return &noCaManager{
 		keyFile: tunnel.TLSPrivateKeyFile,
 	}
 }
 
-// Start starts the ACLManager
-func (cm *ACLManager) Start() {
+// Start starts the noCaManager
+func (m *noCaManager) Start() {
 	// make sure the private key exist
-	_, err := os.Stat(cm.keyFile)
+	_, err := os.Stat(m.keyFile)
 	if err != nil {
 		klog.Infof("Private key does not exist, generate a new one")
-		err = cm.generateKey()
+		err = m.generateKey()
 		if err != nil {
 			klog.Fatalf("Error: %v", err)
 		}
@@ -41,26 +45,27 @@ func (cm *ACLManager) Start() {
 	}
 }
 
-// applyCerts realizes the acl application by token
-func (cm *ACLManager) generateKey() error {
+// generateKey realizes the acl application by token
+func (m *noCaManager) generateKey() error {
 	pk, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
-		return fmt.Errorf("failed to generate key, error: %v", err)
+		return fmt.Errorf("failed to generate key: %w", err)
 	}
 	// save the private key to the file
-	if err = certutil.WriteKey(cm.keyFile, pk); err != nil {
-		return fmt.Errorf("failed to save the private key %s, error: %v", cm.keyFile, err)
+	if err = certutil.WriteKey(m.keyFile, pk); err != nil {
+		return fmt.Errorf("failed to save the private key %s, error: %v", m.keyFile, err)
 	}
 	return nil
 }
 
-func GetPrivateKey(config TunnelACLConfig) (crypto.PrivKey, error) {
-	certManager := NewACLManager(config)
-	certManager.Start()
+func (m *noCaManager) Name() string {
+	return "noCaManager"
+}
 
-	certBytes, err := ioutil.ReadFile(config.TLSPrivateKeyFile)
+func (m *noCaManager) GetPrivateKey() (crypto.PrivKey, error) {
+	certBytes, err := ioutil.ReadFile(m.keyFile)
 	if err != nil {
-		return nil, fmt.Errorf("read file %s err: %v", config.TLSPrivateKeyFile, err)
+		return nil, fmt.Errorf("read file %s err: %v", m.keyFile, err)
 	}
 
 	block, _ := pem.Decode(certBytes)

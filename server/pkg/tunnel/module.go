@@ -7,6 +7,7 @@ import (
 	"github.com/libp2p/go-libp2p"
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-core/host"
+	libp2ptlsca "github.com/libp2p/go-libp2p-tls"
 	ma "github.com/multiformats/go-multiaddr"
 	"k8s.io/klog/v2"
 
@@ -32,9 +33,13 @@ func newTunnelServer(c *config.TunnelServerConfig, ifm *informers.Manager) (serv
 
 	controller.Init(ifm)
 
-	privateKey, err := acl.GetPrivateKey(c.TunnelACLConfig)
+	aclManager := acl.NewACLManager(c.EnableSecurity, &c.TunnelACLConfig)
+
+	aclManager.Start()
+
+	privateKey, err := aclManager.GetPrivateKey()
 	if err != nil {
-		return server, err
+		return server, fmt.Errorf("failed to get private key: %w", err)
 	}
 
 	var externalMultiAddr ma.Multiaddr
@@ -50,15 +55,23 @@ func newTunnelServer(c *config.TunnelServerConfig, ifm *informers.Manager) (serv
 		}
 		return addrs
 	}
-
-	host, err := libp2p.New(
-		context.Background(),
+	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", c.ListenPort)),
 		libp2p.AddrsFactory(addressFactory),
 		libp2p.EnableRelay(circuit.OptHop),
 		libp2p.ForceReachabilityPrivate(),
 		libp2p.Identity(privateKey),
-	)
+	}
+
+	if c.EnableSecurity {
+		libp2ptlsca.Init(c.TunnelACLConfig.TLSCAFile,
+			c.TunnelACLConfig.TLSCertFile,
+			c.TunnelACLConfig.TLSPrivateKeyFile,
+		)
+		opts = append(opts, libp2p.Security(libp2ptlsca.ID, libp2ptlsca.New))
+	}
+
+	host, err := libp2p.New(context.Background(), opts...)
 	if err != nil {
 		errMsg := fmt.Errorf("Start tunnel server failed, %v", err)
 		klog.Errorln(errMsg)
@@ -73,7 +86,7 @@ func newTunnelServer(c *config.TunnelServerConfig, ifm *informers.Manager) (serv
 func Register(c *config.TunnelServerConfig, ifm *informers.Manager) error {
 	server, err := newTunnelServer(c, ifm)
 	if err != nil {
-		return fmt.Errorf("register module tunnelserver error: %v", err)
+		return fmt.Errorf("failed to register module tunnelserver: %w", err)
 	}
 	core.Register(server)
 	return nil

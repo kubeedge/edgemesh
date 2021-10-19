@@ -13,6 +13,7 @@ require (
 	github.com/libp2p/go-libp2p v0.13.1-0.20210224102305-f981b25d2738
 	github.com/libp2p/go-libp2p-circuit v0.4.0
 	github.com/libp2p/go-libp2p-core v0.8.5
+	github.com/libp2p/go-libp2p-tls v0.1.3
 	github.com/libp2p/go-msgio v0.0.6
 	github.com/miekg/dns v1.1.43
 	github.com/multiformats/go-multiaddr v0.3.1
@@ -37,6 +38,7 @@ require (
 replace (
 	github.com/kubeedge/beehive v0.0.0 => github.com/kubeedge/beehive v0.0.0-20201125122335-cd19bca6e436
 	github.com/kubeedge/viaduct v0.0.0 => github.com/kubeedge/viaduct v0.0.0-20210601015050-d832643a3d35
+	github.com/libp2p/go-libp2p-tls => github.com/khalid-jobs/go-libp2p-tls v1.9.0
 	k8s.io/api v0.0.0 => k8s.io/api v0.19.3
 	k8s.io/apiextensions-apiserver v0.0.0 => k8s.io/apiextensions-apiserver v0.19.3
 	k8s.io/apimachinery v0.0.0 => k8s.io/apimachinery v0.19.3

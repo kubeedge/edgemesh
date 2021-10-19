@@ -18,6 +18,7 @@ export const en: SidebarConfig = {
       children: [
         '/advanced/architecture.md',
         '/advanced/hybirdnat.md',
+        '/advanced/security.md',
       ],
     },
   ],

@@ -44,6 +44,8 @@ spec:
             mountPath: /etc/kubeedge/config
           - name: edgemesh
             mountPath: /etc/kubeedge/edgemesh
+          - name: ca-server-token
+            mountPath: /etc/kubeedge/cert
       restartPolicy: Always
       serviceAccountName: edgemesh-server
       volumes:
@@ -54,3 +56,6 @@ spec:
           hostPath:
             path: /etc/kubeedge/edgemesh
             type: DirectoryOrCreate
+        - name: ca-server-token
+          secret:
+            secretName: tokensecret

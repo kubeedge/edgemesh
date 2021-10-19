@@ -43,7 +43,9 @@ IMAGE_TAG=localup
 
 CLUSTER_NAME=test
 MASTER_NODENAME=${CLUSTER_NAME}-control-plane
+HOST_IP=`hostname -I | awk '{print $1}'`
 EDGE_NODENAME=edge-node
+KUBEEDGE_VERSION=1.8.2
 NAMESPACE=kubeedge
 LOG_DIR=${LOG_DIR:-"/tmp"}
 TIMEOUT=${TIMEOUT:-120}s
@@ -92,7 +94,7 @@ localup_kubeedge() {
   # init cloudcore
   add_cleanup 'rm `ls /etc/kubeedge | grep -v "kubeedge"` -rf'
   add_cleanup 'sudo -E keadm reset --force --kube-config=${KUBECONFIG}'
-  sudo -E keadm init --advertise-address=127.0.0.1 --kubeedge-version=1.7.2 --kube-config=${KUBECONFIG}
+  sudo -E keadm init --advertise-address=${HOST_IP} --kubeedge-version=${KUBEEDGE_VERSION} --kube-config=${KUBECONFIG}
 
   # ensure tokensecret is generated
   for ((i=1;i<20;i++)) ; do
@@ -109,7 +111,7 @@ localup_kubeedge() {
 
   # turn off edgemesh and turn on list-watch featuren and resart edgeocre
   export CHECK_EDGECORE_ENVIRONMENT="false"
-  sudo -E keadm join --cloudcore-ipport=127.0.0.1:10000 --kubeedge-version=1.7.2 --token=${token} --edgenode-name=${EDGE_NODENAME}
+  sudo -E keadm join --cloudcore-ipport=${HOST_IP}:10000 --kubeedge-version=${KUBEEDGE_VERSION} --token=${token} --edgenode-name=${EDGE_NODENAME}
 
   EDGE_BIN=/usr/local/bin/edgecore
   EDGE_CONFIGFILE=/etc/kubeedge/config/edgecore.yaml
@@ -219,6 +221,9 @@ data:
       tunnel:
         enable: true
         publicIP: ${MASTER_IP}
+        enableSecurity: true
+        ACL:
+          httpServer: https://${HOST_IP}:10002
 EOF
 
   # create deployment
@@ -271,6 +276,8 @@ spec:
             mountPath: /etc/kubeedge/config
           - name: edgemesh
             mountPath: /etc/kubeedge/edgemesh
+          - name: ca-server-token
+            mountPath: /etc/kubeedge/cert
       restartPolicy: Always
       serviceAccountName: edgemesh-server
       volumes:
@@ -281,6 +288,9 @@ spec:
           hostPath:
             path: /etc/kubeedge/edgemesh
             type: DirectoryOrCreate
+        - name: ca-server-token
+          secret:
+            secretName: tokensecret
 EOF
 
 echo "wait the edgemesh-server pod ready"
@@ -344,6 +354,9 @@ data:
       tunnel:
         enable: true
         listenPort: 20006
+        enableSecurity: true
+        ACL:
+          httpServer: https://${HOST_IP}:10002
 EOF
 
   sleep 5
@@ -406,6 +419,8 @@ spec:
               mountPath: /etc/kubeedge/edgemesh
             - name: kubeconfig
               mountPath: /etc/kubeedge/kubeconfig
+            - name: ca-server-token
+              mountPath: /etc/kubeedge/cert
       volumes:
         - name: conf
           configMap:
@@ -420,6 +435,9 @@ spec:
         - name: kubeconfig
           hostPath:
             path: ${KUBECONFIG}
+        - name: ca-server-token
+          secret:
+            secretName: tokensecret
 EOF
   sleep 15
   kubectl get pod -n kubeedge -o wide

@@ -2,16 +2,12 @@ package config
 
 import (
 	"io/ioutil"
-	"os"
 	"path"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
-	"github.com/kubeedge/edgemesh/common/acl"
-	meshConstants "github.com/kubeedge/edgemesh/common/constants"
-	"github.com/kubeedge/edgemesh/common/util"
 	tunnelserverconfig "github.com/kubeedge/edgemesh/server/pkg/tunnel/config"
 	"github.com/kubeedge/kubeedge/common/constants"
 	"github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1"
@@ -43,18 +39,6 @@ type Modules struct {
 
 // NewEdgeMeshServerConfig returns a full EdgeMeshServerConfig object
 func NewEdgeMeshServerConfig() *EdgeMeshServerConfig {
-	nodeName, isExist := os.LookupEnv(meshConstants.MY_NODE_NAME)
-	if !isExist {
-		klog.Fatalf("env %s not exist", meshConstants.MY_NODE_NAME)
-		os.Exit(1)
-	}
-
-	publicIP := util.FetchPublicIP()
-	if publicIP == "" {
-		publicIP = "0.0.0.0"
-	}
-	klog.Infof("Fetch public IP: %s", publicIP)
-
 	c := &EdgeMeshServerConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       Kind,
@@ -68,15 +52,8 @@ func NewEdgeMeshServerConfig() *EdgeMeshServerConfig {
 			KubeConfig:  "",
 		},
 		Modules: &Modules{
-			TunnelServer: &tunnelserverconfig.TunnelServerConfig{
-				Enable: true,
-				TunnelACLConfig: acl.TunnelACLConfig{
-					TLSPrivateKeyFile: meshConstants.ServerDefaultKeyFile,
-				},
-				NodeName:   nodeName,
-				ListenPort: 20004,
-				PublicIP:   publicIP,
-			}},
+			TunnelServer: tunnelserverconfig.NewTunnelServerConfig(),
+		},
 	}
 	return c
 }
