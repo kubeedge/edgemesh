@@ -13,14 +13,14 @@ type TunnelAgentConfig struct {
 	// Enable indicates whether TunnelAgent is enabled,
 	// if set to false (for debugging etc.), skip checking other TunnelAgent configs.
 	// default true
-	Enable bool `json:"enable"`
+	Enable bool `json:"enable,omitempty"`
 	// TunnelACLConfig indicates the set of tunnel agent config about acl
 	acl.TunnelACLConfig
 	// NodeName indicates the node name of tunnel agent
-	NodeName string `json:"nodeName"`
+	NodeName string `json:"nodeName,omitempty"`
 	// ListenPort indicates the listen port of tunnel agent
 	// default 20006
-	ListenPort int `json:"listenPort"`
+	ListenPort int `json:"listenPort,omitempty"`
 }
 
 func NewTunnelAgentConfig() *TunnelAgentConfig {
@@ -30,7 +30,7 @@ func NewTunnelAgentConfig() *TunnelAgentConfig {
 	}
 
 	return &TunnelAgentConfig{
-		Enable: true,
+		Enable: false,
 		TunnelACLConfig: acl.TunnelACLConfig{
 			TLSPrivateKeyFile: meshConstants.AgentDefaultKeyFile,
 		},

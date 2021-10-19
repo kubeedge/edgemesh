@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: kubeedge
+  labels:
+    k8s-app: kubeedge
+    kubeedge: edgemesh-gateway
+spec:
+  selector:
+    matchLabels:
+      k8s-app: kubeedge
+      kubeedge: edgemesh-gateway
+  template:
+    metadata:
+      labels:
+        k8s-app: kubeedge
+        kubeedge: edgemesh-gateway
+    spec:
+      nodeName: {{ .Values.nodeName }}
+      hostNetwork: true
+      containers:
+        - name: {{ .Release.Name }}
+          securityContext:
+            privileged: true
+          image: {{ .Values.image }}
+          env:
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          resources:
+            limits:
+              cpu: 1
+              memory: 256Mi
+            requests:
+              cpu: 0.5
+              memory: 128Mi
+          volumeMounts:
+            - name: conf
+              mountPath: /etc/kubeedge/config
+      restartPolicy: Always
+      serviceAccountName: {{ .Release.Name }}
+      volumes:
+        - name: conf
+          configMap:
+            name: {{ .Release.Name }}-cfg

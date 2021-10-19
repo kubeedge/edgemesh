@@ -1,0 +1,19 @@
+image: kubeedge/edgemesh-server:latest
+nodeName: "your node name"
+# publicIP equals to modules.tunnel.publicIP
+publicIP: "127.0.0.1"
+
+# edgemesh-server configmap
+apiVersion: server.edgemesh.config.kubeedge.io/v1alpha1
+kind: EdgeMeshServer
+kubeAPIConfig:
+  burst: 200
+  contentType: application/vnd.kubernetes.protobuf
+  kubeConfig: ""
+  master: ""
+  qps: 100
+modules:
+  tunnel:
+    enable: true
+    listenPort: 20004
+    publicIP: "127.0.0.1"

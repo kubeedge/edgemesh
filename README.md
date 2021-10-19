@@ -178,13 +178,13 @@ Before using EdgeMesh, you need to understand the following prerequisites at fir
 - Service ports must be named. The key/value pairs of port name must have the following syntax: name: \<protocol>[-\<suffix>]
 - Now the Pod is **NOT** required a hostPort. You can refer to the files in the /examples/ directory.
 
-#### Download Edgemesh
+#### Download EdgeMesh
 ```Shell
 git clone https://github.com/kubeedge/edgemesh.git
 cd edgemesh
 ```
 
-#### Create CRDS
+#### Create CRDs
 ```shell
 kubectl apply -f build/crds/istio/
 ```

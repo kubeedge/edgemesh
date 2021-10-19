@@ -9,7 +9,7 @@ type EdgeProxyConfig struct {
 	SubNet string `json:"subNet,omitempty"`
 	// ListenInterface indicates the listen interface of edgeproxy
 	// do not allow users to configure manually
-	ListenInterface string
+	ListenInterface string `json:"listenInterface,omitempty"`
 	// ListenPort indicates the listen port of edgeproxy
 	// default 40001
 	ListenPort int `json:"listenPort,omitempty"`
@@ -17,7 +17,7 @@ type EdgeProxyConfig struct {
 
 func NewEdgeProxyConfig() *EdgeProxyConfig {
 	return &EdgeProxyConfig{
-		Enable:     true,
+		Enable:     false,
 		ListenPort: 40001,
 	}
 }

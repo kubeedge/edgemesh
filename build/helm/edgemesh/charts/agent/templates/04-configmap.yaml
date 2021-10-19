@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-agent-cfg
+  namespace: kubeedge
+  labels:
+    k8s-app: kubeedge
+    kubeedge: edgemesh-agent
+data:
+  edgemesh-agent.yaml: |-
+    apiVersion: {{ .Values.apiVersion }}
+    kind: {{ .Values.kind }}
+    commonConfig:
+      dummyDeviceName: {{ .Values.commonConfig.dummyDeviceName }}
+      dummyDeviceIP: {{ .Values.commonConfig.dummyDeviceIP }}
+      configMapName: {{ .Values.commonConfig.configMapName }}
+    kubeAPIConfig:
+      burst: {{ .Values.kubeAPIConfig.burst }}
+      contentType: {{ .Values.kubeAPIConfig.contentType }}
+      kubeConfig: {{ .Values.kubeAPIConfig.kubeConfig }}
+      master: {{ .Values.kubeAPIConfig.master }}
+      qps: {{ .Values.kubeAPIConfig.qps }}
+    goChassisConfig:
+      protocol:
+        tcpBufferSize: {{ .Values.goChassisConfig.protocol.tcpBufferSize }}
+        tcpClientTimeout: {{ .Values.goChassisConfig.protocol.tcpClientTimeout }}
+        tcpReconnectTimes: {{ .Values.goChassisConfig.protocol.tcpReconnectTimes }}
+      loadBalancer:
+        defaultLBStrategy: {{ .Values.goChassisConfig.loadBalancer.defaultLBStrategy }}
+        supportLBStrategies:
+        {{- range .Values.goChassisConfig.loadBalancer.supportLBStrategies }}
+        - {{ . | title }}
+        {{- end }}
+        consistentHash:
+          partitionCount: {{ .Values.goChassisConfig.loadBalancer.consistentHash.partitionCount }}
+          replicationFactor: {{ .Values.goChassisConfig.loadBalancer.consistentHash.replicationFactor }}
+          load: {{ .Values.goChassisConfig.loadBalancer.consistentHash.load }}
+    modules:
+      edgeDNS:
+        enable: {{ .Values.modules.edgeDNS.enable }}
+        listenPort: {{ .Values.modules.edgeDNS.listenPort }}
+      edgeProxy:
+        enable: {{ .Values.modules.edgeProxy.enable }}
+        listenPort: {{ .Values.modules.edgeProxy.listenPort }}
+        {{- if ne .Values.modules.edgeProxy.subNet "" }}
+        subNet: {{ .Values.modules.edgeProxy.subNet }}
+        {{- end}}
+      tunnel:
+        enable: {{ .Values.modules.tunnel.enable }}
+        listenPort: {{ .Values.modules.tunnel.listenPort }}

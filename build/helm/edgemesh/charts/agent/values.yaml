@@ -1,0 +1,41 @@
+image: kubeedge/edgemesh-agent:latest
+
+# edgemesh-agent configmap
+apiVersion: agent.edgemesh.config.kubeedge.io/v1alpha1
+kind: EdgeMeshAgent
+commonConfig:
+  dummyDeviceName: edgemesh0
+  dummyDeviceIP: 169.254.96.16
+  configMapName: edgemesh-agent-cfg
+kubeAPIConfig:
+  burst: 200
+  contentType: application/vnd.kubernetes.protobuf
+  kubeConfig: ""
+  master: ""
+  qps: 100
+goChassisConfig:
+  protocol:
+    tcpBufferSize: 8192
+    tcpClientTimeout: 5
+    tcpReconnectTimes: 3
+  loadBalancer:
+    defaultLBStrategy: RoundRobin
+    supportLBStrategies:
+    - RoundRobin
+    - Random
+    - ConsistentHash
+    consistentHash:
+      partitionCount: 100
+      replicationFactor: 10
+      load: 1.25
+modules:
+  edgeDNS:
+    enable: true
+    listenPort: 53
+  edgeProxy:
+    enable: true
+    listenPort: 40001
+    subNet: ""
+  tunnel:
+    enable: true
+    listenPort: 20006

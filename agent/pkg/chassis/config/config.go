@@ -29,7 +29,7 @@ type Protocol struct {
 	// default 3
 	TCPReconnectTimes int `json:"tcpReconnectTimes,omitempty"`
 	// NodeName indicates the node name of edgemesh agent
-	NodeName string `json:"nodeName"`
+	NodeName string `json:"nodeName,omitempty"`
 }
 
 // LoadBalancer indicates the loadbalance strategy in edgemesh
