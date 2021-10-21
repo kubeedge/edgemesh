@@ -49,3 +49,9 @@ Run local verifications
 ```bash
 make verify
 ```
+
+
+Cross Build edgemesh-agent and edgemesh-server image
+```shell
+make docker-cross-build
+```

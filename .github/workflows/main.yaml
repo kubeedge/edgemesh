@@ -122,4 +122,26 @@ jobs:
         with:
           fetch-depth: 0
 
-      - run: make agentimage
+      - run: make images
+
+  docker_cross_build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    name: Docker cross build images
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.14.x
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - run: make docker-cross-build
