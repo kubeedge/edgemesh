@@ -1,6 +1,18 @@
 package config
 
-import "github.com/kubeedge/edgemesh/common/acl"
+import (
+	"os"
+
+	"k8s.io/klog/v2"
+
+	"github.com/kubeedge/edgemesh/common/acl"
+	meshConstants "github.com/kubeedge/edgemesh/common/constants"
+	"github.com/kubeedge/edgemesh/common/util"
+)
+
+const (
+	defaultListenPort = 20004
+)
 
 // TunnelServerConfig indicates networking module config
 type TunnelServerConfig struct {
@@ -9,7 +21,7 @@ type TunnelServerConfig struct {
 	// default true
 	Enable bool `json:"enable,omitempty"`
 	// TunnelACLConfig indicates the set of tunnel server config about acl
-	acl.TunnelACLConfig
+	TunnelACLConfig acl.TunnelACLConfig `json:"ACL,omitempty"`
 	// NodeName indicates the node name of tunnel server
 	NodeName string `json:"nodeName,omitempty"`
 	// ListenPort indicates the listen port of tunnel server
@@ -17,4 +29,33 @@ type TunnelServerConfig struct {
 	ListenPort int `json:"listenPort,omitempty"`
 	// PublicIP indicates the public ip of tunnel server
 	PublicIP string `json:"publicIP,omitempty"`
+	// EnableSecurity indicates whether to use the ca acl and security transport
+	// default false
+	EnableSecurity bool `json:"enableSecurity"`
+}
+
+func NewTunnelServerConfig() *TunnelServerConfig {
+	nodeName, isExist := os.LookupEnv(meshConstants.MY_NODE_NAME)
+	if !isExist {
+		klog.Fatalf("env %s not exist", meshConstants.MY_NODE_NAME)
+	}
+
+	publicIP := util.FetchPublicIP()
+	if publicIP == "" {
+		publicIP = "0.0.0.0"
+	}
+	klog.Infof("Fetch public IP: %s", publicIP)
+
+	return &TunnelServerConfig{
+		Enable: true,
+		TunnelACLConfig: acl.TunnelACLConfig{
+			TLSPrivateKeyFile: meshConstants.ServerDefaultKeyFile,
+			TLSCAFile:         meshConstants.ServerDefaultCAFile,
+			TLSCertFile:       meshConstants.ServerDefaultCertFile,
+		},
+		NodeName:       nodeName,
+		ListenPort:     defaultListenPort,
+		PublicIP:       publicIP,
+		EnableSecurity: false,
+	}
 }

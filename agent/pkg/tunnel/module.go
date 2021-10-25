@@ -7,6 +7,7 @@ import (
 	"github.com/libp2p/go-libp2p"
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-core/host"
+	libp2ptlsca "github.com/libp2p/go-libp2p-tls"
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/beehive/pkg/core"
@@ -46,21 +47,31 @@ func newTunnelAgent(c *config.TunnelAgentConfig, ifm *informers.Manager, mode Tu
 
 	controller.Init(ifm)
 
-	privateKey, err := acl.GetPrivateKey(c.TunnelACLConfig)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get private key")
-	}
+	aclManager := acl.NewACLManager(c.EnableSecurity, &c.TunnelACLConfig)
 
-	h, err := libp2p.New(context.Background(),
+	aclManager.Start()
+
+	privateKey, err := aclManager.GetPrivateKey()
+
+	opts := []libp2p.Option{
 		libp2p.EnableRelay(circuit.OptActive),
-		//libp2p.EnableAutoRelay(),
 		libp2p.ForceReachabilityPrivate(),
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", c.ListenPort)),
 		libp2p.EnableHolePunching(),
 		libp2p.Identity(privateKey),
-	)
+	}
+
+	if c.EnableSecurity {
+		libp2ptlsca.Init(c.TunnelACLConfig.TLSCAFile,
+			c.TunnelACLConfig.TLSCertFile,
+			c.TunnelACLConfig.TLSPrivateKeyFile,
+		)
+		opts = append(opts, libp2p.Security(libp2ptlsca.ID, libp2ptlsca.New))
+	}
+
+	h, err := libp2p.New(context.Background(), opts...)
 	if err != nil {
-		return nil, fmt.Errorf("Start tunnel server failed, %v", err)
+		return nil, fmt.Errorf("failed to start tunnel server: %w", err)
 	}
 
 	Agent.Host = h

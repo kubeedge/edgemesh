@@ -13,6 +13,7 @@ export const en: NavbarConfig = [
         children: [
           '/advanced/architecture.md',
           '/advanced/hybirdnat.md',
+          '/advanced/security.md',
         ],
       }
     ],

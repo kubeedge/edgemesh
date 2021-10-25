@@ -7,6 +7,9 @@ on:
     tags:
   pull_request:
 
+env:
+  KUBEEDGE_VERSION: v1.8.2
+
 jobs:
   verify-and-lint:
     runs-on: ubuntu-latest
@@ -87,10 +90,10 @@ jobs:
           go get sigs.k8s.io/kind@v0.11.1
           curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.19.3/bin/linux/amd64/kubectl && sudo install kubectl /usr/local/bin/kubectl
           type keadm || {
-            curl -LO https://github.com/kubeedge/kubeedge/releases/download/v1.7.2/keadm-v1.7.2-linux-amd64.tar.gz
-            tar -C . -xzf keadm-v1.7.2-linux-amd64.tar.gz
-            chmod +x ./keadm-v1.7.2-linux-amd64/keadm/keadm
-            sudo mv ./keadm-v1.7.2-linux-amd64/keadm/keadm /usr/local/bin/keadm
+            curl -LO https://github.com/kubeedge/kubeedge/releases/download/$KUBEEDGE_VERSION/keadm-$KUBEEDGE_VERSION-linux-amd64.tar.gz
+            tar -C . -xzf keadm-$KUBEEDGE_VERSION-linux-amd64.tar.gz
+            chmod +x ./keadm-$KUBEEDGE_VERSION-linux-amd64/keadm/keadm
+            sudo mv ./keadm-$KUBEEDGE_VERSION-linux-amd64/keadm/keadm /usr/local/bin/keadm
           }
       - name: Checkout code
         uses: actions/checkout@v2
