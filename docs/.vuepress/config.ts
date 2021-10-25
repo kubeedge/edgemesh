@@ -41,8 +41,6 @@ export default defineUserConfig<DefaultThemeOptions>({
   },
 
   themeConfig: {
-    logo: '/images/hero.png',
-
     repo: 'kubeedge/edgemesh',
 
     docsDir: 'docs',

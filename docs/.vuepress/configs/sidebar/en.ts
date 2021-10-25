@@ -12,7 +12,7 @@ export const en: SidebarConfig = {
       ],
     },
   ],
-  '/advanced': [
+  '/advanced/': [
     {
       text: 'Advanced',
       children: [
