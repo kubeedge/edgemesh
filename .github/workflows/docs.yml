@@ -29,8 +29,8 @@ jobs:
         id: yarn-cache
         with:
           path: |
-            **/node_modules
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+            **/docs/node_modules
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/docs/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
 
@@ -38,7 +38,9 @@ jobs:
       - name: Install dependencies
         if: steps.yarn-cache.outputs.cache-hit != 'true'
         run: yarn --frozen-lockfile
+        working-directory: ./docs
 
       # run build script
       - name: Build VuePress site
         run: yarn docs:build
+        working-directory: ./docs
