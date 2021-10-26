@@ -4,8 +4,8 @@
   "description": "EdgeMesh Documentation",
   "license": "Apache",
   "scripts": {
-    "docs:dev": "vuepress dev docs",
-    "docs:build": "vuepress build docs"
+    "docs:dev": "vuepress dev .",
+    "docs:build": "vuepress build ."
   },
   "devDependencies": {
     "vuepress": "^2.0.0-beta.24"
