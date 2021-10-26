@@ -18,18 +18,4 @@ export const zh: NavbarConfig = [
       }
     ],
   },
-  {
-    text: '版本',
-    children: [
-      {
-        text: '更新日志',
-        link:
-          'https://github.com/kubeedge/kubeedge/blob/master/CHANGELOG/README.md',
-      },
-      {
-        text: 'v1.8',
-        link: 'https://edgemesh.netlify.app/zh/',
-      },
-    ],
-  },
 ]
