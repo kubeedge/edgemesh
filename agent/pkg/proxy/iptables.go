@@ -24,10 +24,10 @@ import (
 )
 
 const (
-	meshRootChain        utiliptables.Chain = "EDGE-MESH"
-	None                 string             = "None"
-	labelCoreDNS         string             = "k8s-app=kube-dns"
-	labelNoProxyEdgeMesh string             = "noproxy=edgemesh"
+	meshRootChain utiliptables.Chain = "EDGE-MESH"
+	None          string             = "None"
+	labelKubeDNS  string             = "k8s-app=kube-dns"
+	labelNoProxy  string             = "noproxy=edgemesh"
 )
 
 // iptablesJumpChain encapsulates the iptables rule information,
@@ -136,7 +136,7 @@ func (proxier *Proxier) ignoreRuleByService(svc *corev1.Service) iptablesJumpCha
 		}
 
 		ruleComment = func(svc *corev1.Service) string {
-			return fmt.Sprintf("ignore %s.%s service", svc.Name, svc.Namespace)
+			return fmt.Sprintf("ignore %s/%s service", svc.Namespace, svc.Name)
 		}
 	)
 	return iptablesJumpChain{
@@ -148,49 +148,50 @@ func (proxier *Proxier) ignoreRuleByService(svc *corev1.Service) iptablesJumpCha
 	}
 }
 
-// createIgnoreRules exclude some services that must be ignored
+// createIgnoreRules exclude some services that must be ignored.
+// The following services are ignored by default:
+//   - kubernetes.default
+//   - coredns.kube-system
+//   - kube-dns.kube-system
+// In addition, services labeled with noproxy=edgemesh will also be ignored.
 func (proxier *Proxier) createIgnoreRules() (ignoreRules, expiredIgnoreRules []iptablesJumpChain, err error) {
 	ignoreRulesIptablesEnsureMap := make(map[string]*corev1.Service)
-	// kube-apiserver service
-	kubeAPI, err := proxier.kubeClient.CoreV1().Services("default").Get(context.Background(), "kubernetes", metav1.GetOptions{})
-	if err != nil {
-		return
-	}
-	ignoreRulesIptablesEnsureMap[strings.Join([]string{kubeAPI.Namespace, kubeAPI.Name}, ".")] = kubeAPI
 
-	// kube-dns service
-	kubeDNS, err := proxier.kubeClient.CoreV1().Services("kube-system").Get(context.Background(), "kube-dns", metav1.GetOptions{})
-	if err != nil {
-		klog.Warningf("get kube-dns service failed, your cluster may be not have kube-dns service: %s", err)
-	}
-	if kubeDNS != nil && err == nil {
-		klog.V(4).Infof("ignored kubeDNS: %s", kubeDNS.Name)
-		ignoreRulesIptablesEnsureMap[strings.Join([]string{kubeDNS.Namespace, kubeDNS.Name}, ".")] = kubeDNS
+	// kubernetes(kube-apiserver) service
+	kubeAPI, err := proxier.kubeClient.CoreV1().Services("default").Get(context.Background(), "kubernetes", metav1.GetOptions{})
+	if err != nil && !util.IsNotFoundError(err) {
+		klog.Warningf("failed to get kubernetes.default service, err: %v", err)
+	} else if err == nil {
+		ignoreRulesIptablesEnsureMap[strings.Join([]string{kubeAPI.Namespace, kubeAPI.Name}, ".")] = kubeAPI
 	}
 
 	// coredns service
-	kubeDNSList, err := proxier.kubeClient.CoreV1().Services("kube-system").List(context.Background(), metav1.ListOptions{LabelSelector: labelCoreDNS})
-	if err != nil {
-		klog.Warningf("get coredns service failed, your cluster may be not have coredns service: %s", err)
+	coreDNS, err := proxier.kubeClient.CoreV1().Services("kube-system").Get(context.Background(), "coredns", metav1.GetOptions{})
+	if err != nil && !util.IsNotFoundError(err) {
+		klog.Warningf("failed to get coredns.kube-system service, err: %v", err)
+	} else if err == nil {
+		ignoreRulesIptablesEnsureMap[strings.Join([]string{coreDNS.Namespace, coreDNS.Name}, ".")] = coreDNS
 	}
-	if err == nil && kubeDNSList != nil && len(kubeDNSList.Items) > 0 {
+
+	// kube-dns service
+	kubeDNSList, err := proxier.kubeClient.CoreV1().Services("kube-system").List(context.Background(), metav1.ListOptions{LabelSelector: labelKubeDNS})
+	if err != nil && !util.IsNotFoundError(err) {
+		klog.Warningf("failed to list service labeled with k8s-app=kube-dns, err: %v", err)
+	} else if err == nil {
 		for _, item := range kubeDNSList.Items {
-			coreDNS := item
-			klog.V(4).Infof("ignored containing k8s-app=kube-dns label service: %s", coreDNS.Name)
-			ignoreRulesIptablesEnsureMap[strings.Join([]string{item.Namespace, item.Name}, ".")] = &coreDNS
+			klog.V(4).Infof("ignored containing k8s-app=kube-dns label service: %s", item.Name)
+			ignoreRulesIptablesEnsureMap[strings.Join([]string{item.Namespace, item.Name}, ".")] = &item
 		}
 	}
 
-	// Other services we want to ignore...
-	otherIgnoreServiceList, err := proxier.kubeClient.CoreV1().Services("").List(context.Background(), metav1.ListOptions{LabelSelector: labelNoProxyEdgeMesh})
-	if err != nil {
-		klog.Warningf("get Other ignore service failed: %s", err)
-	}
-	if err == nil && otherIgnoreServiceList != nil && len(otherIgnoreServiceList.Items) > 0 {
+	// Other services we want to ignore(which service has noproxy=edgemesh label)...
+	otherIgnoreServiceList, err := proxier.kubeClient.CoreV1().Services("").List(context.Background(), metav1.ListOptions{LabelSelector: labelNoProxy})
+	if err != nil && !util.IsNotFoundError(err) {
+		klog.Warningf("failed to list service labeled with noproxy=edgemesh, err: %v", err)
+	} else if err == nil {
 		for _, item := range otherIgnoreServiceList.Items {
-			otherIgnoreService := item
-			klog.V(4).Infof("ignored containing noproxy=edgemesh label service: %s", otherIgnoreService.Name)
-			ignoreRulesIptablesEnsureMap[strings.Join([]string{item.Namespace, item.Name}, ".")] = &otherIgnoreService
+			klog.V(4).Infof("ignored containing noproxy=edgemesh label service: %s", item.Name)
+			ignoreRulesIptablesEnsureMap[strings.Join([]string{item.Namespace, item.Name}, ".")] = &item
 		}
 	}
 
