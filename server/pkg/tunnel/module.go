@@ -69,6 +69,8 @@ func newTunnelServer(c *config.TunnelServerConfig, ifm *informers.Manager) (serv
 			c.TunnelACLConfig.TLSPrivateKeyFile,
 		)
 		opts = append(opts, libp2p.Security(libp2ptlsca.ID, libp2ptlsca.New))
+	} else {
+		opts = append(opts, libp2p.NoSecurity)
 	}
 
 	host, err := libp2p.New(context.Background(), opts...)
