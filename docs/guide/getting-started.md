@@ -79,53 +79,34 @@ $ kubectl apply -f build/server/edgemesh/05-configmap.yaml
 $ kubectl apply -f build/server/edgemesh/06-deployment.yaml
 ```
 
-- **Step 5**: Get K8s serviceCIDR
-```shell
-$ kubectl cluster-info dump | grep -m 1 service-cluster-ip-range
-    "--service-cluster-ip-range=10.96.0.0/12",
-```
-
-::: tip
-The next steps need to fill serviceCIDR into the corresponding configmap YAML.
-:::
-
-- **Step 6**: Deploy edgemesh-agent-cloud
+- **Step 5**: Deploy edgemesh-agent
 
 ```shell
-$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/03-serviceaccount.yaml
-$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/04-clusterrole.yaml
-$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/05-clusterrolebinding.yaml
-# Please set the subNet to the value of service-cluster-ip-range of kube-apiserver
-$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/06-configmap-cloud.yaml
-$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/07-daemonset-cloud.yaml
+$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/
+namespace/kubeedge configured
+serviceaccount/edgemesh-agent created
+clusterrole.rbac.authorization.k8s.io/edgemesh-agent created
+clusterrolebinding.rbac.authorization.k8s.io/edgemesh-agent created
+configmap/edgemesh-agent-cfg created
+daemonset.apps/edgemesh-agent created
 ```
 
-- **Step 7**: Deploy edgemesh-agent-edge
-
-```shell
-# Please set the subNet to the value of service-cluster-ip-range of kube-apiserver
-$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/06-configmap-edge.yaml
-$ kubectl apply -f build/agent/kubernetes/edgemesh-agent/07-daemonset-edge.yaml
-```
-
-- **Step 7**: Check it out
+- **Step 6**: Check it out
 
 ```shell
 $ kubectl get all -n kubeedge
 NAME                                   READY   STATUS    RESTARTS   AGE
-pod/edgemesh-agent-cloud-pcphk         1/1     Running   0          19h
-pod/edgemesh-agent-cloud-qkcpx         1/1     Running   0          19h
-pod/edgemesh-agent-edge-b4hf7          1/1     Running   0          19h
-pod/edgemesh-agent-edge-ktl6b          1/1     Running   0          19h
-pod/edgemesh-server-7f97d77469-dml4j   1/1     Running   0          2d21h
+pod/edgemesh-agent-4rhz4               1/1     Running   0          76s
+pod/edgemesh-agent-7wqgb               1/1     Running   0          76s
+pod/edgemesh-agent-9c697               1/1     Running   0          76s
+pod/edgemesh-server-5f6d5869ff-4568p   1/1     Running   0          5m8s
 
-NAME                                  DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
-daemonset.apps/edgemesh-agent-cloud   2         2         2       2            2           <none>          19h
-daemonset.apps/edgemesh-agent-edge    2         2         2       2            2           <none>          19h
+NAME                            DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+daemonset.apps/edgemesh-agent   3         3         3       3            3           <none>          76s
 
 NAME                              READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/edgemesh-server   1/1     1            1           2d21h
+deployment.apps/edgemesh-server   1/1     1            1           5m8s
 
 NAME                                         DESIRED   CURRENT   READY   AGE
-replicaset.apps/edgemesh-server-7f97d77469   1         1         1       2d21h
+replicaset.apps/edgemesh-server-5f6d5869ff   1         1         1       5m8s
 ```
