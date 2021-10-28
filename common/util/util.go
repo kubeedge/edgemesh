@@ -85,3 +85,7 @@ func FetchPublicIP() string {
 	}
 	return string(body)
 }
+
+func IsNotFoundError(err error) bool {
+	return strings.Contains(err.Error(), "not found")
+}
