@@ -381,13 +381,13 @@ func (proxier *Proxier) FlushRules() {
 
 	// flush root chain
 	if err := proxier.iptables.FlushChain(utiliptables.TableNAT, meshRootChain); err != nil {
-		klog.V(4).Error(err, "Failed flush root chain %s", meshRootChain)
+		klog.V(4).ErrorS(err, "Failed flush root chain %s", meshRootChain)
 	}
 
 	// flush proxy chains
 	for _, rule := range proxier.proxyRules {
 		if err := proxier.iptables.FlushChain(rule.table, rule.dstChain); err != nil {
-			klog.V(4).Error(err, "Failed flush proxy chain %s", rule.dstChain)
+			klog.V(4).ErrorS(err, "Failed flush proxy chain %s", rule.dstChain)
 		}
 	}
 }
@@ -400,10 +400,10 @@ func (proxier *Proxier) CleanResidue() {
 	// clean up non-interface iptables rules
 	nonIfiRuleArgs := strings.Split(fmt.Sprintf("-p tcp -d %s -j EDGE-MESH", proxier.serviceCIDR), " ")
 	if err := proxier.iptables.DeleteRule(utiliptables.TableNAT, utiliptables.ChainPrerouting, nonIfiRuleArgs...); err != nil {
-		klog.V(4).Error(err, "Failed clean residual non-interface rule %v", nonIfiRuleArgs)
+		klog.V(4).ErrorS(err, "Failed clean residual non-interface rule %v", nonIfiRuleArgs)
 	}
 	if err := proxier.iptables.DeleteRule(utiliptables.TableNAT, utiliptables.ChainOutput, nonIfiRuleArgs...); err != nil {
-		klog.V(4).Error(err, "Failed clean residual non-interface rule %v", nonIfiRuleArgs)
+		klog.V(4).ErrorS(err, "Failed clean residual non-interface rule %v", nonIfiRuleArgs)
 	}
 
 	// clean up interface iptables rules
@@ -411,11 +411,11 @@ func (proxier *Proxier) CleanResidue() {
 	for _, ifi := range ifiList {
 		inboundRuleArgs := strings.Split(fmt.Sprintf("-p tcp -d %s -i %s -j EDGE-MESH", proxier.serviceCIDR, ifi), " ")
 		if err := proxier.iptables.DeleteRule(utiliptables.TableNAT, utiliptables.ChainPrerouting, inboundRuleArgs...); err != nil {
-			klog.V(4).Error(err, "Failed clean residual inbound rule %v", inboundRuleArgs)
+			klog.V(4).ErrorS(err, "Failed clean residual inbound rule %v", inboundRuleArgs)
 		}
 		outboundRuleAgrs := strings.Split(fmt.Sprintf("-p tcp -d %s -o %s -j EDGE-MESH", proxier.serviceCIDR, ifi), " ")
 		if err := proxier.iptables.DeleteRule(utiliptables.TableNAT, utiliptables.ChainOutput, outboundRuleAgrs...); err != nil {
-			klog.V(4).Error(err, "Failed clean residual outbound rule %v", outboundRuleAgrs)
+			klog.V(4).ErrorS(err, "Failed clean residual outbound rule %v", outboundRuleAgrs)
 		}
 	}
 
@@ -431,7 +431,7 @@ func (proxier *Proxier) CleanResidue() {
 		if gw, err := util.GetInterfaceIP(ifi); err == nil {
 			route := netlink.Route{Dst: dst, Gw: gw}
 			if err := netlink.RouteDel(&route); err != nil {
-				klog.V(4).Error(err, "Failed delete route %v", route)
+				klog.V(4).ErrorS(err, "Failed delete route %v", route)
 			}
 		}
 	}
