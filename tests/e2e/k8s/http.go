@@ -32,6 +32,7 @@ func handlePostRequest2K8s(url string, body []byte) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	utils.Infof("%s %s %v in %v", req.Method, req.URL, resp.Status, time.Since(t))
 	return nil
 }
