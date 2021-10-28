@@ -19,7 +19,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0
-	github.com/spf13/cobra v1.0.0
+	github.com/spf13/cobra v1.1.1
 	github.com/thoas/go-funk v0.9.1
 	github.com/vishvananda/netlink v1.1.0
 	istio.io/api v0.0.0-20210131044048-bfeb10697307
