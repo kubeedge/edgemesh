@@ -7,12 +7,14 @@ Edge Gateway provides the ability to access the internal services of the cluster
 ## Deploy
 
 ```shell
-$ kubectl apply -f build/agent/kubernetes/edgemesh-gateway/03-configmap.yaml
-$ kubectl apply -f build/agent/kubernetes/edgemesh-gateway/04-deployment.yaml
+$ kubectl apply -f build/agent/kubernetes/edgemesh-gateway/02-configmap.yaml
+configmap/edgemesh-gateway-cfg created
+$ kubectl apply -f build/agent/kubernetes/edgemesh-gateway/03-deployment.yaml
+deployment.apps/edgemesh-gateway created
 ```
 
 ::: tip
-Edge Gateway and the Agent use the same [docker image](https://hub.docker.com/r/kubeedge/edgemesh-agent), with only minor differences in configuration.
+Edge Gateway and EdgeMesh-Agent use the same [docker image](https://hub.docker.com/r/kubeedge/edgemesh-agent), with only minor differences in configuration.
 :::
 
 ## HTTP Gateway
