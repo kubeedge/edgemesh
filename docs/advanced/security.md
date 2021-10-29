@@ -45,7 +45,7 @@ data:
       tunnel:
         # insert the following
         enableSecurity: true
-        tunnelACL:
+        ACL:
           # cloudcore's https api for crt sign apply
           httpServer: <cloudhub-https-addr>
 ```

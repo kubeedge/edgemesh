@@ -44,7 +44,7 @@ data:
       tunnel:
         # 插入如下内容
         enableSecurity: true
-        tunnelACL:
+        ACL:
           # cloudcore 提供的https服务接口，用于证书签发
           httpServer: <cloudhub-https-addr>
   ```
