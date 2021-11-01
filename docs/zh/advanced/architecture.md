@@ -30,3 +30,9 @@ EdgeMesh-Agent 的核心组件包括：
 - 请求进入 EdgeMesh-Agent 进程后，由 EdgeMesh-Agent 进程完成后端 Pod 的选择（负载均衡在这里发生），然后这个请求会通过 tunnel 模块发到 APP-B 所在主机的 EdgeMesh-Agent 上（通过中继转发或者打洞直接传输）
 - App-B 所在节点的 EdgeMesh-Agent 负责将流量转发到 APP-B 的服务端口上，并获取响应返回给 APP-A 所在节点的 EdgeMesh-Agent
 - APP-A 所在节点的 EdgeMesh-Agent 负责将响应数据反馈给 APP-A 服务
+
+## 未来工作
+
+![edgemesh-future-work](/images/advanced/future-work.png)
+
+目前，EdgeMesh 的功能实现依赖于主机网络的连通性。未来，EdgeMesh 将会实现 CNI 插件的能力，以兼容主流 CNI 插件（例如 Flannel / Calico 等）的方式实现边缘节点和云上节点、跨局域网边缘节点之间的 Pod 网络连通。最终，EdgeMesh 甚至可以将部分自身组件替换成云原生组件（例如替换 [kube-proxy](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-proxy/) 实现 Cluster IP 层的能力、替换 [node local dns cache](https://kubernetes.io/docs/tasks/administer-cluster/nodelocaldns/) 实现节点级 dns 的能力、替换 [envoy](https://www.envoyproxy.io/) 实现 mesh 层的能力）。

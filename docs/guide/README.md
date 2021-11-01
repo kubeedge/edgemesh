@@ -1,6 +1,6 @@
 # Introduction
 
-As the data plane component of the [KubeEdge](https://github.com/kubeedge/kubeedge) cluster, EdgeMesh uses LibP2P technology to offer sample capacities (e.g, service discovery, traffic proxy, etc.) for applications running on the KubeEdge cluster, thus shielding the complex network topology at the edge scenairo.
+EdgeMesh, as the data plane component of the [KubeEdge](https://github.com/kubeedge/kubeedge) cluster, provides simple service discovery and traffic proxy functions for applications, thereby shielding the complex network structure in edge scenarios.
 
 ## Background
 
@@ -32,8 +32,8 @@ EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge re
 		<th align="center">Feature</th>
 		<th align="center">Sub-Feature</th>
 		<th align="center">Realization Degree</th>
-	</tr >
-	<tr >
+	</tr>
+	<tr>
 		<td align="center">Service Discovery</td>
 		<td align="center">/</td>
 		<td align="center">✓</td>
@@ -69,15 +69,14 @@ EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge re
 		<td align="center">✓</td>
 	</tr>
 	<tr>
-		<td align="center">External Access</td>
-		<td align="center">/</td>
-		<td align="center">✓</td>
-	</tr>
-	<tr>
-		<td align="center">Multi-NIC Monitoring</td>
-		<td align="center">/</td>
-		<td align="center">✓</td>
-	</tr>
+    <td rowspan="2" align="center">Edge Gateway</td>
+    <td align="center">External Access</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">Multi-NIC Monitoring</td>
+    <td align="center">✓</td>
+  </tr>
   <tr>
 		<td rowspan="2" align="center">Cross-Subnet Communication</td>
 	 	<td align="center">Cross-Cloud Communication</td>

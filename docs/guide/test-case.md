@@ -78,8 +78,8 @@ Running on Pod tcp-echo-edge.
 In namespace edgezone.
 With IP address 172.17.0.2.
 Service default.
-I'm Cloud Buxybox
-I'm Cloud Buxybox
+I'm Cloud Busybox
+I'm Cloud Busybox
 ```
 
 **Edge access cloud**
