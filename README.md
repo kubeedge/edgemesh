@@ -133,7 +133,7 @@ The core components of EdgeMesh-Agent include:
 ### Prerequisites
 Before using EdgeMesh, you need to understand the following prerequisites at first:
 
-- while using DestinationRule, the name of the DestinationRule must be equal to the name of the corresponding Service. Edgemesh will determine the DestinationRule in the same namespace according to the name of the Service
+- while using DestinationRule, the name of the DestinationRule must be equal to the name of the corresponding Service. EdgeMesh will determine the DestinationRule in the same namespace according to the name of the Service
 - Service ports must be named. The key/value pairs of port name must have the following syntax: name: \<protocol>[-\<suffix>]
 
 ### Documents

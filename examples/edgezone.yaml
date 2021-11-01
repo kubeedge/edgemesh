@@ -20,16 +20,15 @@ spec:
       labels:
         app: tcp-echo-edge
     spec:
-      #nodeName: ke-edge1
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: node-role.kubernetes.io/edge
-                    operator: Exists
-                  - key: node-role.kubernetes.io/agent
-                    operator: Exists
+                - key: node-role.kubernetes.io/edge
+                  operator: Exists
+                - key: node-role.kubernetes.io/agent
+                  operator: Exists
       containers:
         - name: tcp-echo-container
           image: cjimti/go-echo:latest
@@ -94,16 +93,15 @@ spec:
       labels:
         app: tcp-echo-edge
     spec:
-      #nodeName: ke-edge1
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: node-role.kubernetes.io/edge
-                    operator: Exists
-                  - key: node-role.kubernetes.io/agent
-                    operator: Exists
+                - key: node-role.kubernetes.io/edge
+                  operator: Exists
+                - key: node-role.kubernetes.io/agent
+                  operator: Exists
       containers:
         - name: busybox
           image: busybox:1.28
