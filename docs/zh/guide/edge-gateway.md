@@ -7,15 +7,16 @@ EdgeMesh 的边缘网关提供了通过网关的方式访问集群内部服务�
 ## 部署
 
 ```shell
-$ kubectl apply -f build/agent/kubernetes/edgemesh-gateway/02-configmap.yaml
+$ kubectl apply -f build/agent/kubernetes/edgemesh-gateway/
+namespace/kubeedge unchanged
 configmap/edgemesh-gateway-cfg created
-$ kubectl apply -f build/agent/kubernetes/edgemesh-gateway/03-deployment.yaml
 deployment.apps/edgemesh-gateway created
 ```
 
-::: tip
-边缘网关与 EdgeMesh-Agent 使用相同的 [Docker 镜像](https://hub.docker.com/r/kubeedge/edgemesh-agent)，只在配置上有细微区别。
+::: warning
+请根据你的 K8s 集群设置 03-deployment.yaml 的 nodeName，否则 edgemesh-gateway 可能无法运行
 :::
+
 
 ## HTTP 网关
 

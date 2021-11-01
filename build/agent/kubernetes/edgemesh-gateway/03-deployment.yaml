@@ -24,6 +24,11 @@ spec:
           securityContext:
             privileged: true
           image: kubeedge/edgemesh-agent:latest
+          env:
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           resources:
             limits:
               cpu: 200m

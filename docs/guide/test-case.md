@@ -35,7 +35,7 @@ $ telnet tcp-echo-service.edgemesh-test 2701
 At the edge node 1, deploy a websocket container application, and relevant service
 
 ```shell
-$ kubectl apply -f examples/websocket-pod-svc.yaml
+$ kubectl apply -f examples/websocket.yaml
 ```
 
 Enter the container, and use ./client to access the service

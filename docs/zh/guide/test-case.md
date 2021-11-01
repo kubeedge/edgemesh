@@ -35,7 +35,7 @@ $ telnet tcp-echo-service.edgemesh-test 2701
 在边缘节点1，部署支持 websocket 协议的容器应用和相关服务
 
 ```shell
-$ kubectl apply -f examples/websocket-pod-svc.yaml
+$ kubectl apply -f examples/websocket.yaml
 ```
 
 进入 websocket 的容器环境，并使用 client 去访问相关服务

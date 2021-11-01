@@ -34,7 +34,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: hostname-svc
+  name: hostname-lb-svc
 spec:
   selector:
     app: hostname-edge
