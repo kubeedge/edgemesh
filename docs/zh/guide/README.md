@@ -1,6 +1,6 @@
 # 介绍
 
-EdgeMesh 作为 [KubeEdge](https://github.com/kubeedge/kubeedge) 集群的数据面组件，采用 [LibP2P](https://github.com/libp2p/go-libp2p) 技术为 KubeEdge 集群中的应用程序提供了简单的服务发现与流量代理功能，从而屏蔽了边缘场景下复杂的网络结构。
+EdgeMesh 作为 [KubeEdge](https://github.com/kubeedge/kubeedge) 集群的数据面组件，为应用程序提供了简单的服务发现与流量代理功能，从而屏蔽了边缘场景下复杂的网络结构。
 
 ## 背景
 
@@ -29,71 +29,70 @@ EdgeMesh 满足边缘场景下的新需求（如边缘资源有限、边云网�
 ## 关键功能
 
 <table align="center">
-    <tr>
-      <th align="center">功能</th>
-      <th align="center">子功能</th>
-      <th align="center">实现度</th>
-    </tr >
-    <tr >
-      <td align="center">服务发现</td>
-      <td align="center">/</td>
-      <td align="center">✓</td>
-    </tr>
-    <tr>
-      <td rowspan="4" align="center">流量治理</td>
-      <td align="center">HTTP</td>
-      <td align="center">✓</td>
-    </tr>
-    <tr>
-      <td align="center">TCP</td>
-      <td align="center">✓</td>
-    </tr>
-    <tr>
-      <td align="center">Websocket</td>
-      <td align="center">✓</td>
-    </tr>
-    <tr>
-      <td align="center">HTTPS</td>
-      <td align="center">✓</td>
-    </tr>
-    <tr>
-      <td rowspan="3" align="center">负载均衡</td>
-      <td align="center">随机</td>
-      <td align="center">✓</td>
-    </tr>
-    <tr>
-      <td align="center">轮询</td>
-      <td align="center">✓</td>
-    </tr>
-    <tr>
-      <td align="center">会话保持</td>
-      <td align="center">✓</td>
-    </tr>
-    <tr>
-      <td align="center">外部访问</td>
-      <td align="center">/</td>
-      <td align="center">✓</td>
-    </tr>
-    <tr>
-      <td align="center">多网卡监听</td>
-      <td align="center">/</td>
-      <td align="center">✓</td>
-    </tr>
-    <tr>
-      <td rowspan="2" align="center">跨子网通信</td>
-      <td align="center">跨边云通信</td>
-      <td align="center">✓</td>
-    </tr>
-    <tr>
-      <td align="center">跨局域网边边通信</td>
-      <td align="center">✓</td>
-    </tr>
-    <tr>
-      <td align="center">边缘CNI</td>
-      <td align="center">跨子网Pod通信</td>
-      <td align="center">+</td>
-    </tr>
-  </table>
+  <tr>
+    <th align="center">功能</th>
+    <th align="center">子功能</th>
+    <th align="center">实现度</th>
+  </tr>
+  <tr>
+    <td align="center">服务发现</td>
+    <td align="center">/</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td rowspan="4" align="center">流量治理</td>
+    <td align="center">HTTP</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">TCP</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">Websocket</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">HTTPS</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td rowspan="3" align="center">负载均衡</td>
+    <td align="center">随机</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">轮询</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">会话保持</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td rowspan="2" align="center">边缘网关</td>
+    <td align="center">外部访问</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">多网卡监听</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td rowspan="2" align="center">跨子网通信</td>
+    <td align="center">跨边云通信</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">跨局域网边边通信</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">边缘CNI</td>
+    <td align="center">跨子网Pod通信</td>
+    <td align="center">+</td>
+  </tr>
+</table>
 
 **注：**
 
