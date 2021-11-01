@@ -27,7 +27,7 @@ $ kubectl apply -f build/crds/istio/
 
 - **Step 3**: Enable List-Watch
 
-At the edge node, close edgeMesh module, open metaServer module, and restart edgecore
+(If your KubeEdge < v1.8.0) At the edge node, close edgeMesh module, open metaServer module, and restart edgecore
 
 ```shell
 $ vim /etc/kubeedge/config/edgecore.yaml
@@ -71,13 +71,18 @@ $ curl 127.0.0.1:10550/api/v1/services
 - **Step 4**: Deploy edgemesh-server
 
 ```shell
-$ kubectl apply -f build/server/edgemesh/02-serviceaccount.yaml
-$ kubectl apply -f build/server/edgemesh/03-clusterrole.yaml
-$ kubectl apply -f build/server/edgemesh/04-clusterrolebinding.yaml
-# Please set the value of 05-configmap's publicIP to the node's public IP so that edge nodes can access it.
-$ kubectl apply -f build/server/edgemesh/05-configmap.yaml
-$ kubectl apply -f build/server/edgemesh/06-deployment.yaml
+$ kubectl apply -f build/server/edgemesh/
+namespace/kubeedge configured
+serviceaccount/edgemesh-server created
+clusterrole.rbac.authorization.k8s.io/edgemesh-server created
+clusterrolebinding.rbac.authorization.k8s.io/edgemesh-server created
+configmap/edgemesh-server-cfg created
+deployment.apps/edgemesh-server created
 ```
+
+::: warning
+Please set the value of 05-configmap.yaml's publicIP and 06-deployment.yaml's nodeName according to your K8s cluster, otherwise edgemesh-server may not run
+:::
 
 - **Step 5**: Deploy edgemesh-agent
 

@@ -27,7 +27,7 @@ $ kubectl apply -f build/crds/istio/
 
 - **步骤3**: 开启 List-Watch
 
-在边缘节点，关闭 edgeMesh 模块，打开 metaServer 模块，并重启 edgecore
+（如果你的 KubeEdge < v1.8.0）在边缘节点，关闭 edgeMesh 模块，打开 metaServer 模块，并重启 edgecore
 
 ```shell
 $ vim /etc/kubeedge/config/edgecore.yaml
@@ -71,13 +71,18 @@ $ curl 127.0.0.1:10550/api/v1/services
 - **步骤4**: 部署 edgemesh-server
 
 ```shell
-$ kubectl apply -f build/server/edgemesh/02-serviceaccount.yaml
-$ kubectl apply -f build/server/edgemesh/03-clusterrole.yaml
-$ kubectl apply -f build/server/edgemesh/04-clusterrolebinding.yaml
-# 这里要把edgemsh-server的公网IP，也就是让边缘节点可以访问到的IP填入到05-configmap.yaml的publicIP上
-$ kubectl apply -f build/server/edgemesh/05-configmap.yaml
-$ kubectl apply -f build/server/edgemesh/06-deployment.yaml
+$ kubectl apply -f build/server/edgemesh/
+namespace/kubeedge configured
+serviceaccount/edgemesh-server created
+clusterrole.rbac.authorization.k8s.io/edgemesh-server created
+clusterrolebinding.rbac.authorization.k8s.io/edgemesh-server created
+configmap/edgemesh-server-cfg created
+deployment.apps/edgemesh-server created
 ```
+
+::: warning
+请根据你的 K8s 集群设置 05-configmap.yaml 的 publicIP 和 06-deployment.yaml 的 nodeName，否则 edgemesh-server 可能无法运行
+:::
 
 - **步骤5**: 部署 edgemesh-agent
 
