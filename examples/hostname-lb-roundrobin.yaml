@@ -1,40 +1,39 @@
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: hostname-lb-edge2
-  namespace: edgemesh-test
+  name: hostname-lb-edge
   labels:
     app: hostname-lb-edge
 spec:
-  nodeName: ke-edge2
-  containers:
-    - name: hostname
-      image: serve_hostname:latest
-      imagePullPolicy: IfNotPresent
-      ports:
-        - containerPort: 9376
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: hostname-lb-edge3
-  namespace: edgemesh-test
-  labels:
-    app: hostname-lb-edge
-spec:
-  nodeName: ke-edge3
-  containers:
-    - name: hostname
-      image: serve_hostname:latest
-      imagePullPolicy: IfNotPresent
-      ports:
-        - containerPort: 9376
+  replicas: 3
+  selector:
+    matchLabels:
+      app: hostname-lb-edge
+  template:
+    metadata:
+      labels:
+        app: hostname-lb-edge
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: node-role.kubernetes.io/edge
+                  operator: Exists
+                - key: node-role.kubernetes.io/agent
+                  operator: Exists
+      containers:
+        - name: hostname
+          image: mirrorgooglecontainers/serve_hostname:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9376
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: hostname-lb-svc
-  namespace: edgemesh-test
 spec:
   selector:
     app: hostname-lb-edge
@@ -48,7 +47,6 @@ apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
   name: hostname-lb-svc
-  namespace: edgemesh-test
 spec:
   host: hostname-lb-svc
   trafficPolicy:

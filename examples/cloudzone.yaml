@@ -55,10 +55,10 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: node-role.kubernetes.io/edge
-                    operator: DoesNotExist
-                  - key: node-role.kubernetes.io/agent
-                    operator: DoesNotExist
+                - key: node-role.kubernetes.io/edge
+                  operator: DoesNotExist
+                - key: node-role.kubernetes.io/agent
+                  operator: DoesNotExist
 ---
 apiVersion: v1
 kind: Service
@@ -105,7 +105,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: node-role.kubernetes.io/edge
-                    operator: DoesNotExist
-                  - key: node-role.kubernetes.io/agent
-                    operator: DoesNotExist
+                - key: node-role.kubernetes.io/edge
+                  operator: DoesNotExist
+                - key: node-role.kubernetes.io/agent
+                  operator: DoesNotExist

@@ -24,18 +24,17 @@ Please set the value of 03-deployment.yaml's nodeName according to your K8s clus
 
 ```shell
 $ kubectl apply -f examples/hostname-lb-random-gateway.yaml
-pod/hostname-lb-edge2 created
-pod/hostname-lb-edge3 created
+deployment.apps/hostname-lb-edge created
 service/hostname-lb-svc created
-gateway.networking.istio.io/edgemesh-gateway configured
-destinationrule.networking.istio.io/hostname-lb-edge created
+gateway.networking.istio.io/edgemesh-gateway created
+destinationrule.networking.istio.io/hostname-lb-svc created
 virtualservice.networking.istio.io/edgemesh-gateway-svc created
 ```
 
 **Check if the edgemesh-gateway is successfully created**
 
 ```shell
-$ kubectl get gw -n edgemesh-test
+$ kubectl get gw
 NAME               AGE
 edgemesh-gateway   3m30s
 ```
@@ -43,7 +42,7 @@ edgemesh-gateway   3m30s
 **Finally, use the IP and the port exposed by the Gateway to access**
 
 ```shell
-$ curl 192.168.0.211:12345
+$ curl 192.168.0.211:23333
 ```
 
 ## HTTPS Gateway
@@ -62,7 +61,7 @@ writing new private key to 'tls.key'
 **Create a 'Secret' according to the key file**
 
 ```bash
-$ kubectl create secret tls gw-secret --key tls.key --cert tls.crt -n edgemesh-test
+$ kubectl create secret tls gw-secret --key tls.key --cert tls.crt
 secret/gw-secret created
 ```
 
@@ -70,16 +69,15 @@ secret/gw-secret created
 
 ```bash
 $ kubectl apply -f examples/hostname-lb-random-gateway-tls.yaml
-pod/hostname-lb-edge2 created
-pod/hostname-lb-edge3 created
+deployment.apps/hostname-lb-edge created
 service/hostname-lb-svc created
-gateway.networking.istio.io/edgemesh-gateway configured
-destinationrule.networking.istio.io/hostname-lb-edge created
+gateway.networking.istio.io/edgemesh-gateway created
+destinationrule.networking.istio.io/hostname-lb-svc created
 virtualservice.networking.istio.io/edgemesh-gateway-svc created
 ```
 
 **Finally, use the certificate for a HTTPS access**
 
 ```bash
-$ curl -k --cert ./tls.crt --key ./tls.key https://192.168.0.129:12345
+$ curl -k --cert ./tls.crt --key ./tls.key https://192.168.0.211:23333
 ```

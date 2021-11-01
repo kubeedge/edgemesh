@@ -14,16 +14,15 @@ spec:
       labels:
         app: hostname-edge
     spec:
-      #nodeName: ke-edge1
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: node-role.kubernetes.io/edge
-                    operator: Exists
-                  - key: node-role.kubernetes.io/agent
-                    operator: Exists
+                - key: node-role.kubernetes.io/edge
+                  operator: Exists
+                - key: node-role.kubernetes.io/agent
+                  operator: Exists
       containers:
         - name: hostname
           image: mirrorgooglecontainers/serve_hostname:latest
@@ -34,7 +33,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: hostname-lb-svc
+  name: hostname-svc
 spec:
   selector:
     app: hostname-edge
