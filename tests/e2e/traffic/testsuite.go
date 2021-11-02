@@ -1,8 +1,6 @@
 package traffic
 
 import (
-	"math/rand"
-
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/kubeedge/edgemesh/tests/e2e/k8s"
@@ -22,7 +20,6 @@ func CreateHostnameApplication(uid string, nodeSelector map[string]string, servi
 		NodeSelector:      nodeSelector,
 		Labels:            labels,
 		Replica:           replica,
-		HostPort:          9376 + rand.Int31n(20),
 		ContainerPort:     9376,
 		ServicePortName:   "http-0",
 		ServicePort:       servicePort,
@@ -42,7 +39,6 @@ func CreateTCPReplyEdgemeshApplication(uid string, nodeSelector map[string]strin
 		NodeSelector:      nodeSelector,
 		Labels:            labels,
 		Replica:           replica,
-		HostPort:          9001,
 		ContainerPort:     9001,
 		ServicePortName:   "tcp-0",
 		ServicePort:       servicePort,

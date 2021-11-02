@@ -141,7 +141,6 @@ func generateApplication(config *ApplicationConfig) (*appsv1.Deployment, *v1.Ser
 							Ports: []v1.ContainerPort{
 								{
 									ContainerPort: config.ContainerPort,
-									HostPort:      config.HostPort,
 								},
 							},
 						},
@@ -171,7 +170,6 @@ type ApplicationConfig struct {
 	NodeSelector      map[string]string
 	Labels            map[string]string
 	Replica           int
-	HostPort          int32
 	ContainerPort     int32
 	ServicePortName   string
 	ServicePort       int32

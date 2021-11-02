@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	retryTime    = 20
+	retryTime    = 3
 	intervalTime = 5 * time.Second
 )
 
