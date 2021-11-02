@@ -10,6 +10,67 @@
 EdgeMesh 依赖于 KubeEdge 的边缘 [List-Watch](https://github.com/kubeedge/kubeedge/blob/master/CHANGELOG/CHANGELOG-1.6.md) 功能，KubeEdge v1.6+ 开始支持此功能，直到 KubeEdge v1.7+ 趋于稳定
 :::
 
+## Helm 安装
+
+- **步骤1**: 获取 EdgeMesh
+
+```shell
+$ git clone https://github.com/kubeedge/edgemesh.git
+$ cd edgemesh
+```
+
+- **步骤2**: 安装 Charts
+
+确保你已经安装了 Helm 3
+
+```
+helm install edgemesh \
+  --set server.nodeName=<your node name> \
+  --set server.publicIP=<your node eip> \
+  build/helm/edgemesh
+```
+
+server.nodeName 指定 edgemesh-server 部署的节点，server.publicIP 指定节点的公网 IP。其中 server.publicIP 是可以省略的，因为 edgemesh-server 会自动探测并配置节点的公网 IP，但不保证正确。
+
+**例子：**
+
+```shell
+helm install edgemesh \
+  --set server.nodeName=k8s-node1 \
+  --set server.publicIP=119.8.211.54 \
+  build/helm/edgemesh
+```
+
+::: warning
+请根据你的 K8s 集群设置 server.nodeName 和 server.publicIP，否则 edgemesh-server 可能无法运行
+:::
+
+- **步骤3**: 检验部署结果
+
+```shell
+$ helm ls
+NAME            NAMESPACE       REVISION        UPDATED                                 STATUS          CHART           APP VERSION
+edgemesh        default         1               2021-11-01 23:30:02.927346553 +0800 CST deployed        edgemesh-0.1.0  1.8.0
+```
+
+```shell
+$ kubectl get all -n kubeedge
+NAME                                   READY   STATUS    RESTARTS   AGE
+pod/edgemesh-agent-4rhz4               1/1     Running   0          76s
+pod/edgemesh-agent-7wqgb               1/1     Running   0          76s
+pod/edgemesh-agent-9c697               1/1     Running   0          76s
+pod/edgemesh-server-5f6d5869ff-4568p   1/1     Running   0          5m8s
+
+NAME                            DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+daemonset.apps/edgemesh-agent   3         3         3       3            3           <none>          76s
+
+NAME                              READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/edgemesh-server   1/1     1            1           5m8s
+
+NAME                                         DESIRED   CURRENT   READY   AGE
+replicaset.apps/edgemesh-server-5f6d5869ff   1         1         1       5m8s
+```
+
 ## 手动安装
 
 - **步骤1**: 获取 EdgeMesh
@@ -27,7 +88,7 @@ $ kubectl apply -f build/crds/istio/
 
 - **步骤3**: 开启 List-Watch
 
-（如果你的 KubeEdge < v1.8.0）在边缘节点，关闭 edgeMesh 模块，打开 metaServer 模块，并重启 edgecore
+（如果你的 KubeEdge < 1.8.0）在边缘节点，关闭 edgeMesh 模块，打开 metaServer 模块，并重启 edgecore
 
 ```shell
 $ vim /etc/kubeedge/config/edgecore.yaml

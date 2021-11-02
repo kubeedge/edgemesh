@@ -10,6 +10,67 @@
 EdgeMesh relies on the [List-Watch](https://github.com/kubeedge/kubeedge/blob/master/CHANGELOG/CHANGELOG-1.6.md) function of KubeEdge. KubeEdge v1.6+ starts to support this function until KubeEdge v1.7+ tends to be stable
 :::
 
+## Helm Installation
+
+- **Step 1**: Download EdgeMesh
+
+```shell
+$ git clone https://github.com/kubeedge/edgemesh.git
+$ cd edgemesh
+```
+
+- **Step 2**: Install Charts
+
+Make sure you have installed Helm 3
+
+```
+helm install edgemesh \
+  --set server.nodeName=<your node name> \
+  --set server.publicIP=<your node eip> \
+  build/helm/edgemesh
+```
+
+server.nodeName specifies the node deployed by edgemesh-server, and server.publicIP specifies the public IP of the node. The server.publicIP can be omitted, because edgemesh-server will automatically detect and configure the public IP of the node, but it is not guaranteed to be correct.
+
+**Example：**
+
+```shell
+helm install edgemesh \
+  --set server.nodeName=k8s-node1 \
+  --set server.publicIP=119.8.211.54 \
+  build/helm/edgemesh
+```
+
+::: warning
+Please set server.nodeName and server.publicIP according to your K8s cluster, otherwise edgemesh-server may not run
+:::
+
+- **Step 3**: Check it out
+
+```shell
+$ helm ls
+NAME            NAMESPACE       REVISION        UPDATED                                 STATUS          CHART           APP VERSION
+edgemesh        default         1               2021-11-01 23:30:02.927346553 +0800 CST deployed        edgemesh-0.1.0  1.8.0
+```
+
+```shell
+$ kubectl get all -n kubeedge
+NAME                                   READY   STATUS    RESTARTS   AGE
+pod/edgemesh-agent-4rhz4               1/1     Running   0          76s
+pod/edgemesh-agent-7wqgb               1/1     Running   0          76s
+pod/edgemesh-agent-9c697               1/1     Running   0          76s
+pod/edgemesh-server-5f6d5869ff-4568p   1/1     Running   0          5m8s
+
+NAME                            DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+daemonset.apps/edgemesh-agent   3         3         3       3            3           <none>          76s
+
+NAME                              READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/edgemesh-server   1/1     1            1           5m8s
+
+NAME                                         DESIRED   CURRENT   READY   AGE
+replicaset.apps/edgemesh-server-5f6d5869ff   1         1         1       5m8s
+```
+
 ## Manual Installation
 
 - **Step 1**: Download EdgeMesh
@@ -27,7 +88,7 @@ $ kubectl apply -f build/crds/istio/
 
 - **Step 3**: Enable List-Watch
 
-(If your KubeEdge < v1.8.0) At the edge node, close edgeMesh module, open metaServer module, and restart edgecore
+(If your KubeEdge < 1.8.0) At the edge node, close edgeMesh module, open metaServer module, and restart edgecore
 
 ```shell
 $ vim /etc/kubeedge/config/edgecore.yaml

@@ -1,7 +1,7 @@
 image: kubeedge/edgemesh-server:latest
 nodeName: "your node name"
-# publicIP equals to modules.tunnel.publicIP
-publicIP: "127.0.0.1"
+# publicIP overwrites the value of modules.tunnel.publicIP
+publicIP: ""
 
 # edgemesh-server configmap
 apiVersion: server.edgemesh.config.kubeedge.io/v1alpha1
@@ -16,4 +16,4 @@ modules:
   tunnel:
     enable: true
     listenPort: 20004
-    publicIP: "127.0.0.1"
+    publicIP: ""
