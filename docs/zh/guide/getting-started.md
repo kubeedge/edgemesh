@@ -88,7 +88,7 @@ $ kubectl apply -f build/crds/istio/
 
 - **步骤3**: 开启 List-Watch
 
-（如果你的 KubeEdge < 1.8.0）在边缘节点，关闭 edgeMesh 模块，打开 metaServer 模块，并重启 edgecore
+在边缘节点，打开 metaServer 模块（如果你的 KubeEdge < 1.8.0，还需关闭 edgeMesh 模块），并重启 edgecore
 
 ```shell
 $ vim /etc/kubeedge/config/edgecore.yaml

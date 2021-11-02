@@ -88,7 +88,7 @@ $ kubectl apply -f build/crds/istio/
 
 - **Step 3**: Enable List-Watch
 
-(If your KubeEdge < 1.8.0) At the edge node, close edgeMesh module, open metaServer module, and restart edgecore
+At the edge node, open metaServer module (if your KubeEdge < 1.8.0, you also need to close edgeMesh module), and restart edgecore
 
 ```shell
 $ vim /etc/kubeedge/config/edgecore.yaml
