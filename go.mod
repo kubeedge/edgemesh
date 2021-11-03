@@ -8,6 +8,7 @@ require (
 	github.com/go-chassis/go-archaius v0.20.0
 	github.com/go-chassis/go-chassis v1.7.1
 	github.com/golang/protobuf v1.5.2
+	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/kubeedge/beehive v0.0.0
 	github.com/kubeedge/kubeedge v1.6.2
 	github.com/libp2p/go-libp2p v0.13.1-0.20210224102305-f981b25d2738
@@ -19,7 +20,9 @@ require (
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0
+	github.com/prometheus/client_golang v1.11.0 // indirect
 	github.com/spf13/cobra v1.1.1
+	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/thoas/go-funk v0.9.1
 	github.com/vishvananda/netlink v1.1.0
 	istio.io/api v0.0.0-20210131044048-bfeb10697307
@@ -28,7 +31,6 @@ require (
 	k8s.io/apimachinery v0.21.1
 	k8s.io/client-go v0.21.1
 	k8s.io/component-base v0.21.1
-	k8s.io/dns v0.0.0-20210922232110-28b748057b41
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/kubernetes v1.21.1
 	k8s.io/utils v0.0.0-20210527160623-6fdb442a123b
