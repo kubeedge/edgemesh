@@ -165,7 +165,7 @@ func prepareRun(c *config.EdgeMeshAgentConfig, ifm *informers.Manager) error {
 	// set dns and proxy modules listenInterface
 	if c.Modules.EdgeDNSConfig.Enable || c.Modules.EdgeProxyConfig.Enable {
 		if err := commonutil.CreateEdgeMeshDevice(c.CommonConfig.DummyDeviceName, c.CommonConfig.DummyDeviceIP); err != nil {
-			return fmt.Errorf("create edgemesh device %s err: %v", c.CommonConfig.DummyDeviceName, err)
+			return fmt.Errorf("failed to create edgemesh device %s: %w", c.CommonConfig.DummyDeviceName, err)
 		}
 		c.Modules.EdgeDNSConfig.ListenInterface = c.CommonConfig.DummyDeviceName
 		c.Modules.EdgeProxyConfig.ListenInterface = c.CommonConfig.DummyDeviceName
