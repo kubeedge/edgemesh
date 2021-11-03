@@ -12,14 +12,7 @@ EdgeMesh 依赖于 KubeEdge 的边缘 [List-Watch](https://github.com/kubeedge/k
 
 ## Helm 安装
 
-- **步骤1**: 获取 EdgeMesh
-
-```shell
-$ git clone https://github.com/kubeedge/edgemesh.git
-$ cd edgemesh
-```
-
-- **步骤2**: 安装 Charts
+- **步骤1**: 安装 Charts
 
 确保你已经安装了 Helm 3
 
@@ -27,7 +20,7 @@ $ cd edgemesh
 helm install edgemesh \
   --set server.nodeName=<your node name> \
   --set server.publicIP=<your node eip> \
-  build/helm/edgemesh
+  https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
 server.nodeName 指定 edgemesh-server 部署的节点，server.publicIP 指定节点的公网 IP。其中 server.publicIP 是可以省略的，因为 edgemesh-server 会自动探测并配置节点的公网 IP，但不保证正确。
@@ -38,14 +31,14 @@ server.nodeName 指定 edgemesh-server 部署的节点，server.publicIP 指定�
 helm install edgemesh \
   --set server.nodeName=k8s-node1 \
   --set server.publicIP=119.8.211.54 \
-  build/helm/edgemesh
+  https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
 ::: warning
 请根据你的 K8s 集群设置 server.nodeName 和 server.publicIP，否则 edgemesh-server 可能无法运行
 :::
 
-- **步骤3**: 检验部署结果
+- **步骤2**: 检验部署结果
 
 ```shell
 $ helm ls
