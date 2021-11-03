@@ -12,14 +12,7 @@ EdgeMesh relies on the [List-Watch](https://github.com/kubeedge/kubeedge/blob/ma
 
 ## Helm Installation
 
-- **Step 1**: Download EdgeMesh
-
-```shell
-$ git clone https://github.com/kubeedge/edgemesh.git
-$ cd edgemesh
-```
-
-- **Step 2**: Install Charts
+- **Step 1**: Install Charts
 
 Make sure you have installed Helm 3
 
@@ -27,7 +20,7 @@ Make sure you have installed Helm 3
 helm install edgemesh \
   --set server.nodeName=<your node name> \
   --set server.publicIP=<your node eip> \
-  build/helm/edgemesh
+  https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
 server.nodeName specifies the node deployed by edgemesh-server, and server.publicIP specifies the public IP of the node. The server.publicIP can be omitted, because edgemesh-server will automatically detect and configure the public IP of the node, but it is not guaranteed to be correct.
@@ -38,14 +31,14 @@ server.nodeName specifies the node deployed by edgemesh-server, and server.publi
 helm install edgemesh \
   --set server.nodeName=k8s-node1 \
   --set server.publicIP=119.8.211.54 \
-  build/helm/edgemesh
+  https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
 ::: warning
 Please set server.nodeName and server.publicIP according to your K8s cluster, otherwise edgemesh-server may not run
 :::
 
-- **Step 3**: Check it out
+- **Step 2**: Check it out
 
 ```shell
 $ helm ls

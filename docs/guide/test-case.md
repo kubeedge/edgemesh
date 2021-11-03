@@ -91,7 +91,8 @@ deployment.apps/busybox-sleep-edge created
 **Cloud access edge**
 
 ```shell
-$ kubectl -n cloudzone exec busybox-sleep-cloud -c busybox -i -t -- sh
+$ BUSYBOX_POD=$(kubectl get all -n cloudzone | grep pod/busybox | awk '{print $1}')
+$ kubectl -n cloudzone exec $BUSYBOX_POD -c busybox -i -t -- sh
 $ telnet tcp-echo-edge-svc.edgezone 2701
 Welcome, you are connected to node ke-edge1.
 Running on Pod tcp-echo-edge.
