@@ -19,7 +19,6 @@ package http
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -28,15 +27,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/go-chassis/go-chassis/core/common"
-	"github.com/go-chassis/go-chassis/core/handler"
 	"github.com/go-chassis/go-chassis/core/invocation"
 	apiv1alpha3 "istio.io/api/networking/v1alpha3"
 	istioapi "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/edgemesh/agent/pkg/chassis/controller"
-	"github.com/kubeedge/edgemesh/agent/pkg/chassis/loadbalancer/util"
 	"github.com/kubeedge/edgemesh/agent/pkg/chassis/protocol/tcp"
 )
 
@@ -86,58 +82,26 @@ func (p *HTTP) Process() {
 			}
 		}
 
-		// websocket
-		if upgradeWebsocket(req) {
-			klog.Infof("upgrade websocket")
-			reqBytes, err1 := httpRequestToBytes(req)
+		// http fallback to tcp
+		reqBytes, err1 := httpRequestToBytes(req)
+		if err1 != nil {
+			klog.Errorf("req to bytes with err: %v", err1)
+			err1 = p.Conn.Close()
 			if err1 != nil {
-				klog.Errorf("req to bytes with err: %s", err1)
-				err1 = p.Conn.Close()
-				if err1 != nil {
-					klog.Errorf("close conn err: %v", err1)
-				}
-				return
+				klog.Errorf("close conn err: %v", err1)
 			}
-			websocket := &tcp.TCP{
-				Conn:         p.Conn,
-				SvcNamespace: p.SvcNamespace,
-				SvcName:      p.SvcName,
-				Port:         p.Port,
-				UpgradeReq:   reqBytes,
-			}
-			websocket.Process()
+
 			return
 		}
-
-		// http: Request.RequestURI can't be set in client requests, just reset it
-		req.RequestURI = ""
-
-		// create invocation
-		inv := invocation.New(context.Background())
-
-		// set invocation
-		inv.MicroServiceName = fmt.Sprintf("%s.%s.svc.cluster.local:%d", p.SvcName, p.SvcNamespace, p.Port)
-		inv.SourceServiceID = ""
-		inv.Protocol = "rest"
-
-		inv.Strategy = util.GetStrategyName(p.SvcNamespace, p.SvcName)
-		inv.Args = req
-		inv.Reply = &http.Response{}
-
-		// create handler chain
-		c, err := handler.CreateChain(common.Consumer, "http", handler.Loadbalance, handler.Transport)
-		if err != nil {
-			klog.Errorf("create handler chain error: %v", err)
-			err = p.Conn.Close()
-			if err != nil {
-				klog.Errorf("close conn err: %v", err)
-			}
-			return
+		httpToTcp := &tcp.TCP{
+			Conn:         p.Conn,
+			SvcNamespace: p.SvcNamespace,
+			SvcName:      p.SvcName,
+			Port:         p.Port,
+			UpgradeReq:   reqBytes,
 		}
-
-		// start to handle
-		p.Req = req
-		c.Next(inv, p.responseCallback)
+		httpToTcp.Process()
+		return
 	}
 }
 
@@ -267,21 +231,4 @@ func httpRequestToBytes(req *http.Request) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
-}
-
-// upgradeWebsocket returns true if request is for websocket upgrade
-func upgradeWebsocket(req *http.Request) bool {
-	if req == nil {
-		return false
-	}
-	if req.Header == nil {
-		return false
-	}
-	if req.Header.Get("Connection") == "Upgrade" &&
-		req.Header.Get("Upgrade") == "websocket" &&
-		req.Header.Get("Sec-WebSocket-Version") != "" &&
-		req.Header.Get("Sec-WebSocket-Key") != "" {
-		return true
-	}
-	return false
 }

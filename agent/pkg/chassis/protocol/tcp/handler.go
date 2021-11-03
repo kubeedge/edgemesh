@@ -105,6 +105,14 @@ func (h *L4ProxyHandler) Handle(chain *handler.Chain, i *invocation.Invocation, 
 		}
 		klog.Infof("l4 proxy start proxy data between tcpserver %v", i.Endpoint)
 
+		if tcpProtocol.UpgradeReq != nil {
+			_, err = stream.Write(tcpProtocol.UpgradeReq)
+			if err != nil {
+				r.Err = fmt.Errorf("tcp write req err: %v", err)
+				return
+			}
+		}
+
 		closeOnce := &sync.Once{}
 		go pipe(lconn, stream, closeOnce)
 		pipe(stream, lconn, closeOnce)

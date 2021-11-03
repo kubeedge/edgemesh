@@ -11,6 +11,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/edgemesh/agent/pkg/chassis/protocol"
+	"github.com/kubeedge/edgemesh/agent/pkg/chassis/protocol/http"
 	"github.com/kubeedge/edgemesh/agent/pkg/chassis/protocol/tcp"
 	"github.com/kubeedge/edgemesh/agent/pkg/proxy/controller"
 )
@@ -119,8 +120,15 @@ func (proxy *EdgeProxy) newProtocolFromSock(ip string, port int, conn net.Conn) 
 	name := svcNameSets[1]
 
 	switch protoName {
-	// http fallback to tcp
-	case "tcp", "http":
+	case "http":
+		proto = &http.HTTP{
+			Conn:         conn,
+			SvcName:      name,
+			SvcNamespace: namespace,
+			Port:         port,
+		}
+		err = nil
+	case "tcp":
 		proto = &tcp.TCP{
 			Conn:         conn,
 			SvcName:      name,

@@ -38,12 +38,7 @@ func (p *TCP) Process() {
 	// set invocation
 	inv.MicroServiceName = fmt.Sprintf("%s.%s.svc.cluster.local:%d", p.SvcName, p.SvcNamespace, p.Port)
 	inv.SourceServiceID = ""
-	if p.UpgradeReq == nil {
-		inv.Protocol = "tcp"
-	} else {
-		// websocket
-		inv.Protocol = "rest"
-	}
+	inv.Protocol = "tcp"
 	inv.Strategy = util.GetStrategyName(p.SvcNamespace, p.SvcName)
 	inv.Args = p.UpgradeReq
 
