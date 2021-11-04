@@ -109,7 +109,7 @@ localup_kubeedge() {
   token=$(sudo keadm gettoken --kube-config=${KUBECONFIG})
   echo $token
 
-  # turn off edgemesh and turn on list-watch featuren and resart edgeocre
+  # turn off edgemesh and turn on local apiserver featuren and resart edgeocre
   export CHECK_EDGECORE_ENVIRONMENT="false"
   sudo -E keadm join --cloudcore-ipport=${HOST_IP}:10000 --kubeedge-version=${KUBEEDGE_VERSION} --token=${token} --edgenode-name=${EDGE_NODENAME}
 

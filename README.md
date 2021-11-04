@@ -124,7 +124,7 @@ The core components of EdgeMesh-Agent include:
 - **Proxier**: Responsible for configuring the kernel's iptables rules, and intercepting requests to the EdgeMesh process
 - **DNS**: Built-in DNS resolver, which resolves the DNS request in the node into a service cluster IP
 - **Traffic**: A traffic forwarding module based on the Go-Chassis framework, which is responsible for forwarding traffic between applications
-- **Controller**: Obtains metadata (e.g., Service, Endpoints, Pod, etc.) through the List-Watch capability on the edge side of KubeEdge
+- **Controller**: Obtains metadata (e.g., Service, Endpoints, Pod, etc.) through the Local APIServer capability on the edge side of KubeEdge
 - **Tunnel-Agent**: Based on LibP2P, using relay and hole punching to provide the ability of communicating across subnets
 
 

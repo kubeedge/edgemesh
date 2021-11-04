@@ -7,12 +7,16 @@
 [KubeEdge v1.7+](https://github.com/kubeedge/kubeedge/releases)
 
 ::: tip
-EdgeMesh 依赖于 KubeEdge 的边缘 [List-Watch](https://github.com/kubeedge/kubeedge/blob/master/CHANGELOG/CHANGELOG-1.6.md) 功能，KubeEdge v1.6+ 开始支持此功能，直到 KubeEdge v1.7+ 趋于稳定
+EdgeMesh 依赖于 KubeEdge 的边缘 [Local APIServer](https://github.com/kubeedge/kubeedge/blob/master/CHANGELOG/CHANGELOG-1.6.md) 功能，KubeEdge v1.6+ 开始支持此功能，直到 KubeEdge v1.7+ 趋于稳定
 :::
 
 ## Helm 安装
 
-- **步骤1**: 安装 Charts
+- **步骤1**: 开启 Local APIServer
+
+参考 [手动安装-步骤3](#step3)，开启 Local APIServer。
+
+- **步骤2**: 安装 Charts
 
 确保你已经安装了 Helm 3
 
@@ -38,7 +42,7 @@ helm install edgemesh \
 请根据你的 K8s 集群设置 server.nodeName 和 server.publicIP，否则 edgemesh-server 可能无法运行
 :::
 
-- **步骤2**: 检验部署结果
+- **步骤3**: 检验部署结果
 
 ```shell
 $ helm ls
@@ -73,13 +77,14 @@ $ git clone https://github.com/kubeedge/edgemesh.git
 $ cd edgemesh
 ```
 
+<a name="step3"></a>
 - **步骤2**: 安装 CRDs
 
 ```shell
 $ kubectl apply -f build/crds/istio/
 ```
 
-- **步骤3**: 开启 List-Watch
+- **步骤3**: 开启 Local APIServer
 
 在边缘节点，打开 metaServer 模块（如果你的 KubeEdge < 1.8.0，还需关闭 edgeMesh 模块），并重启 edgecore
 
@@ -115,7 +120,7 @@ modules:
 $ systemctl restart cloudcore
 ```
 
-在边缘节点，测试 List-Watch 是否开启
+在边缘节点，测试 Local APIServer 是否开启
 
 ```shell
 $ curl 127.0.0.1:10550/api/v1/services

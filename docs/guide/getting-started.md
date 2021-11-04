@@ -7,12 +7,16 @@
 [KubeEdge v1.7+](https://github.com/kubeedge/kubeedge/releases)
 
 ::: tip
-EdgeMesh relies on the [List-Watch](https://github.com/kubeedge/kubeedge/blob/master/CHANGELOG/CHANGELOG-1.6.md) function of KubeEdge. KubeEdge v1.6+ starts to support this function until KubeEdge v1.7+ tends to be stable
+EdgeMesh relies on the [Local APIServer](https://github.com/kubeedge/kubeedge/blob/master/CHANGELOG/CHANGELOG-1.6.md) function of KubeEdge. KubeEdge v1.6+ starts to support this function until KubeEdge v1.7+ tends to be stable
 :::
 
 ## Helm Installation
 
-- **Step 1**: Install Charts
+- **Step 1**: Enable Local APIServer
+
+Refer to [Manual Installation-Step 3](#step3), enable Local APIServer.
+
+- **Step 2**: Install Charts
 
 Make sure you have installed Helm 3
 
@@ -38,7 +42,7 @@ helm install edgemesh \
 Please set server.nodeName and server.publicIP according to your K8s cluster, otherwise edgemesh-server may not run
 :::
 
-- **Step 2**: Check it out
+- **Step 3**: Check it out
 
 ```shell
 $ helm ls
@@ -73,13 +77,14 @@ $ git clone https://github.com/kubeedge/edgemesh.git
 $ cd edgemesh
 ```
 
+<a name="step3"></a>
 - **Step 2**: Create CRDs
 
 ```shell
 $ kubectl apply -f build/crds/istio/
 ```
 
-- **Step 3**: Enable List-Watch
+- **Step 3**: Enable Local APIServer
 
 At the edge node, open metaServer module (if your KubeEdge < 1.8.0, you also need to close edgeMesh module), and restart edgecore
 
@@ -115,7 +120,7 @@ modules:
 $ systemctl restart cloudcore
 ```
 
-At the edge node, check if List-Watch works
+At the edge node, check if Local APIServer works
 
 ```shell
 $ curl 127.0.0.1:10550/api/v1/services
