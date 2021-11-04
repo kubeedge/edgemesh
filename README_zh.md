@@ -125,7 +125,7 @@ EdgeMesh-Agent 的核心组件包括：
 - **Proxier**: 负责配置内核的 iptables 规则，将请求拦截到 EdgeMesh 进程内
 - **DNS**: 内置的 DNS 解析器，将节点内的域名请求解析成一个服务的集群 IP
 - **Traffic**: 基于 Go-Chassis 框架的流量转发模块，负责转发应用间的流量
-- **Controller**: 通过 KubeEdge 的边缘侧 List-Watch 能力获取 Service、Endpoints、Pod 等元数据
+- **Controller**: 通过 KubeEdge 的边缘侧 Local APIServer 能力获取 Service、Endpoints、Pod 等元数据
 - **Tunnel-Agent**: 基于 LibP2P 实现，利用中继和打洞来提供跨子网通讯的能力
 
 

@@ -303,9 +303,9 @@ func resetConfigByMode(mode string, c *config.EdgeMeshAgentConfig) {
 	klog.Infof("edgemesh-agent running on %s", mode)
 
 	if mode == EdgeMode {
-		// edgemesh-agent relies on the list-watch function of KubeEdge when it runs at the edge node.
+		// edgemesh-agent relies on the local apiserver function of KubeEdge when it runs at the edge node.
 		// KubeEdge v1.6+ starts to support this function until KubeEdge v1.7+ tends to be stable.
-		// what is KubeEdge list-watch: https://github.com/kubeedge/kubeedge/blob/master/CHANGELOG/CHANGELOG-1.6.md
+		// what is KubeEdge local apiserver: https://github.com/kubeedge/kubeedge/blob/master/CHANGELOG/CHANGELOG-1.6.md
 		c.KubeAPIConfig.Master = "http://127.0.0.1:10550"
 		// ContentType only supports application/json
 		// see issue: https://github.com/kubeedge/kubeedge/issues/3041
