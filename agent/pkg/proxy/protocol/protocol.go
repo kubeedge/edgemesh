@@ -10,9 +10,10 @@ import (
 type ProtoName string
 
 const (
-	TCP  ProtoName = "tcp"
-	UDP  ProtoName = "udp"
-	SCTP ProtoName = "sctp"
+	TCP     ProtoName = "tcp"
+	UDP     ProtoName = "udp"
+	SCTP    ProtoName = "sctp"
+	MAXPORT int       = 65535
 )
 
 type ProtoProxy interface {
@@ -52,8 +53,8 @@ func (tcp *TCPProxy) SetListener(ip net.IP, port int) error {
 			IP:   ip,
 			Port: port + tmpPort,
 		}
-		if listenAddr.Port >= 65535 {
-			return fmt.Errorf("max port limit 1-65535")
+		if listenAddr.Port >= MAXPORT {
+			return fmt.Errorf("port limit 1-65535")
 		}
 	}
 
