@@ -13,13 +13,15 @@ import (
 	"github.com/kubeedge/edgemesh/common/constants"
 )
 
-const RETRY_CONNECT_TIME = 3
+const connectRetryTime = 3
+const runRetryTime = 10
 
 func (t *TunnelAgent) Run() {
-	for {
+	isSuccess := false
+	for i := 0; i < runRetryTime; i++ {
 		relay, err := controller.APIConn.GetPeerAddrInfo(constants.ServerAddrName)
 		if err != nil {
-			klog.Errorln("Failed to get tunnel server addr")
+			klog.Errorf("Failed to get tunnel server addr: %v", err)
 			time.Sleep(5 * time.Second)
 			continue
 		}
@@ -27,7 +29,7 @@ func (t *TunnelAgent) Run() {
 		if len(t.Host.Network().ConnsToPeer(relay.ID)) == 0 {
 			klog.Warningf("Connection between agent and server %v is not established, try connect", relay.Addrs)
 			retryTime := 0
-			for retryTime < RETRY_CONNECT_TIME {
+			for retryTime < connectRetryTime {
 				klog.Infof("Tunnel agent connecting to tunnel server")
 				err = t.Host.Connect(context.Background(), *relay)
 				if err != nil {
@@ -48,11 +50,13 @@ func (t *TunnelAgent) Run() {
 				}
 
 				klog.Infof("agent success connected to server %v", relay.Addrs)
+				isSuccess = true
 				break
 			}
 		}
-		// heartbeat time
-		time.Sleep(10 * time.Second)
+	}
+	if !isSuccess {
+		klog.Fatal("Failed to run tunnelAgent, exit")
 	}
 }
 
