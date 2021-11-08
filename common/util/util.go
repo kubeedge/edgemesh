@@ -22,18 +22,21 @@ const (
 
 // SplitServiceKey splits service name
 func SplitServiceKey(key string) (name, namespace string) {
-	sets := strings.Split(key, ".")
-	if len(sets) >= 2 {
-		return sets[0], sets[1]
-	}
 	ns := os.Getenv("POD_NAMESPACE")
 	if ns == "" {
 		ns = "default"
 	}
-	if len(sets) == 1 {
+
+	// The key here is a domain name, and it has at least one '.'. So when we split it by '.',
+	// we will get a slice, whose length is at least 2.
+	// Then we only need to determine whether the second element is an empty string.
+	sets := strings.Split(key, ".")
+
+	if sets[1] == "" {
 		return sets[0], ns
 	}
-	return key, ns
+
+	return sets[0], sets[1]
 }
 
 // GetInterfaceIP get net interface ipv4 address
