@@ -180,7 +180,7 @@ func (proxier *Proxier) createIgnoreRules() (ignoreRules, expiredIgnoreRules []i
 	} else if err == nil {
 		for _, item := range kubeDNSList.Items {
 			klog.V(4).Infof("ignored containing k8s-app=kube-dns label service: %s", item.Name)
-			ignoreRulesIptablesEnsureMap[strings.Join([]string{item.Namespace, item.Name}, ".")] = &item
+			ignoreRulesIptablesEnsureMap[strings.Join([]string{item.Namespace, item.Name}, ".")] = item.DeepCopy()
 		}
 	}
 
@@ -191,7 +191,7 @@ func (proxier *Proxier) createIgnoreRules() (ignoreRules, expiredIgnoreRules []i
 	} else if err == nil {
 		for _, item := range otherIgnoreServiceList.Items {
 			klog.V(4).Infof("ignored containing noproxy=edgemesh label service: %s", item.Name)
-			ignoreRulesIptablesEnsureMap[strings.Join([]string{item.Namespace, item.Name}, ".")] = &item
+			ignoreRulesIptablesEnsureMap[strings.Join([]string{item.Namespace, item.Name}, ".")] = item.DeepCopy()
 		}
 	}
 

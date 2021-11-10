@@ -12,6 +12,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/edgemesh/agent/pkg/chassis/controller"
+	"github.com/kubeedge/edgemesh/agent/pkg/chassis/protocol"
 	"github.com/kubeedge/edgemesh/common/util"
 )
 
@@ -172,13 +173,20 @@ func parseServiceURL(serviceURL string) (string, string, int, error) {
 }
 
 // getPortAndProtocol get targetPort and protocol, targetPort is equal to containerPort
-func getPortAndProtocol(svc *v1.Service, svcPort int) (targetPort int, protocol string) {
+func getPortAndProtocol(svc *v1.Service, svcPort int) (targetPort int, protocolName string) {
 	for _, p := range svc.Spec.Ports {
 		if p.Protocol == "TCP" && int(p.Port) == svcPort {
-			protocol = strings.Split(p.Name, "-")[0]
+			protocolName = "tcp"
+			pro := strings.Split(p.Name, "-")[0]
+			for _, p := range protocol.RegisterProtocols {
+				if p == pro {
+					protocolName = pro
+					break
+				}
+			}
 			targetPort = p.TargetPort.IntValue()
 			break
 		}
 	}
-	return targetPort, protocol
+	return targetPort, protocolName
 }
