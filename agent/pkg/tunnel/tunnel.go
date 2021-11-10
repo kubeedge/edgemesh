@@ -19,7 +19,7 @@ func (t *TunnelAgent) Run() {
 	for {
 		relay, err := controller.APIConn.GetPeerAddrInfo(constants.ServerAddrName)
 		if err != nil {
-			klog.Errorln("Failed to get tunnel server addr")
+			klog.Errorf("Failed to get tunnel server addr: %v", err)
 			time.Sleep(5 * time.Second)
 			continue
 		}
