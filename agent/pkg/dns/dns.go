@@ -64,6 +64,10 @@ func (dns *EdgeDNS) Run() {
 
 // lookup confirms if the service exists
 func lookup(serviceURL string) (ip string, exist bool) {
+	// Here serviceURL is a domain name which has at least a "." suffix. So here we need trim it.
+	if strings.HasSuffix(serviceURL, ".") {
+		serviceURL = strings.TrimSuffix(serviceURL, ".")
+	}
 	name, namespace := util.SplitServiceKey(serviceURL)
 	ip, err := controller.APIConn.GetSvcIP(namespace, name)
 	if err != nil {
