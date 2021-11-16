@@ -540,10 +540,8 @@ label_node() {
 }
 
 create_istio_crd() {
-  echo "createing the istio crd..."
-  kubectl apply -f ${EDGEMESH_ROOT}/build/crds/istio/destinationrule-crd.yaml
-  kubectl apply -f ${EDGEMESH_ROOT}/build/crds/istio/gateway-crd.yaml
-  kubectl apply -f ${EDGEMESH_ROOT}/build/crds/istio/virtualservice-crd.yaml
+  echo "creating the istio crds..."
+  kubectl apply -f ${EDGEMESH_ROOT}/build/crds/istio/
 }
 
 do_up() {
