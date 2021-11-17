@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -26,14 +25,7 @@ func SplitServiceKey(key string) (name, namespace string) {
 	if len(sets) >= 2 {
 		return sets[0], sets[1]
 	}
-	ns := os.Getenv("POD_NAMESPACE")
-	if ns == "" {
-		ns = "default"
-	}
-	if len(sets) == 1 {
-		return sets[0], ns
-	}
-	return key, ns
+	return key, "default"
 }
 
 // GetInterfaceIP get net interface ipv4 address

@@ -52,6 +52,9 @@ func newTunnelAgent(c *config.TunnelAgentConfig, ifm *informers.Manager, mode Tu
 	aclManager.Start()
 
 	privateKey, err := aclManager.GetPrivateKey()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get private key: %w", err)
+	}
 
 	opts := []libp2p.Option{
 		libp2p.EnableRelay(circuit.OptActive),
