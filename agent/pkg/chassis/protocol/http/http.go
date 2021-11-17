@@ -52,18 +52,8 @@ func (p *HTTP) Process() {
 	for {
 		// parse http request
 		req, err := http.ReadRequest(bufio.NewReader(p.Conn))
-		if err != nil {
-			if err == io.EOF {
-				klog.Warningf("read http request EOF")
-				err = p.Conn.Close()
-				if err != nil {
-					klog.Errorf("close conn err: %v", err)
-				}
-				return
-			}
-			klog.Errorf("read http request err: %v", err)
-			err = p.Conn.Close()
-			if err != nil {
+		if err != nil || err == io.EOF {
+			if err = p.Conn.Close(); err != nil {
 				klog.Errorf("close conn err: %v", err)
 			}
 			return
@@ -74,8 +64,7 @@ func (p *HTTP) Process() {
 			err = p.route(req.RequestURI)
 			if err != nil {
 				klog.Errorf("route by http request uri err: %v", err)
-				err = p.Conn.Close()
-				if err != nil {
+				if err = p.Conn.Close(); err != nil {
 					klog.Errorf("close conn err: %v", err)
 				}
 				return
@@ -83,16 +72,15 @@ func (p *HTTP) Process() {
 		}
 
 		// http fallback to tcp
-		reqBytes, err1 := httpRequestToBytes(req)
-		if err1 != nil {
-			klog.Errorf("req to bytes with err: %v", err1)
-			err1 = p.Conn.Close()
-			if err1 != nil {
-				klog.Errorf("close conn err: %v", err1)
+		reqBytes, err := httpRequestToBytes(req)
+		if err != nil {
+			klog.Errorf("transforms http request to bytes err: %v", err)
+			if err = p.Conn.Close(); err != nil {
+				klog.Errorf("close conn err: %v", err)
 			}
-
 			return
 		}
+
 		httpToTcp := &tcp.TCP{
 			Conn:         p.Conn,
 			SvcNamespace: p.SvcNamespace,
@@ -101,7 +89,6 @@ func (p *HTTP) Process() {
 			UpgradeReq:   reqBytes,
 		}
 		httpToTcp.Process()
-		return
 	}
 }
 

@@ -65,13 +65,11 @@ func (dns *EdgeDNS) Run() {
 // lookup confirms if the service exists
 func lookup(serviceURL string) (ip string, exist bool) {
 	// Here serviceURL is a domain name which has at least a "." suffix. So here we need trim it.
-	if strings.HasSuffix(serviceURL, ".") {
-		serviceURL = strings.TrimSuffix(serviceURL, ".")
-	}
+	serviceURL = strings.TrimSuffix(serviceURL, ".")
 	name, namespace := util.SplitServiceKey(serviceURL)
 	ip, err := controller.APIConn.GetSvcIP(namespace, name)
 	if err != nil {
-		klog.Errorf("service reverse clusterIP error: %v", err)
+		klog.Errorf("service `%s.%s` reverse clusterIP error: %v", name, namespace, err)
 		return "", false
 	}
 	klog.Infof("dns server parse %s ip %s", serviceURL, ip)
