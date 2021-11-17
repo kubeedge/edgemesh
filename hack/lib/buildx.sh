@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# update the code from https://github.com/kubeedge/sedna/blob/fa6df45c30b1ff934dba07fa0c59f3f64a943d2e/hack/lib/buildx.sh
+# update the code from https://github.com/kubeedge/sedna/blob/e95caf947141bf9b2a4b92aa19c8ad9d5ce677ae/hack/lib/buildx.sh
 
 set -o errexit
 set -o nounset
@@ -40,9 +40,27 @@ edgemesh::buildx::prepare_env() {
 
 edgemesh::buildx:generate-dockerfile() {
   dockerfile=${1}
-  sed "/AS builder/s/FROM/FROM --platform=\$BUILDPLATFORM/g" ${dockerfile}
+  sed "/AS builder/s/FROM/FROM --platform=\$TARGETPLATFORM/g" ${dockerfile}
 }
 
+edgemesh::buildx::push-multi-platform-images() {
+  edgemesh::buildx::prepare_env
+
+  for component in ${COMPONENTS[@]}; do
+    echo "pushing ${PLATFORMS} image for $component"
+
+    temp_dockerfile=build/${component}/buildx_dockerfile
+    edgemesh::buildx:generate-dockerfile build/${component}/Dockerfile > ${temp_dockerfile}
+
+    docker buildx build --push \
+      --build-arg "GO_LDFLAGS=${GO_LDFLAGS}" \
+      --platform ${PLATFORMS} \
+      -t ${IMAGE_REPO}/edgemesh-${component}:${IMAGE_TAG} \
+      -f ${temp_dockerfile} .
+
+    rm ${temp_dockerfile}
+  done
+}
 
 edgemesh::buildx::build-multi-platform-images() {
   edgemesh::buildx::prepare_env
