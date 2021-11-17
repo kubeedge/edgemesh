@@ -122,8 +122,7 @@ func (s *Strategy) getKeyFromTCP(inv *invocation.Invocation, dr *istioapi.Destin
 	rd := bufio.NewReader(bytes.NewReader(data))
 	for {
 		line, err := rd.ReadString('\n')
-		if err != nil || io.EOF == err {
-			klog.Errorf("read tcp header fields error: %v", err)
+		if err != nil || err == io.EOF {
 			break
 		}
 		field := strings.Split(line, ": ")
@@ -148,7 +147,7 @@ func (s *Strategy) getKey(dr *istioapi.DestinationRule, proto string,
 	case *apiv1alpha3.LoadBalancerSettings_ConsistentHash:
 		switch consistentHashLb := lbPolicy.ConsistentHash.HashKey.(type) {
 		case *apiv1alpha3.LoadBalancerSettings_ConsistentHashLB_HttpHeaderName:
-			if "http" == proto {
+			if proto == "http" {
 				hashKey = httpReq.Header.Get(consistentHashLb.HttpHeaderName)
 			} else { // tcp
 				hashKey = tcpReq[consistentHashLb.HttpHeaderName]
@@ -156,7 +155,7 @@ func (s *Strategy) getKey(dr *istioapi.DestinationRule, proto string,
 		case *apiv1alpha3.LoadBalancerSettings_ConsistentHashLB_HttpCookie:
 			return "", fmt.Errorf("cookie as hashkey not support")
 		case *apiv1alpha3.LoadBalancerSettings_ConsistentHashLB_UseSourceIp:
-			if "http" == proto {
+			if proto == "http" {
 				hashKey = httpReq.Host
 			} else { // tcp
 				hashKey = tcpReq["Host"]
