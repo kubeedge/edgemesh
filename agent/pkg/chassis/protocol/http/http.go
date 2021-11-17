@@ -33,8 +33,14 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/edgemesh/agent/pkg/chassis/controller"
+	"github.com/kubeedge/edgemesh/agent/pkg/chassis/protocol"
 	"github.com/kubeedge/edgemesh/agent/pkg/chassis/protocol/tcp"
 )
+
+func init() {
+	http := &HTTP{}
+	http.Register()
+}
 
 // HTTP http
 type HTTP struct {
@@ -45,6 +51,11 @@ type HTTP struct {
 	Port           int
 	Req            *http.Request
 	Resp           *http.Response
+}
+
+// register protocol name
+func (p *HTTP) Register() {
+	protocol.RegisterProtocols = append(protocol.RegisterProtocols, "http")
 }
 
 // Process process

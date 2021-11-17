@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 
+	"github.com/kubeedge/edgemesh/agent/pkg/chassis/protocol"
 	"github.com/kubeedge/edgemesh/common/informers"
 )
 
@@ -65,8 +66,18 @@ func getSvcPorts(svc *v1.Service) string {
 	svcPorts := ""
 	svcName := svc.Namespace + "." + svc.Name
 	for _, p := range svc.Spec.Ports {
-		pro := strings.Split(p.Name, "-")
-		sub := fmt.Sprintf("%s,%d,%d|", pro[0], p.Port, p.TargetPort.IntVal)
+		var protocolName string
+		pro := strings.Split(p.Name, "-")[0]
+		for _, p := range protocol.RegisterProtocols {
+			if p == pro {
+				protocolName = pro
+				break
+			}
+		}
+		if protocolName == "" {
+			protocolName = strings.ToLower(string(p.Protocol))
+		}
+		sub := fmt.Sprintf("%s,%d,%d|", protocolName, p.Port, p.TargetPort.IntVal)
 		svcPorts = svcPorts + sub
 	}
 	svcPorts += svcName

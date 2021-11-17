@@ -11,6 +11,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/edgemesh/agent/pkg/chassis/loadbalancer/util"
+	"github.com/kubeedge/edgemesh/agent/pkg/chassis/protocol"
 )
 
 func init() {
@@ -18,6 +19,8 @@ func init() {
 	if err != nil {
 		klog.Errorf("register l4 proxy handler err: %v", err)
 	}
+	tcp := &TCP{}
+	tcp.Register()
 }
 
 // TCP tcp
@@ -28,6 +31,11 @@ type TCP struct {
 	Port         int
 	// for websocket
 	UpgradeReq []byte
+}
+
+// register protocol name
+func (p *TCP) Register() {
+	protocol.RegisterProtocols = append(protocol.RegisterProtocols, "tcp")
 }
 
 // Process process
