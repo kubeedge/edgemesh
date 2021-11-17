@@ -153,3 +153,14 @@ images: agentimage serverimage
 agentimage serverimage:
 	docker build --build-arg GO_LDFLAGS=${GO_LDFLAGS} -t kubeedge/edgemesh-${@:image=}:${IMAGE_TAG} -f build/${@:image=}/Dockerfile .
 
+
+.PHONY: push push-all push-multi-platform-images
+push-all: push-multi-platform-images
+
+# push target pushes edgemesh-built images
+push: images
+	for target in $(COMPONENTS); do docker push ${IMAGE_REPO}/edgemesh-$$target:${IMAGE_TAG}; done
+
+# push multi-platform images
+push-multi-platform-images:
+	bash hack/make-rules/push.sh
