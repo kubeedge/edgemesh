@@ -172,9 +172,9 @@ func (c *ChassisController) createHashRing(namespace, name string) {
 	for _, subset := range eps.Subsets {
 		for _, addr := range subset.Addresses {
 			instances = append(instances, hashring.ServiceInstance{
-				Namespace:  namespace,
-				Name:       name,
-				InstanceIP: addr.IP,
+				Namespace:    namespace,
+				Name:         name,
+				InstanceName: addr.TargetRef.Name,
 			})
 		}
 	}
@@ -216,9 +216,9 @@ func (c *ChassisController) updateHashRing(eps *v1.Endpoints) {
 			continue
 		}
 		hr.Add(hashring.ServiceInstance{
-			Namespace:  namespace,
-			Name:       name,
-			InstanceIP: instanceIP,
+			Namespace:    namespace,
+			Name:         name,
+			InstanceName: instanceIP,
 		})
 	}
 	for _, key := range deleted {
@@ -250,7 +250,7 @@ func findDiff(eps *v1.Endpoints, hr *consistent.Consistent) ([]string, []string)
 	// build destination array from endpoints
 	for _, subset := range eps.Subsets {
 		for _, addr := range subset.Addresses {
-			dest = append(dest, fmt.Sprintf("%s#%s#%s", eps.Namespace, eps.Name, addr.IP))
+			dest = append(dest, fmt.Sprintf("%s#%s#%s", eps.Namespace, eps.Name, addr.TargetRef.Name))
 		}
 	}
 	klog.V(4).Infof("dest: %+v", dest)
