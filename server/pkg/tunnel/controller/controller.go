@@ -3,6 +3,7 @@ package controller
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -13,6 +14,7 @@ import (
 	typecorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	k8slisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/edgemesh/common/constants"
 	"github.com/kubeedge/edgemesh/common/informers"
@@ -46,8 +48,10 @@ func Init(ifm *informers.Manager) *TunnelServerController {
 	return APIConn
 }
 
-func (c *TunnelServerController) SetPeerAddrInfo(nodeName string, info *peer.AddrInfo) error {
-	peerAddrInfoBytes, err := info.MarshalJSON()
+func (c *TunnelServerController) SetPeerAddrInfo(serverAddrName, nodeName string, info *peer.AddrInfo) error {
+	serverAddr := make(map[string]*peer.AddrInfo)
+	serverAddr[nodeName] = info
+	newData, err := json.Marshal(serverAddr)
 	if err != nil {
 		return fmt.Errorf("Marshal node %s peer info err: %v", nodeName, err)
 	}
@@ -61,7 +65,7 @@ func (c *TunnelServerController) SetPeerAddrInfo(nodeName string, info *peer.Add
 			},
 			Data: map[string][]byte{},
 		}
-		newSecret.Data[nodeName] = peerAddrInfoBytes
+		newSecret.Data[serverAddrName] = newData
 		_, err = c.secretOperator.Create(context.Background(), newSecret, metav1.CreateOptions{})
 		if err != nil {
 			return fmt.Errorf("Create secret %s in %s failed: %v", constants.SecretName, constants.SecretNamespace, err)
@@ -74,11 +78,31 @@ func (c *TunnelServerController) SetPeerAddrInfo(nodeName string, info *peer.Add
 
 	if secret.Data == nil {
 		secret.Data = make(map[string][]byte)
-	} else if bytes.Equal(secret.Data[nodeName], peerAddrInfoBytes) {
+	} else if bytes.Equal(secret.Data[serverAddrName], newData) {
 		return nil
 	}
 
-	secret.Data[nodeName] = peerAddrInfoBytes
+	oldData := secret.Data[serverAddrName]
+	if oldData == nil {
+		secret.Data[serverAddrName] = newData
+		secret, err = c.secretOperator.Update(context.Background(), secret, metav1.UpdateOptions{})
+		if err != nil {
+			return fmt.Errorf("Update secret %v err: %v", secret, err)
+		}
+		return nil
+	}
+	var serverAddrs map[string]*peer.AddrInfo
+	err = json.Unmarshal(oldData, &serverAddrs)
+	if err != nil {
+		klog.Errorf("unmarshal serverAddrInfos %v failed, err: %v", oldData, err)
+	}
+	serverAddrs[nodeName] = info
+	newData, err = json.Marshal(serverAddrs)
+	if err != nil {
+		klog.Errorf("message serverAddrs failed, err: %v", err)
+	}
+
+	secret.Data[serverAddrName] = newData
 	secret, err = c.secretOperator.Update(context.Background(), secret, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("Update secret %v err: %v", secret, err)

@@ -3,6 +3,7 @@ package controller
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -43,7 +44,7 @@ func Init(ifm *informers.Manager) *TunnelAgentController {
 	return APIConn
 }
 
-func (c *TunnelAgentController) GetPeerAddrInfo(nodeName string) (info *peer.AddrInfo, err error) {
+func (c *TunnelAgentController) GetPeerAddrInfo(nodeName string) (info map[string]interface{}, err error) {
 	secret, err := c.secretLister.Secrets(constants.SecretNamespace).Get(constants.SecretName)
 	if err != nil {
 		return nil, fmt.Errorf("Get %s addr from api server err: %v", nodeName, err)
@@ -53,9 +54,8 @@ func (c *TunnelAgentController) GetPeerAddrInfo(nodeName string) (info *peer.Add
 	if len(infoBytes) == 0 {
 		return nil, fmt.Errorf("Get %s addr from api server err: %v", nodeName, err)
 	}
-
-	info = new(peer.AddrInfo)
-	err = info.UnmarshalJSON(infoBytes)
+	info = make(map[string]interface{})
+	err = json.Unmarshal(infoBytes, &info)
 	if err != nil {
 		return nil, fmt.Errorf("%s transfer to peer addr info err: %v", string(infoBytes), err)
 	}

@@ -2,6 +2,7 @@ package tcp
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-msgio/protoio"
 	"k8s.io/klog/v2"
@@ -111,19 +113,29 @@ func (tp *TCPProxyService) GetProxyStream(targetNodeName, targetIP string, targe
 		return nil, fmt.Errorf("Get %s addr err: %v", targetNodeName, err)
 	}
 
-	connNum := tp.host.Network().ConnsToPeer(destInfo.ID)
+	peerInfo := new(peer.AddrInfo)
+	dataType, err := json.Marshal(destInfo)
+	if err != nil {
+		return nil, fmt.Errorf("Marshal addr err: %v", err)
+	}
+	err = peerInfo.UnmarshalJSON(dataType)
+	if err != nil {
+		return nil, fmt.Errorf("UnmarshalJSON addr %s err: %v", targetNodeName, err)
+	}
+
+	connNum := tp.host.Network().ConnsToPeer(peerInfo.ID)
 	if len(connNum) >= 2 {
 		klog.V(4).Infof("Data transfer between %s is p2p mode", targetNodeName)
 	} else {
 		klog.V(4).Infof("Try to hole punch with %s", targetNodeName)
-		err = tp.host.Connect(context.Background(), *destInfo)
+		err = tp.host.Connect(context.Background(), *peerInfo)
 		if err != nil {
 			return nil, fmt.Errorf("connect to %s err: %v", targetNodeName, err)
 		}
 		klog.V(4).Infof("Data transfer between %s is p2p mode", targetNodeName)
 	}
 
-	stream, err := tp.host.NewStream(context.Background(), destInfo.ID, TCPProxyProtocol)
+	stream, err := tp.host.NewStream(context.Background(), peerInfo.ID, TCPProxyProtocol)
 	if err != nil {
 		return nil, fmt.Errorf("New stream between %s err: %v", targetNodeName, err)
 	}
