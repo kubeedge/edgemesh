@@ -26,7 +26,7 @@ type sockAddr struct {
 func (proxy *EdgeProxy) Run() {
 	// ensure ipatbles
 	proxy.Proxier.Start()
-
+	proxy.Socks5Proxy.Start()
 	// start tcp proxy
 	for {
 		conn, err := proxy.TCPProxy.Listener.Accept()

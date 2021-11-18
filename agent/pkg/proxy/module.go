@@ -10,12 +10,14 @@ import (
 	"github.com/kubeedge/edgemesh/common/informers"
 	"github.com/kubeedge/edgemesh/common/modules"
 	"github.com/kubeedge/edgemesh/common/util"
+
 )
 
 // EdgeProxy is used for traffic proxy
 type EdgeProxy struct {
 	Config   *config.EdgeProxyConfig
 	TCPProxy *protocol.TCPProxy
+	Socks5Proxy *Socks5Proxy
 	Proxier  *Proxier
 	// TODO(Poorunga) realize the proxy of UDP protocol
 	// UDPProxy *protocol.UDPProxy
@@ -40,6 +42,12 @@ func newEdgeProxy(c *config.EdgeProxyConfig, ifm *informers.Manager) (proxy *Edg
 	proxy.TCPProxy = &protocol.TCPProxy{Name: protocol.TCP}
 	if err := proxy.TCPProxy.SetListener(listenIP, proxy.Config.ListenPort); err != nil {
 		return proxy, fmt.Errorf("set tcp proxy err: %v", err)
+	}
+
+	// get socks5 proxy
+	proxy.Socks5Proxy, err = NewSocks5Proxy(listenIP, proxy.Config.SocksListenPort, proxy.Config.NodeName,  ifm.GetKubeClient())
+	if err != nil {
+		return proxy, fmt.Errorf("new socks5Proxy err: %v", err)
 	}
 
 	// new proxier
