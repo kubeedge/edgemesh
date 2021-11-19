@@ -16,8 +16,10 @@ import (
 )
 
 const (
-	timeout = 5 * time.Second
-	retry   = 3
+	timeout       = 5 * time.Second
+	retry         = 3
+	pod_namespace = "POD_NAMESPACE"
+	ifconfig      = "https://ifconfig.me"
 )
 
 // SplitServiceKey splits service name
@@ -26,7 +28,7 @@ func SplitServiceKey(key string) (name, namespace string) {
 	if len(sets) >= 2 {
 		return sets[0], sets[1]
 	}
-	ns := os.Getenv("POD_NAMESPACE")
+	ns := os.Getenv(pod_namespace)
 	if ns == "" {
 		ns = "default"
 	}
@@ -68,7 +70,7 @@ func FetchPublicIP() string {
 	var resp *http.Response
 	var err error
 	for i := 0; i < retry; i++ {
-		resp, err = Client.Get("https://ifconfig.me")
+		resp, err = Client.Get(ifconfig)
 		if err == nil {
 			break
 		}
