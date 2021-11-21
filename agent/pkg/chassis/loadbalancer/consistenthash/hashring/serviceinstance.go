@@ -35,18 +35,18 @@ func (h defaultHasher) Sum64(data []byte) uint64 {
 
 // ServiceInstance is the implementation of the consistent.Member interface
 type ServiceInstance struct {
-	Namespace  string
-	Name       string
-	InstanceIP string
+	Namespace    string
+	Name         string
+	InstanceName string
 }
 
 // String gets service instance key
 func (si ServiceInstance) String() string {
-	// key format: Namespace#Name#InstanceIP
-	return fmt.Sprintf("%s#%s#%s", si.Namespace, si.Name, si.InstanceIP)
+	// key format: Namespace#Name#InstanceName
+	return fmt.Sprintf("%s#%s#%s", si.Namespace, si.Name, si.InstanceName)
 }
 
-func SplitKey(key string) (namespace, name, instanceIP string, err error) {
+func SplitKey(key string) (namespace, name, instanceName string, err error) {
 	parts := strings.Split(key, "#")
 	if len(parts) != 3 {
 		err = fmt.Errorf("invalid ServiceInstance key format")
