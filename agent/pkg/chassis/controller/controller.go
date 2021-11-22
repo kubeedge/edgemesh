@@ -110,11 +110,11 @@ func (c *ChassisController) drUpdate(oldObj, newObj interface{}) {
 		klog.Errorf("invalid type %v", newObj)
 		return
 	}
-	key := fmt.Sprintf("%s.%s", newDr.Namespace, newDr.Name)
+
 	if isConsistentHashLB(oldDr) && !isConsistentHashLB(newDr) {
 		// If the loadbalance strategy is updated, if it is no longer a `consistentHash` strategy,
 		// we need to delete the exists hash ring.
-		hashring.DeleteHashRing(key)
+		c.deleteHashRing(newDr.Namespace, newDr.Name)
 	} else if !isConsistentHashLB(oldDr) && isConsistentHashLB(newDr) {
 		// If the loadbalance strategy is updated, and it is a `consistentHash` strategy,
 		// we need to create a hash ring.
@@ -129,8 +129,7 @@ func (c *ChassisController) drDelete(obj interface{}) {
 		return
 	}
 	if isConsistentHashLB(dr) {
-		key := fmt.Sprintf("%s.%s", dr.Namespace, dr.Name)
-		hashring.DeleteHashRing(key)
+		c.deleteHashRing(dr.Namespace, dr.Name)
 	}
 }
 
@@ -230,6 +229,21 @@ func (c *ChassisController) updateHashRing(eps *v1.Endpoints) {
 	if len(added) != 0 || len(deleted) != 0 {
 		hashring.AddOrUpdateHashRing(ring, hr)
 	}
+}
+
+// deleteHashRing delete hash ring if needed
+func (c *ChassisController) deleteHashRing(namespace, name string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// check hash ring cache
+	key := fmt.Sprintf("%s.%s", namespace, name)
+	if _, ok := hashring.GetHashRing(key); !ok {
+		klog.Warningf("hash ring %s not exists in cache", key)
+		return
+	}
+
+	hashring.DeleteHashRing(key)
 }
 
 // findDiff look for the difference between v1.Endpoints and HashRing.Members
