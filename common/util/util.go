@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	timeout = 5 * time.Second
-	retry   = 3
+	timeout     = 5 * time.Second
+	retry       = 3
+	ifconfigURL = "https://ifconfig.me"
 )
 
 // SplitServiceKey splits service name
@@ -60,7 +61,7 @@ func FetchPublicIP() string {
 	var resp *http.Response
 	var err error
 	for i := 0; i < retry; i++ {
-		resp, err = Client.Get("https://ifconfig.me")
+		resp, err = Client.Get(ifconfigURL)
 		if err == nil {
 			break
 		}
