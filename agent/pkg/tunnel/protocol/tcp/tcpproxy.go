@@ -148,9 +148,9 @@ func (tp *TCPProxyService) GetProxyStream(targetNodeName, targetIP string, targe
 
 	msg.Reset()
 	if err = streamReader.ReadMsg(msg); err != nil {
-		err = stream.Reset()
-		if err != nil {
-			return nil, fmt.Errorf("Stream between %s reset err: %v", targetNodeName, err)
+		err1 := stream.Reset()
+		if err1 != nil {
+			return nil, fmt.Errorf("Stream between %s reset err: %w", targetNodeName, err1)
 		}
 		return nil, fmt.Errorf("Read conn result msg from %s err: %v", targetNodeName, err)
 	}
@@ -159,7 +159,7 @@ func (tp *TCPProxyService) GetProxyStream(targetNodeName, targetIP string, targe
 		if err != nil {
 			return nil, fmt.Errorf("Stream between %s reset err: %v", targetNodeName, err)
 		}
-		return nil, fmt.Errorf("%s dial %s:%d err: %v", targetNodeName, targetIP, targetPort, err)
+		return nil, fmt.Errorf("%s dial %s:%d err: TCPProxy.type is TCPProxy_FAILED", targetNodeName, targetIP, targetPort)
 	}
 
 	msg.Reset()
