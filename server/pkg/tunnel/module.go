@@ -50,9 +50,16 @@ func newTunnelServer(c *config.TunnelServerConfig, ifm *informers.Manager) (serv
 		}
 	}
 	addressFactory := func(addrs []ma.Multiaddr) []ma.Multiaddr {
-		if externalMultiAddr != nil {
-			addrs = append(addrs, externalMultiAddr)
+		if externalMultiAddr == nil {
+			return addrs
 		}
+		// if the externalMultiAddr is existed already, just skip
+		for _, addr := range addrs {
+			if string(addr.Bytes()) == string(externalMultiAddr.Bytes()) {
+				return addrs
+			}
+		}
+		addrs = append(addrs, externalMultiAddr)
 		return addrs
 	}
 	opts := []libp2p.Option{
