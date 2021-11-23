@@ -40,7 +40,7 @@ edgemesh::buildx::prepare_env() {
 
 edgemesh::buildx:generate-dockerfile() {
   dockerfile=${1}
-  sed "/AS builder/s/FROM/FROM --platform=\$TARGETPLATFORM/g" ${dockerfile}
+  sed "/AS builder/s/FROM/FROM --platform=\$BUILDPLATFORM/g" ${dockerfile}
 }
 
 edgemesh::buildx::push-multi-platform-images() {
