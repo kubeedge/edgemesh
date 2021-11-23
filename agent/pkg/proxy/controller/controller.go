@@ -26,7 +26,7 @@ type ProxyController struct {
 
 	sync.RWMutex
 	svcPortsByIP map[string]string // key: clusterIP, value: SvcPorts
-	ipBySvc      map[string]string // key: svcName.svcNamespace, value: clusterIP
+	ipBySvc      map[string]string // key: svcNamespace.svcName, value: clusterIP
 }
 
 func Init(ifm *informers.Manager) {
