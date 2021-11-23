@@ -114,6 +114,33 @@ func (esd *EdgeServiceDiscovery) FindMicroServiceInstances(consumerID, microServ
 				})
 			}
 		}
+
+		for _, addr := range subset.NotReadyAddresses {
+			pod, err := controller.APIConn.GetPodLister().Pods(addr.TargetRef.Namespace).Get(addr.TargetRef.Name)
+			if err != nil {
+				klog.Warningf("get pod %s err: %w", addr.IP, err)
+				continue
+			}
+			if pod == nil || pod.Status.Phase != v1.PodRunning {
+				klog.V(4).Infof("pod %s is nil or not running.", addr.IP)
+				continue
+			}
+
+			for _, port := range subset.Ports {
+				if addr.NodeName == nil || port.Port != int32(targetPort) {
+					// Each backend(Address) must have a nodeName, so we do not support custom Endpoints now.
+					// This means that external services cannot be used.
+					continue
+				}
+
+				microServiceInstances = append(microServiceInstances, &registry.MicroServiceInstance{
+					InstanceID:   fmt.Sprintf("%s.%s|%s.%d", namespace, name, addr.IP, targetPort),
+					ServiceID:    fmt.Sprintf("%s#%s#%s", namespace, name, addr.TargetRef.Name),
+					HostName:     "",
+					EndpointsMap: map[string]string{proto: fmt.Sprintf("%s:%s:%d", *addr.NodeName, addr.IP, targetPort)},
+				})
+			}
+		}
 	}
 
 	// no instances found

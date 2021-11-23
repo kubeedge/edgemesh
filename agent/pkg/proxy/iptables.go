@@ -126,6 +126,21 @@ func (proxier *Proxier) ignoreRuleByService(svc *corev1.Service) iptablesJumpCha
 						klog.V(4).Infof("eps: %s.%s, endpointAddress.IP:%s", endpoints.Namespace, endpoints.Name, epAddress.IP)
 						endpointIPs = append(endpointIPs, epAddress.IP)
 					}
+
+					for _, endpointAddress := range epSubset.NotReadyAddresses {
+						pod, err := controller.APIConn.GetPodLister().Pods(endpointAddress.TargetRef.Namespace).Get(endpointAddress.TargetRef.Name)
+						if err != nil {
+							klog.Warningf("get pod %s err: %w", endpointAddress.IP, err)
+							continue
+						}
+						if pod == nil || pod.Status.Phase != corev1.PodRunning {
+							klog.V(4).Infof("pod %s is nil or not running.", endpointAddress.IP)
+							continue
+						}
+						epAddress := endpointAddress
+						klog.V(4).Infof("eps: %s.%s, endpointAddress.IP:%s", endpoints.Namespace, endpoints.Name, epAddress.IP)
+						endpointIPs = append(endpointIPs, epAddress.IP)
+					}
 				}
 				return endpointIPs
 			default:
