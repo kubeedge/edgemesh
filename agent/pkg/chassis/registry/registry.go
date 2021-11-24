@@ -2,7 +2,6 @@ package registry
 
 import (
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -120,10 +119,6 @@ func (esd *EdgeServiceDiscovery) FindMicroServiceInstances(consumerID, microServ
 	if len(microServiceInstances) == 0 {
 		return nil, fmt.Errorf("service %s.%s has no instances", namespace, name)
 	}
-
-	// Why do we need to sort microServiceInstances?
-	// That's because the pod list obtained by the PodLister is out of order.
-	sort.Sort(microServiceInstances)
 
 	return microServiceInstances, nil
 }
