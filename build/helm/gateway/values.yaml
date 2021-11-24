@@ -8,12 +8,6 @@ commonConfig:
   dummyDeviceName: edgemesh0
   dummyDeviceIP: 169.254.96.16
   configMapName: edgemesh-gateway-cfg
-kubeAPIConfig:
-  burst: 200
-  contentType: application/vnd.kubernetes.protobuf
-  kubeConfig: ""
-  master: ""
-  qps: 100
 goChassisConfig:
   protocol:
     tcpBufferSize: 8192

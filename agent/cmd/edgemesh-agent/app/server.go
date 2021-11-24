@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -55,7 +54,6 @@ for the inter-communications between services at edge scenarios.`,
 			if err != nil {
 				klog.Fatal(err)
 			}
-			resetConfigByMode(detectRunningMode(), agentCfg)
 
 			if errs := validation.ValidateEdgeMeshAgentConfiguration(agentCfg); len(errs) > 0 {
 				klog.Fatal(util.SpliceErrors(errs.ToAggregate().Errors()))
@@ -274,47 +272,4 @@ func resetConfigMapSubNet(name, subNet string, kubeClient kubernetes.Interface) 
 	}
 
 	return nil
-}
-
-const (
-	EdgeMode  string = "EdgeMode"
-	CloudMode string = "CloudMode"
-)
-
-// detectRunningMode detects whether the edgemesh-agent is running on cloud node or edge node.
-// It will recognize whether there is KUBERNETES_PORT in the container environment variable, because
-// edged will not inject KUBERNETES_PORT environment variable into the container, but kubelet will.
-// what is edged: https://kubeedge.io/en/docs/architecture/edge/edged/
-func detectRunningMode() string {
-	_, exist := os.LookupEnv("KUBERNETES_PORT")
-	if exist {
-		return CloudMode
-	}
-	return EdgeMode
-}
-
-// resetConfigByMode will reset the edgemesh-agent configuration according to the mode.
-func resetConfigByMode(mode string, c *config.EdgeMeshAgentConfig) {
-	// if the user sets KubeConfig, nothing will be processed
-	if c.KubeAPIConfig.KubeConfig != "" {
-		return
-	}
-
-	klog.Infof("edgemesh-agent running on %s", mode)
-
-	if mode == EdgeMode {
-		// edgemesh-agent relies on the local apiserver function of KubeEdge when it runs at the edge node.
-		// KubeEdge v1.6+ starts to support this function until KubeEdge v1.7+ tends to be stable.
-		// what is KubeEdge local apiserver: https://github.com/kubeedge/kubeedge/blob/master/CHANGELOG/CHANGELOG-1.6.md
-		c.KubeAPIConfig.Master = "http://127.0.0.1:10550"
-		// ContentType only supports application/json
-		// see issue: https://github.com/kubeedge/kubeedge/issues/3041
-		c.KubeAPIConfig.ContentType = "application/json"
-	}
-
-	if mode == CloudMode {
-		// when edgemesh-agent is running on the cloud, we do not need to enable edgedns,
-		// because all domain name resolution can be done by CoreDNS or kube-dns.
-		c.Modules.EdgeDNSConfig.Enable = false
-	}
 }

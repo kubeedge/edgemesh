@@ -2,6 +2,7 @@ package config
 
 import (
 	"io/ioutil"
+	"os"
 	"path"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +20,8 @@ import (
 )
 
 const (
+	EdgeMode   = "EdgeMode"
+	CloudMode  = "CloudMode"
 	GroupName  = "agent.edgemesh.config.kubeedge.io"
 	APIVersion = "v1alpha1"
 	Kind       = "EdgeMeshAgent"
@@ -85,7 +88,7 @@ func NewEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 		},
 		KubeAPIConfig: &v1alpha1.KubeAPIConfig{
 			Master:      "",
-			ContentType: runtime.ContentTypeJSON,
+			ContentType: runtime.ContentTypeProtobuf,
 			QPS:         constants.DefaultKubeQPS,
 			Burst:       constants.DefaultKubeBurst,
 			KubeConfig:  "",
@@ -99,6 +102,7 @@ func NewEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 		},
 	}
 
+	preConfigByMode(detectRunningMode(), c)
 	return c
 }
 
@@ -115,4 +119,42 @@ func (c *EdgeMeshAgentConfig) Parse(filename string) error {
 		return err
 	}
 	return nil
+}
+
+// detectRunningMode detects whether the edgemesh-agent is running on cloud node or edge node.
+// It will recognize whether there is KUBERNETES_PORT in the container environment variable, because
+// edged will not inject KUBERNETES_PORT environment variable into the container, but kubelet will.
+// what is edged: https://kubeedge.io/en/docs/architecture/edge/edged/
+func detectRunningMode() string {
+	_, exist := os.LookupEnv("KUBERNETES_PORT")
+	if exist {
+		return CloudMode
+	}
+	return EdgeMode
+}
+
+//  preConfigByMode will init the edgemesh-agent configuration according to the mode.
+func preConfigByMode(mode string, c *EdgeMeshAgentConfig) {
+	// if the user sets KubeConfig, nothing will be processed
+	if c.KubeAPIConfig.KubeConfig != "" {
+		return
+	}
+
+	klog.Infof("edgemesh-agent running on %s", mode)
+
+	if mode == EdgeMode {
+		// edgemesh-agent relies on the local apiserver function of KubeEdge when it runs at the edge node.
+		// KubeEdge v1.6+ starts to support this function until KubeEdge v1.7+ tends to be stable.
+		// what is KubeEdge local apiserver: https://github.com/kubeedge/kubeedge/blob/master/CHANGELOG/CHANGELOG-1.6.md
+		c.KubeAPIConfig.Master = "http://127.0.0.1:10550"
+		// ContentType only supports application/json
+		// see issue: https://github.com/kubeedge/kubeedge/issues/3041
+		c.KubeAPIConfig.ContentType = runtime.ContentTypeJSON
+	}
+
+	if mode == CloudMode {
+		// when edgemesh-agent is running on the cloud, we do not need to enable edgedns,
+		// because all domain name resolution can be done by CoreDNS or kube-dns.
+		c.Modules.EdgeDNSConfig.Enable = false
+	}
 }
