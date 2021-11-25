@@ -22,11 +22,9 @@ import (
 type TunnelMode string
 
 const (
-	ServerMode       TunnelMode = "ServerOnly"
 	ClientMode       TunnelMode = "ClientOnly"
 	ServerClientMode TunnelMode = "ServerAndClient"
 	UnknownMode      TunnelMode = "Unknown"
-	DefaultMode                 = UnknownMode
 )
 
 var Agent *TunnelAgent
@@ -84,7 +82,7 @@ func newTunnelAgent(c *config.TunnelAgentConfig, ifm *informers.Manager, mode Tu
 	Agent.Mode = mode
 	klog.V(4).Infof("tunnel agent mode is %v", mode)
 
-	if mode == ServerClientMode || mode == ServerMode {
+	if mode == ServerClientMode {
 		h.SetStreamHandler(tcp.TCPProxyProtocol, Agent.TCPProxySvc.ProxyStreamHandler)
 	}
 
