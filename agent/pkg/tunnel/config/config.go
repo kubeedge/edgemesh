@@ -16,7 +16,7 @@ const (
 type TunnelAgentConfig struct {
 	// Enable indicates whether TunnelAgent is enabled,
 	// if set to false (for debugging etc.), skip checking other TunnelAgent configs.
-	// default true
+	// default false
 	Enable bool `json:"enable,omitempty"`
 	// TunnelACLConfig indicates the set of tunnel agent config about acl
 	TunnelACLConfig acl.TunnelACLConfig `json:"ACL,omitempty"`
