@@ -44,7 +44,7 @@ func newEdgeProxy(c *config.EdgeProxyConfig, ifm *informers.Manager) (proxy *Edg
 
 	// new proxier
 	protoProxies := []protocol.ProtoProxy{proxy.TCPProxy}
-	proxy.Proxier, err = NewProxier(proxy.Config.SubNet, protoProxies, ifm.GetKubeClient())
+	proxy.Proxier, err = NewProxier(proxy.Config.SubNet, proxy.Config.FakeSubNet, protoProxies, ifm.GetKubeClient())
 	if err != nil {
 		return proxy, fmt.Errorf("new proxier err: %v", err)
 	}

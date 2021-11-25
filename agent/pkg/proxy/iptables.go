@@ -54,6 +54,9 @@ type Proxier struct {
 	// serviceCIDR is kubernetes service-cluster-ip-range
 	serviceCIDR string
 
+	// headlessSvcCIDR is fake headless-service-cluster-ip-range
+	headlessSvcCIDR string
+
 	// protoProxies represents the protocol that requires proxy
 	protoProxies []protocol.ProtoProxy
 
@@ -64,7 +67,7 @@ type Proxier struct {
 	dnatRules          []iptablesJumpChain
 }
 
-func NewProxier(subnet string, protoProxies []protocol.ProtoProxy, kubeClient kubernetes.Interface) (proxier *Proxier, err error) {
+func NewProxier(subnet, fakeSubNet string, protoProxies []protocol.ProtoProxy, kubeClient kubernetes.Interface) (proxier *Proxier, err error) {
 	primaryProtocol := utiliptables.ProtocolIPv4
 	execer := utilexec.New()
 	iptInterface := utiliptables.New(execer, primaryProtocol)
@@ -72,6 +75,7 @@ func NewProxier(subnet string, protoProxies []protocol.ProtoProxy, kubeClient ku
 		iptables:           iptInterface,
 		kubeClient:         kubeClient,
 		serviceCIDR:        subnet,
+		headlessSvcCIDR:    fakeSubNet,
 		protoProxies:       protoProxies,
 		ignoreRules:        make([]iptablesJumpChain, 0),
 		expiredIgnoreRules: make([]iptablesJumpChain, 0),
@@ -226,6 +230,10 @@ func (proxier *Proxier) createProxyRules() (proxyRules, dnatRules []iptablesJump
 			return []string{"-p", string(protoName), "-d", proxier.serviceCIDR}
 		}
 
+		fakeProxyRuleArgs = func(protoName protocol.ProtoName) []string {
+			return []string{"-p", string(protoName), "-d", proxier.headlessSvcCIDR}
+		}
+
 		dnatRuleArgs = func(protoName protocol.ProtoName, serverAddr string) []string {
 			return []string{"-p", string(protoName), "-j", "DNAT", "--to-destination", serverAddr}
 		}
@@ -239,6 +247,13 @@ func (proxier *Proxier) createProxyRules() (proxyRules, dnatRules []iptablesJump
 			srcChain:  meshRootChain,
 			comment:   proxyRuleComment(proto.GetName()),
 			extraArgs: proxyRuleArgs(proto.GetName()),
+		})
+		proxyRules = append(proxyRules, iptablesJumpChain{
+			table:     utiliptables.TableNAT,
+			dstChain:  newChainName,
+			srcChain:  meshRootChain,
+			comment:   proxyRuleComment(proto.GetName()),
+			extraArgs: fakeProxyRuleArgs(proto.GetName()),
 		})
 		dnatRules = append(dnatRules, iptablesJumpChain{
 			table:     utiliptables.TableNAT,
@@ -405,6 +420,14 @@ func (proxier *Proxier) CleanResidue() {
 	if err := proxier.iptables.DeleteRule(utiliptables.TableNAT, utiliptables.ChainOutput, nonIfiRuleArgs...); err != nil {
 		klog.V(4).ErrorS(err, "Failed clean residual non-interface rule %v", nonIfiRuleArgs)
 	}
+	nonIfiRuleArgs = strings.Split(fmt.Sprintf("-p tcp -d %s -j EDGE-MESH", proxier.headlessSvcCIDR), " ")
+	if err := proxier.iptables.DeleteRule(utiliptables.TableNAT, utiliptables.ChainPrerouting, nonIfiRuleArgs...); err != nil {
+		klog.V(4).Error(err, "Failed clean residual non-interface rule %v", nonIfiRuleArgs)
+	}
+	if err := proxier.iptables.DeleteRule(utiliptables.TableNAT, utiliptables.ChainOutput, nonIfiRuleArgs...); err != nil {
+		klog.V(4).Error(err, "Failed clean residual non-interface rule %v", nonIfiRuleArgs)
+	}
+
 
 	// clean up interface iptables rules
 	ifiList := []string{"docker0", "cni0"}
@@ -417,6 +440,15 @@ func (proxier *Proxier) CleanResidue() {
 		if err := proxier.iptables.DeleteRule(utiliptables.TableNAT, utiliptables.ChainOutput, outboundRuleAgrs...); err != nil {
 			klog.V(4).ErrorS(err, "Failed clean residual outbound rule %v", outboundRuleAgrs)
 		}
+
+		inboundRuleArgs = strings.Split(fmt.Sprintf("-p tcp -d %s -i %s -j EDGE-MESH", proxier.headlessSvcCIDR, ifi), " ")
+		if err := proxier.iptables.DeleteRule(utiliptables.TableNAT, utiliptables.ChainPrerouting, inboundRuleArgs...); err != nil {
+			klog.V(4).Error(err, "Failed clean residual inbound rule %v", inboundRuleArgs)
+		}
+		outboundRuleAgrs = strings.Split(fmt.Sprintf("-p tcp -d %s -o %s -j EDGE-MESH", proxier.headlessSvcCIDR, ifi), " ")
+		if err := proxier.iptables.DeleteRule(utiliptables.TableNAT, utiliptables.ChainOutput, outboundRuleAgrs...); err != nil {
+			klog.V(4).Error(err, "Failed clean residual outbound rule %v", outboundRuleAgrs)
+		}
 	}
 
 	// clean up ip routes
@@ -425,11 +457,21 @@ func (proxier *Proxier) CleanResidue() {
 		klog.Errorf("parse subnet(serviceCIDR) error: %v", err)
 		return
 	}
+	dst1, err := netlink.ParseIPNet(proxier.headlessSvcCIDR)
+	if err != nil {
+		klog.Errorf("parse subnet(headlessSvcCIDR) error: %v", err)
+		return
+	}
 
 	// try to delete the route that may exist
 	for _, ifi := range ifiList {
 		if gw, err := util.GetInterfaceIP(ifi); err == nil {
 			route := netlink.Route{Dst: dst, Gw: gw}
+			if err := netlink.RouteDel(&route); err != nil {
+				klog.V(4).ErrorS(err, "Failed delete route %v", route)
+			}
+
+			route = netlink.Route{Dst: dst1, Gw: gw}
 			if err := netlink.RouteDel(&route); err != nil {
 				klog.V(4).ErrorS(err, "Failed delete route %v", route)
 			}
