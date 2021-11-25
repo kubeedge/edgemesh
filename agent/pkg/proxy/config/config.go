@@ -3,7 +3,7 @@ package config
 // EdgeProxyConfig indicates the edgeproxy config
 type EdgeProxyConfig struct {
 	// Enable indicates whether enable edgeproxy
-	// default true
+	// default false
 	Enable bool `json:"enable,omitempty"`
 	// SubNet indicates the subnet of proxier, which equals to k8s service-cluster-ip-range
 	SubNet string `json:"subNet,omitempty"`
