@@ -32,21 +32,21 @@ func NewEdgeMeshServerCommand() *cobra.Command {
 			flag.PrintFlags(cmd.Flags())
 
 			if errs := opts.Validate(); len(errs) > 0 {
-				klog.Fatal(util.SpliceErrors(errs))
+				klog.Exit(util.SpliceErrors(errs))
 			}
 
 			edgeMeshServerConfig, err := opts.Config()
 			if err != nil {
-				klog.Fatal(err)
+				klog.Exit(err)
 			}
 
 			if errs := validation.ValidateEdgeMeshServerConfiguration(edgeMeshServerConfig); len(errs) > 0 {
-				klog.Fatal(util.SpliceErrors(errs.ToAggregate().Errors()))
+				klog.Exit(util.SpliceErrors(errs.ToAggregate().Errors()))
 			}
 
 			klog.Infof("Version: %+v", version.Get())
 			if err = Run(edgeMeshServerConfig); err != nil {
-				klog.Fatalf("run edgemesh-server failed: %v", err)
+				klog.Exit("run edgemesh-server failed: %v", err)
 			}
 		},
 	}
