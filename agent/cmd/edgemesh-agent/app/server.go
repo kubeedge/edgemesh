@@ -60,6 +60,7 @@ for the inter-communications between services at edge scenarios.`,
 			}
 
 			klog.Infof("Version: %+v", version.Get())
+			klog.Infof("edgemesh-agent running on %s", agentCfg.CommonConfig.Mode)
 			if err = Run(agentCfg); err != nil {
 				klog.Fatalf("run edgemesh-agent failed: %v", err)
 			}

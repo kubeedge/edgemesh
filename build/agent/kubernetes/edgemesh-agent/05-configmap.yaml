@@ -31,7 +31,6 @@ data:
           load: 1.25
     modules:
       edgeDNS:
-        enable: true
         listenPort: 53
       edgeProxy:
         enable: true
