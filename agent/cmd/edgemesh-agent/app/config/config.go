@@ -20,8 +20,6 @@ import (
 )
 
 const (
-	EdgeMode   = "EdgeMode"
-	CloudMode  = "CloudMode"
 	GroupName  = "agent.edgemesh.config.kubeedge.io"
 	APIVersion = "v1alpha1"
 	Kind       = "EdgeMeshAgent"
@@ -29,6 +27,9 @@ const (
 	DefaultDummyDeviceName = "edgemesh0"
 	DefaultDummyDeviceIP   = "169.254.96.16"
 	DefaultConfigMapName   = "edgemesh-agent-cfg"
+
+	EdgeMode  = "EdgeMode"
+	CloudMode = "CloudMode"
 )
 
 // EdgeMeshAgentConfig indicates the config of edgeMeshAgent which get from edgeMeshAgent config file
@@ -50,6 +51,10 @@ type EdgeMeshAgentConfig struct {
 
 // CommonConfig defines some common configuration items
 type CommonConfig struct {
+	// Mode indicates the current running mode of edgemesh-agent
+	// do not allow users to configure manually
+	// default "CloudMode"
+	Mode string
 	// DummyDeviceName indicates the name of the dummy device will be created
 	// default edgemesh0
 	DummyDeviceName string `json:"dummyDeviceName,omitempty"`
@@ -82,6 +87,7 @@ func NewEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 			APIVersion: path.Join(GroupName, APIVersion),
 		},
 		CommonConfig: &CommonConfig{
+			Mode:            CloudMode,
 			DummyDeviceName: DefaultDummyDeviceName,
 			DummyDeviceIP:   DefaultDummyDeviceIP,
 			ConfigMapName:   DefaultConfigMapName,
@@ -133,14 +139,14 @@ func detectRunningMode() string {
 	return EdgeMode
 }
 
-//  preConfigByMode will init the edgemesh-agent configuration according to the mode.
+// preConfigByMode will init the edgemesh-agent configuration according to the mode.
 func preConfigByMode(mode string, c *EdgeMeshAgentConfig) {
 	// if the user sets KubeConfig, nothing will be processed
 	if c.KubeAPIConfig.KubeConfig != "" {
 		return
 	}
 
-	klog.Infof("edgemesh-agent running on %s", mode)
+	c.CommonConfig.Mode = mode
 
 	if mode == EdgeMode {
 		// edgemesh-agent relies on the local apiserver function of KubeEdge when it runs at the edge node.
@@ -150,9 +156,14 @@ func preConfigByMode(mode string, c *EdgeMeshAgentConfig) {
 		// ContentType only supports application/json
 		// see issue: https://github.com/kubeedge/kubeedge/issues/3041
 		c.KubeAPIConfig.ContentType = runtime.ContentTypeJSON
+		// when edgemesh-agent is running on the edge, we enable the edgedns module by default.
+		// edgedns replaces CoreDNS or kube-dns to respond to domain name requests from edge applications.
+		c.Modules.EdgeDNSConfig.Enable = true
 	}
 
 	if mode == CloudMode {
+		c.KubeAPIConfig.Master = ""
+		c.KubeAPIConfig.ContentType = runtime.ContentTypeProtobuf
 		// when edgemesh-agent is running on the cloud, we do not need to enable edgedns,
 		// because all domain name resolution can be done by CoreDNS or kube-dns.
 		c.Modules.EdgeDNSConfig.Enable = false

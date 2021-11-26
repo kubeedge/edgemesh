@@ -13,13 +13,25 @@ data:
     commonConfig:
       dummyDeviceName: {{ .Values.commonConfig.dummyDeviceName }}
       dummyDeviceIP: {{ .Values.commonConfig.dummyDeviceIP }}
-      configMapName: {{ .Values.commonConfig.configMapName }}
+      configMapName: {{ .Release.Name }}-agent-cfg
+    {{- if .Values.kubeAPIConfig }}
     kubeAPIConfig:
+      {{- if .Values.kubeAPIConfig.burst }}
       burst: {{ .Values.kubeAPIConfig.burst }}
+      {{- end}}
+      {{- if .Values.kubeAPIConfig.contentType }}
       contentType: {{ .Values.kubeAPIConfig.contentType }}
+      {{- end}}
+      {{- if .Values.kubeAPIConfig.kubeConfig }}
       kubeConfig: {{ .Values.kubeAPIConfig.kubeConfig }}
+      {{- end}}
+      {{- if .Values.kubeAPIConfig.master }}
       master: {{ .Values.kubeAPIConfig.master }}
+      {{- end}}
+      {{- if .Values.kubeAPIConfig.qps }}
       qps: {{ .Values.kubeAPIConfig.qps }}
+      {{- end}}
+    {{- end}}
     goChassisConfig:
       protocol:
         tcpBufferSize: {{ .Values.goChassisConfig.protocol.tcpBufferSize }}
@@ -37,7 +49,9 @@ data:
           load: {{ .Values.goChassisConfig.loadBalancer.consistentHash.load }}
     modules:
       edgeDNS:
+        {{- if .Values.modules.edgeDNS.enable }}
         enable: {{ .Values.modules.edgeDNS.enable }}
+        {{- end}}
         listenPort: {{ .Values.modules.edgeDNS.listenPort }}
       edgeProxy:
         enable: {{ .Values.modules.edgeProxy.enable }}
