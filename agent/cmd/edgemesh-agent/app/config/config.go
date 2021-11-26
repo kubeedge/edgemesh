@@ -27,6 +27,7 @@ const (
 	DefaultDummyDeviceName = "edgemesh0"
 	DefaultDummyDeviceIP   = "169.254.96.16"
 	DefaultConfigMapName   = "edgemesh-agent-cfg"
+	DefaultEdgeApiServer   = "http://127.0.0.1:10550"
 
 	EdgeMode  = "EdgeMode"
 	CloudMode = "CloudMode"
@@ -152,7 +153,7 @@ func preConfigByMode(mode string, c *EdgeMeshAgentConfig) {
 		// edgemesh-agent relies on the local apiserver function of KubeEdge when it runs at the edge node.
 		// KubeEdge v1.6+ starts to support this function until KubeEdge v1.7+ tends to be stable.
 		// what is KubeEdge local apiserver: https://github.com/kubeedge/kubeedge/blob/master/CHANGELOG/CHANGELOG-1.6.md
-		c.KubeAPIConfig.Master = "http://127.0.0.1:10550"
+		c.KubeAPIConfig.Master = DefaultEdgeApiServer
 		// ContentType only supports application/json
 		// see issue: https://github.com/kubeedge/kubeedge/issues/3041
 		c.KubeAPIConfig.ContentType = runtime.ContentTypeJSON
