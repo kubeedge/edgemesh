@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -12,6 +13,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/klog/v2"
+
+	meshConstants "github.com/kubeedge/edgemesh/common/constants"
 )
 
 const (
@@ -77,6 +80,21 @@ func FetchPublicIP() string {
 		return ""
 	}
 	return string(body)
+}
+
+var nodeName string
+
+func FetchNodeName() string {
+	if nodeName != "" {
+		return nodeName
+	}
+
+	var isExist bool
+	nodeName, isExist = os.LookupEnv(meshConstants.MY_NODE_NAME)
+	if !isExist {
+		klog.Exitf("env %s not exist", meshConstants.MY_NODE_NAME)
+	}
+	return nodeName
 }
 
 func IsNotFoundError(err error) bool {

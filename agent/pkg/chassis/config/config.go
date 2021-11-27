@@ -1,12 +1,7 @@
 package config
 
 import (
-	"os"
 	"sync"
-
-	"k8s.io/klog/v2"
-
-	meshConstants "github.com/kubeedge/edgemesh/common/constants"
 )
 
 // GoChassisConfig defines some configurations related to go-chassis
@@ -60,17 +55,11 @@ type ConsistentHash struct {
 }
 
 func NewGoChassisConfig() *GoChassisConfig {
-	nodeName, isExist := os.LookupEnv(meshConstants.MY_NODE_NAME)
-	if !isExist {
-		klog.Fatalf("env %s not exist", meshConstants.MY_NODE_NAME)
-	}
-
 	return &GoChassisConfig{
 		Protocol: &Protocol{
 			TCPBufferSize:     8192,
 			TCPClientTimeout:  2,
 			TCPReconnectTimes: 3,
-			NodeName:          nodeName,
 		},
 		LoadBalancer: &LoadBalancer{
 			DefaultLBStrategy:     "RoundRobin",

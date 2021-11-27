@@ -1,8 +1,6 @@
 package config
 
 import (
-	"os"
-
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/edgemesh/common/acl"
@@ -35,11 +33,6 @@ type TunnelServerConfig struct {
 }
 
 func NewTunnelServerConfig() *TunnelServerConfig {
-	nodeName, isExist := os.LookupEnv(meshConstants.MY_NODE_NAME)
-	if !isExist {
-		klog.Fatalf("env %s not exist", meshConstants.MY_NODE_NAME)
-	}
-
 	publicIP := util.FetchPublicIP()
 	if publicIP == "" {
 		publicIP = "0.0.0.0"
@@ -53,7 +46,6 @@ func NewTunnelServerConfig() *TunnelServerConfig {
 			TLSCAFile:         meshConstants.ServerDefaultCAFile,
 			TLSCertFile:       meshConstants.ServerDefaultCertFile,
 		},
-		NodeName:       nodeName,
 		ListenPort:     defaultListenPort,
 		PublicIP:       publicIP,
 		EnableSecurity: false,
