@@ -6,6 +6,7 @@ import (
 	"github.com/kubeedge/beehive/pkg/core"
 	"github.com/kubeedge/edgemesh/agent/pkg/gateway/config"
 	"github.com/kubeedge/edgemesh/agent/pkg/gateway/controller"
+	"github.com/kubeedge/edgemesh/agent/pkg/gateway/manager"
 	"github.com/kubeedge/edgemesh/common/informers"
 	"github.com/kubeedge/edgemesh/common/modules"
 )
@@ -23,6 +24,9 @@ func newEdgeGateway(c *config.EdgeGatewayConfig, ifm *informers.Manager) (gw *Ed
 
 	// new controller
 	controller.Init(ifm, c)
+
+	// new gateway manager
+	manager.NewGatewayManager(c)
 
 	return gw, nil
 }
