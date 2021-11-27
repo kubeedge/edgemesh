@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"sync"
 
 	"github.com/buraksezer/consistent"
@@ -47,22 +46,14 @@ func (s *Strategy) ReceiveData(inv *invocation.Invocation,
 		return
 	}
 
-	// get key from request
-	var hashKey string
-	switch inv.Args.(type) {
-	case *http.Request:
-		hashKey, err = s.getKeyFromHTTP(inv, dr)
-	case []byte: // tcp
-		hashKey, err = s.getKeyFromTCP(inv, dr)
-	default:
-		err = fmt.Errorf("can't convert invocation.Args")
-	}
+	// get key from inv
+	key, err := s.getKey(inv, dr)
 	if err != nil {
 		klog.Errorf("get key error: %v", err)
-		return
+	} else {
+		klog.Infof("get key: %s", key)
 	}
-	klog.Infof("get key: %s", hashKey)
-	s.key = hashKey
+	s.key = key
 }
 
 // Pick return instance
@@ -73,6 +64,37 @@ func (s *Strategy) Pick() (*registry.MicroServiceInstance, error) {
 	}
 
 	return s.pick(hr)
+}
+
+func (s *Strategy) getKey(inv *invocation.Invocation, dr *istioapi.DestinationRule) (string, error) {
+	data, ok := inv.Args.([]byte)
+	if !ok {
+		return "", fmt.Errorf("can't convert to []byte")
+	}
+	req, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(data)))
+	if err != nil && err != io.EOF {
+		return "", fmt.Errorf("read http request err: %w", err)
+	}
+
+	var hashKey string
+	switch lbPolicy := dr.Spec.TrafficPolicy.LoadBalancer.LbPolicy.(type) {
+	case *apiv1alpha3.LoadBalancerSettings_Simple:
+		return "", fmt.Errorf("hashkey can't get in loadBalancerSimple")
+	case *apiv1alpha3.LoadBalancerSettings_ConsistentHash:
+		switch consistentHashLb := lbPolicy.ConsistentHash.HashKey.(type) {
+		case *apiv1alpha3.LoadBalancerSettings_ConsistentHashLB_HttpHeaderName:
+			hashKey = req.Header.Get(consistentHashLb.HttpHeaderName)
+		case *apiv1alpha3.LoadBalancerSettings_ConsistentHashLB_HttpCookie:
+			return "", fmt.Errorf("cookie as hashkey not support")
+		case *apiv1alpha3.LoadBalancerSettings_ConsistentHashLB_UseSourceIp:
+			hashKey = req.Host
+		default:
+			return "", fmt.Errorf("can't find ConsistentHash fields")
+		}
+	default:
+		return "", fmt.Errorf("can't find LoadBalancerSettings")
+	}
+	return hashKey, nil
 }
 
 func (s *Strategy) pick(hr *consistent.Consistent) (*registry.MicroServiceInstance, error) {
@@ -98,73 +120,4 @@ func (s *Strategy) pick(hr *consistent.Consistent) (*registry.MicroServiceInstan
 		}
 	}
 	return nil, fmt.Errorf("service instance not exist")
-}
-
-func (s *Strategy) getKeyFromHTTP(inv *invocation.Invocation, dr *istioapi.DestinationRule) (string, error) {
-	req, ok := inv.Args.(*http.Request)
-	if !ok {
-		return "", fmt.Errorf("can't convert to http.Request")
-	}
-	hashKey, err := s.getKey(dr, "http", req, nil)
-	if err != nil {
-		return "", err
-	}
-	return hashKey, nil
-}
-
-func (s *Strategy) getKeyFromTCP(inv *invocation.Invocation, dr *istioapi.DestinationRule) (string, error) {
-	// store tcp header fields
-	req := make(map[string]string)
-	data, ok := inv.Args.([]byte)
-	if !ok {
-		return "", fmt.Errorf("can't convert to []byte")
-	}
-	rd := bufio.NewReader(bytes.NewReader(data))
-	for {
-		line, err := rd.ReadString('\n')
-		if err != nil || err == io.EOF {
-			break
-		}
-		field := strings.Split(line, ": ")
-		if len(field) == 2 {
-			req[field[0]] = strings.Replace(field[1], "\r\n", "", -1)
-		}
-	}
-
-	hashKey, err := s.getKey(dr, "tcp", nil, req)
-	if err != nil {
-		return "", err
-	}
-	return hashKey, nil
-}
-
-func (s *Strategy) getKey(dr *istioapi.DestinationRule, proto string,
-	httpReq *http.Request, tcpReq map[string]string) (string, error) {
-	var hashKey string
-	switch lbPolicy := dr.Spec.TrafficPolicy.LoadBalancer.LbPolicy.(type) {
-	case *apiv1alpha3.LoadBalancerSettings_Simple:
-		return "", fmt.Errorf("hashkey can't get in loadBalancerSimple")
-	case *apiv1alpha3.LoadBalancerSettings_ConsistentHash:
-		switch consistentHashLb := lbPolicy.ConsistentHash.HashKey.(type) {
-		case *apiv1alpha3.LoadBalancerSettings_ConsistentHashLB_HttpHeaderName:
-			if proto == "http" {
-				hashKey = httpReq.Header.Get(consistentHashLb.HttpHeaderName)
-			} else { // tcp
-				hashKey = tcpReq[consistentHashLb.HttpHeaderName]
-			}
-		case *apiv1alpha3.LoadBalancerSettings_ConsistentHashLB_HttpCookie:
-			return "", fmt.Errorf("cookie as hashkey not support")
-		case *apiv1alpha3.LoadBalancerSettings_ConsistentHashLB_UseSourceIp:
-			if proto == "http" {
-				hashKey = httpReq.Host
-			} else { // tcp
-				hashKey = tcpReq["Host"]
-			}
-		default:
-			return "", fmt.Errorf("can't find ConsistentHash fields")
-		}
-	default:
-		return "", fmt.Errorf("can't find LoadBalancerSettings")
-	}
-	return hashKey, nil
 }
