@@ -117,6 +117,11 @@ modules:
 ```
 
 ```shell
+# If cloudcore is not configured for systemd management, use the following command to restart
+# (cloudcore is not configured for systemd management by default)
+$ pkill cloudcore ; nohup /usr/local/bin/cloudcore > /var/log/kubeedge/cloudcore.log 2>&1 &
+
+# If cloudcore is configured for systemd management, use the following command to restart
 $ systemctl restart cloudcore
 ```
 
