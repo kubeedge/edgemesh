@@ -117,6 +117,10 @@ modules:
 ```
 
 ```shell
+# 如果cloudcore没有配置为systemd管理使用如下命令重启（cloudcore默认没有配置为systemd管理）
+$ pkill cloudcore ; nohup /usr/local/bin/cloudcore > /var/log/kubeedge/cloudcore.log 2>&1 &
+
+# 如果cloudcore配置为systemd管理使用如下命令重启
 $ systemctl restart cloudcore
 ```
 
