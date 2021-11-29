@@ -8,9 +8,6 @@ import (
 	"strings"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/klog/v2"
 )
 
@@ -42,16 +39,6 @@ func GetInterfaceIP(name string) (net.IP, error) {
 		}
 	}
 	return nil, fmt.Errorf("no ip of version 4 found for interface %s", name)
-}
-
-// GetPodsSelector use the selector to obtain the backend pods bound to the service
-func GetPodsSelector(svc *v1.Service) labels.Selector {
-	selector := labels.NewSelector()
-	for k, v := range svc.Spec.Selector {
-		r, _ := labels.NewRequirement(k, selection.Equals, []string{v})
-		selector = selector.Add(*r)
-	}
-	return selector
 }
 
 func FetchPublicIP() string {
