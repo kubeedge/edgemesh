@@ -41,9 +41,6 @@ func NewTunnelServerConfig() *TunnelServerConfig {
 	}
 
 	publicIP := util.FetchPublicIP()
-	if publicIP == "" {
-		publicIP = "0.0.0.0"
-	}
 	klog.Infof("Fetch public IP: %s", publicIP)
 
 	return &TunnelServerConfig{
