@@ -24,7 +24,7 @@ type sockAddr struct {
 }
 
 func (proxy *EdgeProxy) Run() {
-	// ensure ipatbles
+	// ensure iptables
 	proxy.Proxier.Start()
 
 	// start tcp proxy
