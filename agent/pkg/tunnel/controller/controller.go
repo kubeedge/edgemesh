@@ -46,12 +46,12 @@ func Init(ifm *informers.Manager) *TunnelAgentController {
 func (c *TunnelAgentController) GetPeerAddrInfo(nodeName string) (info *peer.AddrInfo, err error) {
 	secret, err := c.secretLister.Secrets(constants.SecretNamespace).Get(constants.SecretName)
 	if err != nil {
-		return nil, fmt.Errorf("Get %s addr from api server err: %v", nodeName, err)
+		return nil, fmt.Errorf("get %s addr from api server err: %w", nodeName, err)
 	}
 
 	infoBytes := secret.Data[nodeName]
 	if len(infoBytes) == 0 {
-		return nil, fmt.Errorf("Get %s addr from api server err: %v", nodeName, err)
+		return nil, fmt.Errorf("get %s addr from api server err: %w", nodeName, err)
 	}
 
 	info = new(peer.AddrInfo)
@@ -66,12 +66,12 @@ func (c *TunnelAgentController) GetPeerAddrInfo(nodeName string) (info *peer.Add
 func (c *TunnelAgentController) SetPeerAddrInfo(nodeName string, info *peer.AddrInfo) error {
 	peerAddrINfoBytes, err := info.MarshalJSON()
 	if err != nil {
-		return fmt.Errorf("Marshal node %s peer info err: %v", nodeName, err)
+		return fmt.Errorf("marshal node %s peer info err: %w", nodeName, err)
 	}
 
 	secret, err := c.secretLister.Secrets(constants.SecretNamespace).Get(constants.SecretName)
 	if err != nil {
-		return fmt.Errorf("Get secret %s in %s failed: %v", constants.SecretName, constants.SecretNamespace, err)
+		return fmt.Errorf("get secret %s in %s failed: %w", constants.SecretName, constants.SecretNamespace, err)
 	}
 
 	if secret.Data == nil {
@@ -83,7 +83,7 @@ func (c *TunnelAgentController) SetPeerAddrInfo(nodeName string, info *peer.Addr
 	secret.Data[nodeName] = peerAddrINfoBytes
 	secret, err = c.secretOperator.Update(context.Background(), secret, metav1.UpdateOptions{})
 	if err != nil {
-		return fmt.Errorf("Update secret %v err: %v", secret, err)
+		return fmt.Errorf("update secret %v err: %w", secret, err)
 	}
 	return nil
 }
