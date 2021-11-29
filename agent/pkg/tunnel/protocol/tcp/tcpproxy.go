@@ -108,7 +108,7 @@ func (tp *TCPProxyService) ProxyStreamHandler(s network.Stream) {
 func (tp *TCPProxyService) GetProxyStream(targetNodeName, targetIP string, targetPort int32) (io.ReadWriteCloser, error) {
 	destInfo, err := controller.APIConn.GetPeerAddrInfo(targetNodeName)
 	if err != nil {
-		return nil, fmt.Errorf("Get %s addr err: %v", targetNodeName, err)
+		return nil, fmt.Errorf("get %s addr err: %w", targetNodeName, err)
 	}
 
 	connNum := tp.host.Network().ConnsToPeer(destInfo.ID)
@@ -125,7 +125,7 @@ func (tp *TCPProxyService) GetProxyStream(targetNodeName, targetIP string, targe
 
 	stream, err := tp.host.NewStream(context.Background(), destInfo.ID, TCPProxyProtocol)
 	if err != nil {
-		return nil, fmt.Errorf("New stream between %s err: %v", targetNodeName, err)
+		return nil, fmt.Errorf("new stream between %s err: %w", targetNodeName, err)
 	}
 
 	streamWriter := protoio.NewDelimitedWriter(stream)
@@ -141,23 +141,23 @@ func (tp *TCPProxyService) GetProxyStream(targetNodeName, targetIP string, targe
 	if err = streamWriter.WriteMsg(msg); err != nil {
 		err = stream.Reset()
 		if err != nil {
-			return nil, fmt.Errorf("Stream between %s reset err: %v", targetNodeName, err)
+			return nil, fmt.Errorf("stream between %s reset err: %w", targetNodeName, err)
 		}
-		return nil, fmt.Errorf("Write conn msg to %s err: %v", targetNodeName, err)
+		return nil, fmt.Errorf("write conn msg to %s err: %w", targetNodeName, err)
 	}
 
 	msg.Reset()
 	if err = streamReader.ReadMsg(msg); err != nil {
 		err1 := stream.Reset()
 		if err1 != nil {
-			return nil, fmt.Errorf("Stream between %s reset err: %w", targetNodeName, err1)
+			return nil, fmt.Errorf("stream between %s reset err: %w", targetNodeName, err1)
 		}
-		return nil, fmt.Errorf("Read conn result msg from %s err: %v", targetNodeName, err)
+		return nil, fmt.Errorf("read conn result msg from %s err: %w", targetNodeName, err)
 	}
 	if msg.GetType() == tcp_pb.TCPProxy_FAILED {
 		err = stream.Reset()
 		if err != nil {
-			return nil, fmt.Errorf("Stream between %s reset err: %v", targetNodeName, err)
+			return nil, fmt.Errorf("stream between %s reset err: %w", targetNodeName, err)
 		}
 		return nil, fmt.Errorf("%s dial %s:%d err: TCPProxy.type is TCPProxy_FAILED", targetNodeName, targetIP, targetPort)
 	}
