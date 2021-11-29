@@ -413,9 +413,9 @@ func (proxier *Proxier) CleanResidue() {
 		if err := proxier.iptables.DeleteRule(utiliptables.TableNAT, utiliptables.ChainPrerouting, inboundRuleArgs...); err != nil {
 			klog.V(4).ErrorS(err, "Failed clean residual inbound rule %v", inboundRuleArgs)
 		}
-		outboundRuleAgrs := strings.Split(fmt.Sprintf("-p tcp -d %s -o %s -j EDGE-MESH", proxier.serviceCIDR, ifi), " ")
-		if err := proxier.iptables.DeleteRule(utiliptables.TableNAT, utiliptables.ChainOutput, outboundRuleAgrs...); err != nil {
-			klog.V(4).ErrorS(err, "Failed clean residual outbound rule %v", outboundRuleAgrs)
+		outboundRuleArgs := strings.Split(fmt.Sprintf("-p tcp -d %s -o %s -j EDGE-MESH", proxier.serviceCIDR, ifi), " ")
+		if err := proxier.iptables.DeleteRule(utiliptables.TableNAT, utiliptables.ChainOutput, outboundRuleArgs...); err != nil {
+			klog.V(4).ErrorS(err, "Failed clean residual outbound rule %v", outboundRuleArgs)
 		}
 	}
 
