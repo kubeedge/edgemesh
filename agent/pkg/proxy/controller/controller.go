@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -13,7 +14,10 @@ import (
 	"github.com/kubeedge/edgemesh/common/informers"
 )
 
-const None = "None"
+const (
+	None                 = "None"
+	defaultNetworkPrefix = "9.251."
+)
 
 var (
 	APIConn *ProxyController
@@ -21,6 +25,7 @@ var (
 )
 
 type ProxyController struct {
+	FakeIPIndex      uint16
 	svcInformer      cache.SharedIndexInformer
 	svcEventHandlers map[string]cache.ResourceEventHandlerFuncs // key: service event handler name
 
@@ -32,6 +37,7 @@ type ProxyController struct {
 func Init(ifm *informers.Manager) {
 	once.Do(func() {
 		APIConn = &ProxyController{
+			FakeIPIndex:      uint16(1), // avoid 0.0
 			svcInformer:      ifm.GetKubeFactory().Core().V1().Services().Informer(),
 			svcEventHandlers: make(map[string]cache.ResourceEventHandlerFuncs),
 			svcPortsByIP:     make(map[string]string),
@@ -60,6 +66,14 @@ func (c *ProxyController) SetServiceEventHandlers(name string, handlerFuncs cach
 	}
 	c.svcEventHandlers[name] = handlerFuncs
 	c.Unlock()
+}
+
+func (c *ProxyController) setFakeIPIndex(newIndex uint16) {
+	c.FakeIPIndex = newIndex
+}
+
+func (c *ProxyController) getFakeIPIndex() uint16 {
+	return c.FakeIPIndex
 }
 
 func getSvcPorts(svc *v1.Service) string {
@@ -94,7 +108,8 @@ func (c *ProxyController) svcAdd(obj interface{}) {
 	svcName := svc.Namespace + "." + svc.Name
 	ip := svc.Spec.ClusterIP
 	if ip == "" || ip == None {
-		return
+		ip = GetFakeIP()
+		klog.Warningf("[EdgeMesh] use fakeIP for service %s, fakeIP:%s", svcName, ip)
 	}
 	c.addOrUpdateService(svcName, ip, svcPorts)
 }
@@ -108,10 +123,18 @@ func (c *ProxyController) svcUpdate(oldObj, newObj interface{}) {
 	svcPorts := getSvcPorts(svc)
 	svcName := svc.Namespace + "." + svc.Name
 	ip := svc.Spec.ClusterIP
-	if ip == "" || ip == None {
-		return
+
+	clusterIP := ip
+	old, ok := c.ipBySvc[svcName]
+	if ok {
+		clusterIP = old
+	} else {
+		if ip == "" || ip == None {
+			clusterIP = GetFakeIP()
+			klog.Warningf("[EdgeMesh] use fakeIP for service %s, fakeIP:%s", svcName, clusterIP)
+		}
 	}
-	c.addOrUpdateService(svcName, ip, svcPorts)
+	c.addOrUpdateService(svcName, clusterIP, svcPorts)
 }
 
 func (c *ProxyController) svcDelete(obj interface{}) {
@@ -122,9 +145,6 @@ func (c *ProxyController) svcDelete(obj interface{}) {
 	}
 	svcName := svc.Namespace + "." + svc.Name
 	ip := svc.Spec.ClusterIP
-	if ip == "" || ip == None {
-		return
-	}
 	c.deleteService(svcName, ip)
 }
 
@@ -158,4 +178,27 @@ func (c *ProxyController) GetSvcPorts(ip string) string {
 	svcPorts := c.svcPortsByIP[ip]
 	c.RUnlock()
 	return svcPorts
+}
+
+func GetFakeIP() (ip string) {
+	for {
+		index := APIConn.getFakeIPIndex() + 1
+		APIConn.setFakeIPIndex(index)
+
+		ip = defaultNetworkPrefix + getSubNet(index)
+
+		_, ok := APIConn.svcPortsByIP[ip]
+		if !ok {
+			break
+		}
+
+	}
+	return
+}
+
+// getSubNet converts uint16 to "uint8.uint8"
+func getSubNet(subNet uint16) string {
+	arg1 := uint64(subNet & 0x00ff)
+	arg2 := uint64((subNet & 0xff00) >> 8)
+	return strconv.FormatUint(arg2, 10) + "." + strconv.FormatUint(arg1, 10)
 }

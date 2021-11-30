@@ -10,7 +10,6 @@ import (
 	"k8s.io/klog/v2"
 
 	beehiveContext "github.com/kubeedge/beehive/pkg/core/context"
-	"github.com/kubeedge/edgemesh/agent/pkg/dns/controller"
 	"github.com/kubeedge/edgemesh/common/util"
 )
 
@@ -67,9 +66,10 @@ func lookup(serviceURL string) (ip string, exist bool) {
 	// Here serviceURL is a domain name which has at least a "." suffix. So here we need trim it.
 	serviceURL = strings.TrimSuffix(serviceURL, ".")
 	name, namespace := util.SplitServiceKey(serviceURL)
-	ip, err := controller.APIConn.GetSvcIP(namespace, name)
-	if err != nil {
-		klog.Errorf("service `%s.%s` reverse clusterIP error: %v", name, namespace, err)
+
+	ip = util.GetSvcIP(namespace, name)
+	if ip == "" {
+		klog.Errorf("service `%s.%s` reverse clusterIP error", name, namespace)
 		return "", false
 	}
 	klog.Infof("dns server parse %s ip %s", serviceURL, ip)

@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"k8s.io/klog/v2"
+
+	"github.com/kubeedge/edgemesh/agent/pkg/proxy/controller"
 )
 
 const (
@@ -68,4 +70,10 @@ func FetchPublicIP() string {
 
 func IsNotFoundError(err error) bool {
 	return strings.Contains(err.Error(), "not found")
+}
+
+// GetSvcIP returns the ip by given service name
+func GetSvcIP(namespace, name string) string {
+	svcName := namespace + "." + name
+	return controller.APIConn.GetSvcIP(svcName)
 }
