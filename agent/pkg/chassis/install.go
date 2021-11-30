@@ -15,11 +15,13 @@ import (
 	_ "github.com/kubeedge/edgemesh/agent/pkg/chassis/panel"
 	meshregistry "github.com/kubeedge/edgemesh/agent/pkg/chassis/registry"
 	"github.com/kubeedge/edgemesh/common/informers"
+	"github.com/kubeedge/edgemesh/common/util"
 )
 
 // Install installs go-chassis plugin
 func Install(c *chassisconfig.GoChassisConfig, ifm *informers.Manager) {
 	// init chassis configure
+	c.Protocol.NodeName = util.FetchNodeName()
 	chassisconfig.InitConfigure(c)
 	// init chassis controller
 	controller.Init(ifm)

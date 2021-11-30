@@ -18,14 +18,13 @@ import (
 	"io"
 	"io/ioutil"
 	nethttp "net/http"
-	"os"
 	"strings"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"k8s.io/client-go/util/cert"
 	"k8s.io/klog/v2"
 
-	meshConstants "github.com/kubeedge/edgemesh/common/constants"
+	"github.com/kubeedge/edgemesh/common/util"
 	"github.com/kubeedge/kubeedge/common/constants"
 	"github.com/kubeedge/kubeedge/edge/pkg/edgehub/common/certutil"
 	"github.com/kubeedge/kubeedge/edge/pkg/edgehub/common/http"
@@ -184,10 +183,7 @@ func (m *caManager) GetNodeCert(url string, capem []byte, cert tls.Certificate, 
 		return nil, nil, fmt.Errorf("failed to create http client with CA:%w", err)
 	}
 
-	nodeName, isExist := os.LookupEnv(meshConstants.MY_NODE_NAME)
-	if !isExist {
-		klog.Errorf("env %s not exist", meshConstants.MY_NODE_NAME)
-	}
+	nodeName := util.FetchNodeName()
 
 	usages := []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth}
 	req, err := buildRequest(nethttp.MethodGet, url, bytes.NewReader(csr), token, nodeName, usages)

@@ -15,6 +15,7 @@ import (
 	"github.com/kubeedge/edgemesh/common/acl"
 	"github.com/kubeedge/edgemesh/common/informers"
 	"github.com/kubeedge/edgemesh/common/modules"
+	"github.com/kubeedge/edgemesh/common/util"
 	"github.com/kubeedge/edgemesh/server/pkg/tunnel/config"
 	"github.com/kubeedge/edgemesh/server/pkg/tunnel/controller"
 )
@@ -30,6 +31,7 @@ func newTunnelServer(c *config.TunnelServerConfig, ifm *informers.Manager) (serv
 	if !c.Enable {
 		return server, nil
 	}
+	server.Config.NodeName = util.FetchNodeName()
 
 	controller.Init(ifm)
 

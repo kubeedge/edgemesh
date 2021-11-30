@@ -1,10 +1,6 @@
 package config
 
 import (
-	"os"
-
-	"k8s.io/klog/v2"
-
 	"github.com/kubeedge/edgemesh/common/acl"
 	meshConstants "github.com/kubeedge/edgemesh/common/constants"
 )
@@ -31,11 +27,6 @@ type TunnelAgentConfig struct {
 }
 
 func NewTunnelAgentConfig() *TunnelAgentConfig {
-	nodeName, isExist := os.LookupEnv(meshConstants.MY_NODE_NAME)
-	if !isExist {
-		klog.Fatalf("env %s not exist", meshConstants.MY_NODE_NAME)
-	}
-
 	return &TunnelAgentConfig{
 		Enable: false,
 		TunnelACLConfig: acl.TunnelACLConfig{
@@ -43,7 +34,6 @@ func NewTunnelAgentConfig() *TunnelAgentConfig {
 			TLSCAFile:         meshConstants.AgentDefaultCAFile,
 			TLSCertFile:       meshConstants.AgentDefaultCertFile,
 		},
-		NodeName:       nodeName,
 		ListenPort:     defaultListenPort,
 		EnableSecurity: false,
 	}

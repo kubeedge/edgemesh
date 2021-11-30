@@ -17,6 +17,7 @@ import (
 	"github.com/kubeedge/edgemesh/common/acl"
 	"github.com/kubeedge/edgemesh/common/informers"
 	"github.com/kubeedge/edgemesh/common/modules"
+	"github.com/kubeedge/edgemesh/common/util"
 )
 
 type TunnelMode string
@@ -42,6 +43,7 @@ func newTunnelAgent(c *config.TunnelAgentConfig, ifm *informers.Manager, mode Tu
 	if !c.Enable {
 		return Agent, nil
 	}
+	Agent.Config.NodeName = util.FetchNodeName()
 
 	controller.Init(ifm)
 
