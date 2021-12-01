@@ -12,9 +12,9 @@ EdgeMesh 依赖于 KubeEdge 的边缘 [Local APIServer](https://github.com/kubee
 
 ## Helm 安装
 
-- **步骤1**: 开启 Local APIServer
+- **步骤1**: 修改 KubeEdge 配置
 
-参考 [手动安装-步骤3](#step3)，开启 Local APIServer。
+参考 [手动安装-步骤3](#step3)，修改 KubeEdge 配置。
 
 - **步骤2**: 安装 Charts
 
@@ -84,9 +84,30 @@ $ cd edgemesh
 $ kubectl apply -f build/crds/istio/
 ```
 
-- **步骤3**: 开启 Local APIServer
+- **步骤3**: 修改 KubeEdge 配置
 
-在边缘节点，打开 metaServer 模块（如果你的 KubeEdge < 1.8.0，还需关闭 edgeMesh 模块），并重启 edgecore
+（1）开启 Local APIServer
+
+在云端，开启 dynamicController 模块，并重启 cloudcore
+
+```shell
+$ vim /etc/kubeedge/config/cloudcore.yaml
+modules:
+  ..
+  dynamicController:
+    enable: true
+..
+```
+
+```shell
+# 如果 cloudcore 没有配置为 systemd 管理，则使用如下命令重启（cloudcore 默认没有配置为 systemd 管理）
+$ pkill cloudcore ; nohup /usr/local/bin/cloudcore > /var/log/kubeedge/cloudcore.log 2>&1 &
+
+# 如果 cloudcore 配置为 systemd 管理，则使用如下命令重启
+$ systemctl restart cloudcore
+```
+
+在边缘节点，打开 metaServer 模块（如果你的 KubeEdge < 1.8.0，还需关闭 edgeMesh 模块）
 
 ```shell
 $ vim /etc/kubeedge/config/edgecore.yaml
@@ -101,28 +122,29 @@ modules:
 ..
 ```
 
-```shell
-$ systemctl restart edgecore
-```
+（2）配置 clusterDNS
 
-在云端，开启 dynamicController 模块，并重启 cloudcore
+在边缘节点，配置 clusterDNS，并重启 edgecore
 
 ```shell
-$ vim /etc/kubeedge/config/cloudcore.yaml
+$ vim /etc/kubeedge/config/edgecore.yaml
 modules:
   ..
-  dynamicController:
-    enable: true
+  edged:
+    # edgedns 暂时不支持解析外网域名，如果希望解析外网域名，您可以配置成 "169.254.96.16,8.8.8.8"
+    clusterDNS: "169.254.96.16"
 ..
 ```
 
 ```shell
-# 如果cloudcore没有配置为systemd管理使用如下命令重启（cloudcore默认没有配置为systemd管理）
-$ pkill cloudcore ; nohup /usr/local/bin/cloudcore > /var/log/kubeedge/cloudcore.log 2>&1 &
-
-# 如果cloudcore配置为systemd管理使用如下命令重启
-$ systemctl restart cloudcore
+$ systemctl restart edgecore
 ```
+
+::: tip
+clusterDNS 设置的值 '169.254.96.16' 来自于 build/agent/kubernetes/edgemesh-agent/05-configmap.yaml 中的 commonConfig.dummyDeviceIP，如需修改请保持两者一致
+:::
+
+（3）验证
 
 在边缘节点，测试 Local APIServer 是否开启
 
