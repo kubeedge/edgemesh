@@ -12,9 +12,9 @@ EdgeMesh relies on the [Local APIServer](https://github.com/kubeedge/kubeedge/bl
 
 ## Helm Installation
 
-- **Step 1**: Enable Local APIServer
+- **Step 1**: Modify KubeEdge Configuration
 
-Refer to [Manual Installation-Step 3](#step3), enable Local APIServer.
+Refer to [Manual Installation-Step 3](#step3) to modify the configuration of KubeEdge.
 
 - **Step 2**: Install Charts
 
@@ -84,9 +84,30 @@ $ cd edgemesh
 $ kubectl apply -f build/crds/istio/
 ```
 
-- **Step 3**: Enable Local APIServer
+- **Step 3**: Modify KubeEdge Configuration
 
-At the edge node, open metaServer module (if your KubeEdge < 1.8.0, you also need to close edgeMesh module), and restart edgecore
+(1) Enable Local APIServer
+
+On the cloud, open the dynamicController module, and restart cloudcore
+
+```shell
+$ vim /etc/kubeedge/config/cloudcore.yaml
+modules:
+  ..
+  dynamicController:
+    enable: true
+..
+```
+
+```shell
+# If cloudcore is not configured for systemd management, use the following command to restart (cloudcore is not configured for systemd management by default)
+$ pkill cloudcore ; nohup /usr/local/bin/cloudcore > /var/log/kubeedge/cloudcore.log 2>&1 &
+
+# If cloudcore is configured for systemd management, use the following command to restart
+$ systemctl restart cloudcore
+```
+
+At the edge node, open metaServer module (if your KubeEdge < 1.8.0, you also need to close edgeMesh module)
 
 ```shell
 $ vim /etc/kubeedge/config/edgecore.yaml
@@ -101,29 +122,29 @@ modules:
 ..
 ```
 
-```shell
-$ systemctl restart edgecore
-```
+(2) Configure clusterDNS
 
-On the cloud, open the dynamicController module, and restart cloudcore
+At the edge node, configure clusterDNS, and restart edgecore
 
 ```shell
-$ vim /etc/kubeedge/config/cloudcore.yaml
+$ vim /etc/kubeedge/config/edgecore.yaml
 modules:
   ..
-  dynamicController:
-    enable: true
+  edged:
+    # edgedns does not currently support the resolution of external domain names. If you want to resolve external domain names, you can configure it to "169.254.96.16,8.8.8.8"
+    clusterDNS: "169.254.96.16"
 ..
 ```
 
 ```shell
-# If cloudcore is not configured for systemd management, use the following command to restart
-# (cloudcore is not configured for systemd management by default)
-$ pkill cloudcore ; nohup /usr/local/bin/cloudcore > /var/log/kubeedge/cloudcore.log 2>&1 &
-
-# If cloudcore is configured for systemd management, use the following command to restart
-$ systemctl restart cloudcore
+$ systemctl restart edgecore
 ```
+
+::: tip
+The value '169.254.96.16' set by clusterDNS comes from commonConfig.dummyDeviceIP in build/agent/kubernetes/edgemesh-agent/05-configmap.yaml. If you need to modify it, please keep the two consistent
+:::
+
+(3) Check it out
 
 At the edge node, check if Local APIServer works
 

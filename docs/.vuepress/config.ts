@@ -108,7 +108,8 @@ export default defineUserConfig<DefaultThemeOptions>({
     [
       '@vuepress/plugin-docsearch',
       {
-        apiKey: 'ed12361406d94f50a69e833ab50ce24a',
+        appId: 'YD2E315IKY',
+        apiKey: 'cd11511dd290946ede744abef0993e50',
         indexName: 'edgemesh',
         searchParameters: {
           facetFilters: ['tags:v2'],
