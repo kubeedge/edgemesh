@@ -26,15 +26,23 @@ type TunnelServerConfig struct {
 	// default 20004
 	ListenPort int `json:"listenPort,omitempty"`
 	// PublicIP indicates the public ip of tunnel server
+	// Deprecated: Use AdvertiseAddress instead.
 	PublicIP string `json:"publicIP,omitempty"`
 	// EnableSecurity indicates whether to use the ca acl and security transport
 	// default false
 	EnableSecurity bool `json:"enableSecurity"`
+	// AdvertiseAddress sets the IP address for the edgemesh-server to advertise
+	AdvertiseAddress []string `json:"advertiseAddress,omitempty"`
 }
 
 func NewTunnelServerConfig() *TunnelServerConfig {
+	// fetch the public IP auto and append it to the advertiseAddress
 	publicIP := util.FetchPublicIP()
 	klog.Infof("Fetch public IP: %s", publicIP)
+	advertiseAddress := make([]string, 0)
+	if publicIP != "" {
+		advertiseAddress = append(advertiseAddress, publicIP)
+	}
 
 	return &TunnelServerConfig{
 		Enable: true,
@@ -43,8 +51,9 @@ func NewTunnelServerConfig() *TunnelServerConfig {
 			TLSCAFile:         meshConstants.ServerDefaultCAFile,
 			TLSCertFile:       meshConstants.ServerDefaultCertFile,
 		},
-		ListenPort:     defaultListenPort,
-		PublicIP:       publicIP,
-		EnableSecurity: false,
+		ListenPort:       defaultListenPort,
+		PublicIP:         publicIP,
+		EnableSecurity:   false,
+		AdvertiseAddress: advertiseAddress,
 	}
 }
