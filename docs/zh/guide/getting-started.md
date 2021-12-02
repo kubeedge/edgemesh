@@ -21,10 +21,10 @@ EdgeMesh 依赖于 KubeEdge 的边缘 [Local APIServer](https://github.com/kubee
 确保你已经安装了 Helm 3
 
 ```
-helm install edgemesh \
-  --set server.nodeName=<your node name> \
-  --set server.publicIP=<your node eip> \
-  https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
+$ helm install edgemesh \
+--set server.nodeName=<your node name> \
+--set server.publicIP=<your node eip> \
+https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
 server.nodeName 指定 edgemesh-server 部署的节点，server.publicIP 指定节点的公网 IP。其中 server.publicIP 是可以省略的，因为 edgemesh-server 会自动探测并配置节点的公网 IP，但不保证正确。
@@ -32,10 +32,10 @@ server.nodeName 指定 edgemesh-server 部署的节点，server.publicIP 指定�
 **例子：**
 
 ```shell
-helm install edgemesh \
-  --set server.nodeName=k8s-node1 \
-  --set server.publicIP=119.8.211.54 \
-  https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
+$ helm install edgemesh \
+--set server.nodeName=k8s-node1 \
+--set server.publicIP=119.8.211.54 \
+https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
 ::: warning
@@ -82,6 +82,9 @@ $ cd edgemesh
 
 ```shell
 $ kubectl apply -f build/crds/istio/
+customresourcedefinition.apiextensions.k8s.io/destinationrules.networking.istio.io created
+customresourcedefinition.apiextensions.k8s.io/gateways.networking.istio.io created
+customresourcedefinition.apiextensions.k8s.io/virtualservices.networking.istio.io created
 ```
 
 - **步骤3**: 修改 KubeEdge 配置

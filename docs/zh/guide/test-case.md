@@ -2,18 +2,37 @@
 
 本章节里的所有测试用例都在目录 [examples](https://github.com/kubeedge/edgemesh/tree/main/examples) 下可找到对应文件。
 
+## 准备工作
+
+- **步骤1**: 部署 EdgeMesh
+
+请参考 [快速上手](./getting-started.md) 完成 EdgeMesh 的部署
+
+- **步骤2**: 部署测试容器
+
+```shell
+$ kubectl apply -f examples/test-pod.yaml
+pod/busybox-test created
+pod/websocket-test created
+```
+
 ## HTTP
 
 部署支持 http 协议的容器应用和相关服务
 
 ```shell
 $ kubectl apply -f examples/hostname.yaml
+deployment.apps/hostname-edge created
+service/hostname-svc created
 ```
 
-在边缘节点，使用 `curl` 去访问相关服务，打印出容器的 hostname
+进入测试容器，并使用 `curl` 去访问相关服务
 
 ```shell
-$ curl hostname-svc.default:12345
+$ kubectl exec -it pod/busybox-test -- sh
+(在容器环境内)
+/ # curl hostname-svc:12345
+hostname-edge-5c75d56dc4-rq57t
 ```
 
 ## TCP
@@ -22,12 +41,21 @@ $ curl hostname-svc.default:12345
 
 ```shell
 $ kubectl apply -f examples/tcp-echo-service.yaml
+deployment.apps/tcp-echo-deployment created
+service/tcp-echo-service created
 ```
 
-在边缘节点，使用 `telnet` 去访问相关服务
+进入测试容器，并使用 `telnet` 去访问相关服务
 
 ```shell
-$ telnet tcp-echo-service.default 2701
+$ kubectl exec -it pod/busybox-test -- sh
+(在容器环境内)
+/ # telnet tcp-echo-service 2701
+Welcome, you are connected to node ke-edge1.
+Running on Pod tcp-echo-deployment-66457b769-7zgqb.
+In namespace default.
+With IP address 172.17.0.2.
+Service default.
 ```
 
 ## Websocket
@@ -36,34 +64,50 @@ $ telnet tcp-echo-service.default 2701
 
 ```shell
 $ kubectl apply -f examples/websocket.yaml
+deployment.apps/ws-edge created
+service/ws-svc created
 ```
 
-在边缘节点，进入 websocket 的容器环境，并使用 client 去访问相关服务
+进入测试容器，并使用 websocket `client` 去访问相关服务
 
 ```shell
-$ WEBSOCKET_CID=$(docker ps | grep k8s_ws_ws-edge | awk '{print $1}')
-$ docker exec -it $WEBSOCKET_CID bash
-$ ./client --addr ws-svc.default:12348
+$ kubectl exec -it pod/websocket-test -- bash
+(在容器环境内)
+root@websocket-test:/home/service# ./client --addr ws-svc.default:12348
+connecting to ws://ws-svc.default:12348/echo
+recv: 2021-12-02 03:42:20.191695384 +0000 UTC m=+1.004526202
+recv: 2021-12-02 03:42:21.191724176 +0000 UTC m=+2.004554995
+recv: 2021-12-02 03:42:22.191725321 +0000 UTC m=+3.004556159
 ```
 
 ## 负载均衡
 
-使用 DestinationRule 中的 loadBalancer 属性来选择不同的负载均衡模式
+部署配置了 `random` 负载均衡策略的容器应用和相关服务
 
 ```shell
-$ vim examples/hostname-lb-random.yaml
-spec
-..
-  trafficPolicy:
-    loadBalancer:
-      simple: RANDOM
-..
+$ kubectl apply -f examples/hostname-lb-random.yaml
+deployment.apps/hostname-lb-edge created
+service/hostname-lb-svc created
+destinationrule.networking.istio.io/hostname-lb-svc created
 ```
 
-在边缘节点，使用 `curl` 去访问相关服务，你将看到多个 hostname-edge 被随机访问
+:::tip
+EdgeMesh 使用了 DestinationRule 中的 loadBalancer 属性来选择不同的负载均衡策略
+:::
+
+进入测试容器，并多次使用 `curl` 去访问相关服务，你将看到多个 hostname-edge 被随机的访问
 
 ```shell
-$ curl hostname-lb-svc.default:12345
+$ kubectl exec -it pod/busybox-test -- sh
+(在容器环境内)
+/ # curl hostname-lb-svc:12345
+hostname-lb-edge-7898fff5f9-w82nw
+/ # curl hostname-lb-svc:12345
+hostname-lb-edge-7898fff5f9-xjp86
+/ # curl hostname-lb-svc:12345
+hostname-lb-edge-7898fff5f9-xjp86
+/ # curl hostname-lb-svc:12345
+hostname-lb-edge-7898fff5f9-iq39z
 ```
 
 ## 跨边云通信 :star:

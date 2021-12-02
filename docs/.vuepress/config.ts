@@ -106,14 +106,10 @@ export default defineUserConfig<DefaultThemeOptions>({
 
   plugins: [
     [
-      '@vuepress/plugin-docsearch',
+      '@vuepress/docsearch',
       {
-        appId: 'YD2E315IKY',
-        apiKey: 'cd11511dd290946ede744abef0993e50',
+        apiKey: 'ed12361406d94f50a69e833ab50ce24a',
         indexName: 'edgemesh',
-        searchParameters: {
-          facetFilters: ['tags:v2'],
-        },
         locales: {
           '/zh/': {
             placeholder: '搜索文档',

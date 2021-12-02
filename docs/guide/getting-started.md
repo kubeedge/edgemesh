@@ -21,10 +21,10 @@ Refer to [Manual Installation-Step 3](#step3) to modify the configuration of Kub
 Make sure you have installed Helm 3
 
 ```
-helm install edgemesh \
-  --set server.nodeName=<your node name> \
-  --set server.publicIP=<your node eip> \
-  https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
+$ helm install edgemesh \
+--set server.nodeName=<your node name> \
+--set server.publicIP=<your node eip> \
+https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
 server.nodeName specifies the node deployed by edgemesh-server, and server.publicIP specifies the public IP of the node. The server.publicIP can be omitted, because edgemesh-server will automatically detect and configure the public IP of the node, but it is not guaranteed to be correct.
@@ -32,10 +32,10 @@ server.nodeName specifies the node deployed by edgemesh-server, and server.publi
 **Example：**
 
 ```shell
-helm install edgemesh \
-  --set server.nodeName=k8s-node1 \
-  --set server.publicIP=119.8.211.54 \
-  https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
+$ helm install edgemesh \
+--set server.nodeName=k8s-node1 \
+--set server.publicIP=119.8.211.54 \
+https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
 ::: warning
@@ -82,6 +82,9 @@ $ cd edgemesh
 
 ```shell
 $ kubectl apply -f build/crds/istio/
+customresourcedefinition.apiextensions.k8s.io/destinationrules.networking.istio.io created
+customresourcedefinition.apiextensions.k8s.io/gateways.networking.istio.io created
+customresourcedefinition.apiextensions.k8s.io/virtualservices.networking.istio.io created
 ```
 
 - **Step 3**: Modify KubeEdge Configuration

@@ -2,68 +2,112 @@
 
 All the test cases in this chapter can find the corresponding files in the directory [examples](https://github.com/kubeedge/edgemesh/tree/main/examples).
 
+## Prepare
+
+- **Step 1**: Deploy EdgeMesh
+
+Please refer to [Getting Started](./getting-started.md) to deploy EdgeMesh
+
+- **Step 2**: Deploy Test Pods
+
+```shell
+$ kubectl apply -f examples/test-pod.yaml
+pod/busybox-test created
+pod/websocket-test created
+```
+
 ## HTTP
 
-Deploy a HTTP container application, and relevant service
+Deploy a HTTP container application and relevant service
 
 ```shell
 $ kubectl apply -f examples/hostname.yaml
+deployment.apps/hostname-edge created
+service/hostname-svc created
 ```
 
-At the edge node, use `curl` to access the service, and print out the hostname of the container
+Enter the test pod and use `curl` to access the service
 
 ```shell
-$ curl hostname-svc.default:12345
+$ kubectl exec -it pod/busybox-test -- sh
+(in the container environment)
+/ # curl hostname-svc:12345
+hostname-edge-5c75d56dc4-rq57t
 ```
 
 ## TCP
 
-Deploy a TCP container application, and relevant service
+Deploy a TCP container application and relevant service
 
 ```shell
 $ kubectl apply -f examples/tcp-echo-service.yaml
+deployment.apps/tcp-echo-deployment created
+service/tcp-echo-service created
 ```
 
-At the edge node, use `telnet` to access the service
+Enter the test pod and use `telnet` to access the service
 
 ```shell
-$ telnet tcp-echo-service.default 2701
+$ kubectl exec -it pod/busybox-test -- sh
+(in the container environment)
+/ # telnet tcp-echo-service 2701
+Welcome, you are connected to node ke-edge1.
+Running on Pod tcp-echo-deployment-66457b769-7zgqb.
+In namespace default.
+With IP address 172.17.0.2.
+Service default.
 ```
 
 ## Websocket
 
-Deploy a websocket container application, and relevant service
+Deploy a websocket container application and relevant service
 
 ```shell
 $ kubectl apply -f examples/websocket.yaml
+deployment.apps/ws-edge created
+service/ws-svc created
 ```
 
-At the edge node, enter the container, and use ./client to access the service
+Enter the test pod and use websocket `client` to access the service
 
 ```shell
-$ WEBSOCKET_CID=$(docker ps | grep k8s_ws_ws-edge | awk '{print $1}')
-$ docker exec -it $WEBSOCKET_CID bash
-$ ./client --addr ws-svc.default:12348
+$ kubectl exec -it pod/websocket-test -- bash
+(in the container environment)
+root@websocket-test:/home/service# ./client --addr ws-svc.default:12348
+connecting to ws://ws-svc.default:12348/echo
+recv: 2021-12-02 03:42:20.191695384 +0000 UTC m=+1.004526202
+recv: 2021-12-02 03:42:21.191724176 +0000 UTC m=+2.004554995
+recv: 2021-12-02 03:42:22.191725321 +0000 UTC m=+3.004556159
 ```
 
 ## Load Balance
 
-Use the 'loadBalancer' in 'DestinationRule' to select LB modes
+Deploy a container application and related services configured with a `random` load balancing strategy
 
 ```shell
-$ vim examples/hostname-lb-random.yaml
-spec
-..
-  trafficPolicy:
-    loadBalancer:
-      simple: RANDOM
-..
+$ kubectl apply -f examples/hostname-lb-random.yaml
+deployment.apps/hostname-lb-edge created
+service/hostname-lb-svc created
+destinationrule.networking.istio.io/hostname-lb-svc created
 ```
 
-At the edge node, use `curl` to access the service, you will see that multiple hostname-edge are randomly accessed
+:::tip
+EdgeMesh uses the loadBalancer property in DestinationRule to select different load balancing strategies
+:::
+
+Enter the test pod and use `curl` multiple times to access the service, you will see that multiple hostname-edge are randomly accessed
 
 ```shell
-$ curl hostname-lb-svc.default:12345
+$ kubectl exec -it pod/busybox-test -- sh
+(in the container environment)
+/ # curl hostname-lb-svc:12345
+hostname-lb-edge-7898fff5f9-w82nw
+/ # curl hostname-lb-svc:12345
+hostname-lb-edge-7898fff5f9-xjp86
+/ # curl hostname-lb-svc:12345
+hostname-lb-edge-7898fff5f9-xjp86
+/ # curl hostname-lb-svc:12345
+hostname-lb-edge-7898fff5f9-iq39z
 ```
 
 ## Cross-Edge-Cloud :star:
