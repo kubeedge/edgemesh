@@ -125,17 +125,19 @@ modules:
 ..
 ```
 
-（2）配置 clusterDNS
+（2）配置 clusterDNS，clusterDomain
 
-在边缘节点，配置 clusterDNS，并重启 edgecore
+在边缘节点，配置 clusterDNS 和 clusterDomain，并重启 edgecore
 
 ```shell
 $ vim /etc/kubeedge/config/edgecore.yaml
 modules:
   ..
   edged:
-    # edgedns 暂时不支持解析外网域名，如果希望解析外网域名，您可以配置成 "169.254.96.16,8.8.8.8"
+    # EdgeMesh 的 DNS 模块暂时不支持解析外网域名，如果你希望在 Pod 内部解析外网域名
+    # 可以将 clusterDNS 配置成 "169.254.96.16,8.8.8.8"
     clusterDNS: "169.254.96.16"
+    clusterDomain: "cluster.local"
 ..
 ```
 

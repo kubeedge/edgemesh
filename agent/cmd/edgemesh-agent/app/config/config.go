@@ -55,7 +55,7 @@ type CommonConfig struct {
 	// Mode indicates the current running mode of edgemesh-agent
 	// do not allow users to configure manually
 	// default "CloudMode"
-	Mode string
+	Mode string `json:"mode,omitempty"`
 	// DummyDeviceName indicates the name of the dummy device will be created
 	// default edgemesh0
 	DummyDeviceName string `json:"dummyDeviceName,omitempty"`

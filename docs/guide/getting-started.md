@@ -125,17 +125,19 @@ modules:
 ..
 ```
 
-(2) Configure clusterDNS
+(2) Configure clusterDNS and clusterDomain
 
-At the edge node, configure clusterDNS, and restart edgecore
+At the edge node, configure clusterDNS, clusterDomain and restart edgecore
 
 ```shell
 $ vim /etc/kubeedge/config/edgecore.yaml
 modules:
   ..
   edged:
-    # edgedns does not currently support the resolution of external domain names. If you want to resolve external domain names, you can configure it to "169.254.96.16,8.8.8.8"
+    # EdgeMesh's DNS module does not support resolving external domain names temporarily, if you want to resolve external domain names inside the Pod
+    # You can configure clusterDNS to "169.254.96.16,8.8.8.8"
     clusterDNS: "169.254.96.16"
+    clusterDomain: "cluster.local"
 ..
 ```
 
