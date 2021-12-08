@@ -12,7 +12,7 @@
 
 ```shell
 $ kubectl apply -f examples/test-pod.yaml
-pod/busybox-test created
+pod/alpine-test created
 pod/websocket-test created
 ```
 
@@ -29,11 +29,58 @@ service/hostname-svc created
 进入测试容器，并使用 `curl` 去访问相关服务
 
 ```shell
-$ kubectl exec -it pod/busybox-test -- sh
+$ kubectl exec -it alpine-test -- sh
 (在容器环境内)
 / # curl hostname-svc:12345
 hostname-edge-5c75d56dc4-rq57t
 ```
+
+## HTTPS
+
+部署支持 https 协议的容器应用和相关服务
+
+```shell
+$ ./examples/nginx-https/tools.sh install
+...
+Getting Private key
+Getting CA Private Key
+secret/nginxsecret created
+configmap/nginxconfigmap created
+deployment.apps/nginx-https created
+service/nginx-https created
+create https example success!
+```
+
+进入测试容器，并使用 `curl` 去访问相关服务
+
+```shell
+$ kubectl exec -it alpine-test -- sh
+(在容器环境内)
+/ # curl -k --cert client.crt --key client.key https://nginx-https
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+...
+
+(也可以使用外部域名去访问相关服务)
+/ # curl --cacert rootCA.crt --cert client.crt --key client.key https://my-nginx.com
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+...
+```
+
+::: details
+examples/nginx-https/tools.sh 脚本功能：
+1. 生成自签根证书，服务器、客户端的证书和私钥
+2. 创建 nginx-https 相关的 secret，configmap，deployment 和 service
+3. 往 alpine-test 内复制证书和私钥
+4. 往 alpine-test 内的 /etc/hosts 文件写入 IP 与域名 (my-nginx.com) 的映射
+
+备注：使用 tools.sh 脚本的 cleanup 命令可清空上述创建的所有资源，以及还原对 alpine-test 的修改
+:::
 
 ## TCP
 
@@ -48,7 +95,7 @@ service/tcp-echo-service created
 进入测试容器，并使用 `telnet` 去访问相关服务
 
 ```shell
-$ kubectl exec -it pod/busybox-test -- sh
+$ kubectl exec -it alpine-test -- sh
 (在容器环境内)
 / # telnet tcp-echo-service 2701
 Welcome, you are connected to node ke-edge1.
@@ -71,7 +118,7 @@ service/ws-svc created
 进入测试容器，并使用 websocket `client` 去访问相关服务
 
 ```shell
-$ kubectl exec -it pod/websocket-test -- bash
+$ kubectl exec -it websocket-test -- bash
 (在容器环境内)
 root@websocket-test:/home/service# ./client --addr ws-svc:12348
 connecting to ws://ws-svc.default:12348/echo
@@ -98,7 +145,7 @@ EdgeMesh 使用了 DestinationRule 中的 loadBalancer 属性来选择不同的�
 进入测试容器，并多次使用 `curl` 去访问相关服务，你将看到多个 hostname-edge 被随机的访问
 
 ```shell
-$ kubectl exec -it pod/busybox-test -- sh
+$ kubectl exec -it alpine-test -- sh
 (在容器环境内)
 / # curl hostname-lb-svc:12345
 hostname-lb-edge-7898fff5f9-w82nw

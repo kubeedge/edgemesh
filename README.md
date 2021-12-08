@@ -16,6 +16,7 @@ EdgeMesh, as the data plane component of the [KubeEdge](https://github.com/kubee
 KubeEdge is build based on [Kubernetes](https://github.com/kubernetes/kubernetes), extending cloud-native containerized application orchestration capabilities to the edge. However, at the scenario of edge computer, the network topology is more complex. Edge nodes in different areas are often not interconnected, and the inter-communication of traffic between applications is the primary requirement of the business. For this scenairo, EdgeMesh offers a solution.
 
 ### Why EdgeMesh?
+
 EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge resources, unstable edge cloud network, complex network structure, etc.), that is, high availability, high reliability, and extreme lightweight:
 
 - **High availability**
@@ -37,47 +38,51 @@ EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge re
 ### Key Features
 
 <table align="center">
-	<tr>
-		<th align="center">Feature</th>
-		<th align="center">Sub-Feature</th>
-		<th align="center">Realization Degree</th>
-	</tr>
-	<tr>
-		<td align="center">Service Discovery</td>
-		<td align="center">/</td>
-		<td align="center">✓</td>
-	</tr>
-	<tr>
-		<td rowspan="4" align="center">Traffic Governance</td>
-	 	<td align="center">HTTP</td>
-		<td align="center">✓</td>
-	</tr>
-	<tr>
-	 	<td align="center">TCP</td>
-		<td align="center">✓</td>
-	</tr>
-	<tr>
-	 	<td align="center">Websocket</td>
-		<td align="center">✓</td>
-	</tr>
-	<tr>
-	 	<td align="center">HTTPS</td>
-		<td align="center">✓</td>
-	</tr>
-	<tr>
-		<td rowspan="3" align="center">Load Balance</td>
-	 	<td align="center">Random</td>
-		<td align="center">✓</td>
-	</tr>
-	<tr>
-	 	<td align="center">Round Robin</td>
-		<td align="center">✓</td>
-	</tr>
-	<tr>
-		<td align="center">Session Persistence</td>
-		<td align="center">✓</td>
-	</tr>
-	<tr>
+  <tr>
+    <th align="center">Feature</th>
+    <th align="center">Sub-Feature</th>
+    <th align="center">Realization Degree</th>
+  </tr>
+  <tr>
+    <td align="center">Service Discovery</td>
+    <td align="center">/</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td rowspan="5" align="center">Traffic Governance</td>
+    <td align="center">HTTP</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">TCP</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">Websocket</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">HTTPS</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">UDP</td>
+    <td align="center">+</td>
+  </tr>
+  <tr>
+    <td rowspan="3" align="center">Load Balance</td>
+    <td align="center">Random</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">Round Robin</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">Session Persistence</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
     <td rowspan="2" align="center">Edge Gateway</td>
     <td align="center">External Access</td>
     <td align="center">✓</td>
@@ -87,19 +92,19 @@ EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge re
     <td align="center">✓</td>
   </tr>
   <tr>
-		<td rowspan="2" align="center">Cross-Subnet Communication</td>
-	 	<td align="center">Cross-Cloud Communication</td>
-		<td align="center">✓</td>
-	</tr>
-	<tr>
-	 	<td align="center">Cross-LAN E2E Communication</td>
-		<td align="center">✓</td>
-	</tr>
+    <td rowspan="2" align="center">Cross-Subnet Communication</td>
+    <td align="center">Cross-Cloud Communication</td>
+    <td align="center">✓</td>
+  </tr>
   <tr>
-		<td align="center">Edge CNI</td>
-	 	<td align="center">Cross-Subnet Pod Communication</td>
-		<td align="center">+</td>
-	</tr>
+    <td align="center">Cross-LAN E2E Communication</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">Edge CNI</td>
+    <td align="center">Cross-Subnet Pod Communication</td>
+    <td align="center">+</td>
+  </tr>
 </table>
 
 **Noting:**
@@ -145,13 +150,15 @@ Follow the [EdgeMesh installation document](https://edgemesh.netlify.app/guide/g
 ### Examples
 Example1: [HTTP traffic forwarding](https://edgemesh.netlify.app/guide/test-case.html#http)
 
-Example2: [TCP traffic forwarding](https://edgemesh.netlify.app/guide/test-case.html#tcp)
+Example2: [HTTPS traffic forwarding](https://edgemesh.netlify.app/guide/test-case.html#https)
 
-Example3: [Websocket traffic forwarding](https://edgemesh.netlify.app/guide/test-case.html#websocket)
+Example3: [TCP traffic forwarding](https://edgemesh.netlify.app/guide/test-case.html#tcp)
 
-Example4: [Load Balance](https://edgemesh.netlify.app/guide/test-case.html#load-balance)
+Example4: [Websocket traffic forwarding](https://edgemesh.netlify.app/guide/test-case.html#websocket)
 
-Example5: [Cross-edge-cloud communication](https://edgemesh.netlify.app/guide/test-case.html#cross-edge-cloud)
+Example5: [Load Balance](https://edgemesh.netlify.app/guide/test-case.html#load-balance)
+
+Example6: [Cross-edge-cloud communication](https://edgemesh.netlify.app/guide/test-case.html#cross-edge-cloud)
 
 
 ## Contact
