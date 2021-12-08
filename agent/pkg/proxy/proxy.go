@@ -120,7 +120,7 @@ func (proxy *EdgeProxy) newProtocolFromSock(ip string, port int, conn net.Conn) 
 	name := svcNameSets[1]
 
 	switch protoName {
-	case "http":
+	case "http", "https":
 		proto = &http.HTTP{
 			Conn:         conn,
 			SvcName:      name,

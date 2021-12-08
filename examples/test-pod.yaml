@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: busybox-test
+  name: alpine-test
 spec:
   containers:
-    - name: busybox-curl
-      image: odise/busybox-curl
+    - name: alpine-curl
+      image: poorunga/alpine-curl
       imagePullPolicy: IfNotPresent
       args:
         - sleep

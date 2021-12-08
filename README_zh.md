@@ -49,7 +49,7 @@ EdgeMesh 满足边缘场景下的新需求（如边缘资源有限、边云网�
     <td align="center">✓</td>
   </tr>
   <tr>
-    <td rowspan="4" align="center">流量治理</td>
+    <td rowspan="5" align="center">流量治理</td>
     <td align="center">HTTP</td>
     <td align="center">✓</td>
   </tr>
@@ -64,6 +64,10 @@ EdgeMesh 满足边缘场景下的新需求（如边缘资源有限、边云网�
   <tr>
     <td align="center">HTTPS</td>
     <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">UDP</td>
+    <td align="center">+</td>
   </tr>
   <tr>
     <td rowspan="3" align="center">负载均衡</td>
@@ -146,13 +150,15 @@ EdgeMesh 的安装文档请参考[这里](https://edgemesh.netlify.app/zh/guide/
 ### 样例
 样例1：[HTTP 流量转发](https://edgemesh.netlify.app/zh/guide/test-case.html#http)
 
-样例2：[TCP 流量转发](https://edgemesh.netlify.app/zh/guide/test-case.html#tcp)
+样例2：[HTTPS 流量转发](https://edgemesh.netlify.app/zh/guide/test-case.html#https)
 
-样例3：[Websocket 流量转发](https://edgemesh.netlify.app/zh/guide/test-case.html#websocket)
+样例3：[TCP 流量转发](https://edgemesh.netlify.app/zh/guide/test-case.html#tcp)
 
-样例4：[负载均衡](https://edgemesh.netlify.app/zh/guide/test-case.html#负载均衡)
+样例4：[Websocket 流量转发](https://edgemesh.netlify.app/zh/guide/test-case.html#websocket)
 
-样例5：[跨边云通信](https://edgemesh.netlify.app/zh/guide/test-case.html#跨边云通信)
+样例5：[负载均衡](https://edgemesh.netlify.app/zh/guide/test-case.html#负载均衡)
+
+样例6：[跨边云通信](https://edgemesh.netlify.app/zh/guide/test-case.html#跨边云通信)
 
 
 ## 联系方式

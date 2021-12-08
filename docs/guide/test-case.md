@@ -12,7 +12,7 @@ Please refer to [Getting Started](./getting-started.md) to deploy EdgeMesh
 
 ```shell
 $ kubectl apply -f examples/test-pod.yaml
-pod/busybox-test created
+pod/alpine-test created
 pod/websocket-test created
 ```
 
@@ -29,11 +29,58 @@ service/hostname-svc created
 Enter the test pod and use `curl` to access the service
 
 ```shell
-$ kubectl exec -it pod/busybox-test -- sh
+$ kubectl exec -it alpine-test -- sh
 (in the container environment)
 / # curl hostname-svc:12345
 hostname-edge-5c75d56dc4-rq57t
 ```
+
+## HTTPS
+
+Deploy a HTTPS container application and relevant service
+
+```shell
+$ ./examples/nginx-https/tools.sh install
+...
+Getting Private key
+Getting CA Private Key
+secret/nginxsecret created
+configmap/nginxconfigmap created
+deployment.apps/nginx-https created
+service/nginx-https created
+create https example success!
+```
+
+Enter the test pod and use `curl` to access the service
+
+```shell
+$ kubectl exec -it alpine-test -- sh
+(in the container environment)
+/ # curl -k --cert client.crt --key client.key https://nginx-https
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+...
+
+(you can also use external domain name to access related service)
+/ # curl --cacert rootCA.crt --cert client.crt --key client.key https://my-nginx.com
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+...
+```
+
+::: details
+examples/nginx-https/tools.sh script function:
+1. Generate self-signed root certificate, server, client certificates and private keys
+2. Create nginx-https related secret, configmap, deployment and service
+3. Copy the certificate and private key to alpine-test
+4. Write the mapping between IP and domain name (my-nginx.com) to the /etc/hosts file in alpine-test
+
+Note: Use the cleanup command of the tools.sh script to clear all the resources created above and restore the modification to alpine-test
+:::
 
 ## TCP
 
@@ -48,7 +95,7 @@ service/tcp-echo-service created
 Enter the test pod and use `telnet` to access the service
 
 ```shell
-$ kubectl exec -it pod/busybox-test -- sh
+$ kubectl exec -it alpine-test -- sh
 (in the container environment)
 / # telnet tcp-echo-service 2701
 Welcome, you are connected to node ke-edge1.
@@ -71,7 +118,7 @@ service/ws-svc created
 Enter the test pod and use websocket `client` to access the service
 
 ```shell
-$ kubectl exec -it pod/websocket-test -- bash
+$ kubectl exec -it websocket-test -- bash
 (in the container environment)
 root@websocket-test:/home/service# ./client --addr ws-svc:12348
 connecting to ws://ws-svc.default:12348/echo
@@ -98,7 +145,7 @@ EdgeMesh uses the loadBalancer property in DestinationRule to select different l
 Enter the test pod and use `curl` multiple times to access the service, you will see that multiple hostname-edge are randomly accessed
 
 ```shell
-$ kubectl exec -it pod/busybox-test -- sh
+$ kubectl exec -it alpine-test -- sh
 (in the container environment)
 / # curl hostname-lb-svc:12345
 hostname-lb-edge-7898fff5f9-w82nw
