@@ -139,7 +139,7 @@ destinationrule.networking.istio.io/hostname-lb-svc created
 ```
 
 :::tip
-EdgeMesh 使用了 DestinationRule 中的 loadBalancer 属性来选择不同的负载均衡策略
+EdgeMesh 使用了 DestinationRule 中的 loadBalancer 属性来选择不同的负载均衡策略。使用 DestinationRule 时，要求 DestinationRule 的名字与相应的 Service 的名字要一致，EdgeMesh 会根据 Service 的名字来确定同命名空间下面的 DestinationRule
 :::
 
 进入测试容器，并多次使用 `curl` 去访问相关服务，你将看到多个 hostname-edge 被随机的访问

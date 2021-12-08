@@ -139,7 +139,7 @@ destinationrule.networking.istio.io/hostname-lb-svc created
 ```
 
 :::tip
-EdgeMesh uses the loadBalancer property in DestinationRule to select different load balancing strategies
+EdgeMesh uses the loadBalancer property in DestinationRule to select different load balancing strategies. While using DestinationRule, the name of the DestinationRule must be equal to the name of the corresponding Service. EdgeMesh will determine the DestinationRule in the same namespace according to the name of the Service
 :::
 
 Enter the test pod and use `curl` multiple times to access the service, you will see that multiple hostname-edge are randomly accessed

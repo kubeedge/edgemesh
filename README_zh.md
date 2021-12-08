@@ -135,12 +135,6 @@ EdgeMesh-Agent 的核心组件包括：
 
 ## 指南
 
-### 预备知识
-在使用 EdgeMesh 之前，您需要先了解以下预备知识：
-
-- 使用 DestinationRule 时，要求 DestinationRule 的名字与相应的 Service 的名字要一致，EdgeMesh 会根据 Service 的名字来确定同命名空间下面的 DestinationRule
-- Service 的端口必须命名，端口名键值对必须按以下格式：name: \<protocol>[-\<suffix>]
-
 ### 文档
 EdgeMesh 在 [netlify.com](https://edgemesh.netlify.app/zh/) 托管相关文档，您可以根据这些文档更好地了解 EdgeMesh。
 
