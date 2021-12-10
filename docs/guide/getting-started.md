@@ -27,7 +27,7 @@ $ helm install edgemesh \
 https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
-server.nodeName specifies the node deployed by edgemesh-server, and server.advertiseAddress specifies the EdgeMesh-Server advertise address list. 
+server.nodeName specifies the node deployed by edgemesh-server, and server.advertiseAddress specifies the edgemesh-server advertise address list. 
 The server.advertiseAddress can be omitted, because edgemesh-server will automatically detect and configure the advertiseAddress list, but it is not guaranteed to be correct.
 
 **Example：**

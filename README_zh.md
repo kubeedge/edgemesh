@@ -114,13 +114,13 @@ EdgeMesh 满足边缘场景下的新需求（如边缘资源有限、边云网�
 
 ![image](./docs/.vuepress/public/images/advanced/em-arch.png)
 
-上图展示了 EdgeMesh 的简要架构，EdgeMesh 包含两个微服务：EdgeMesh-Server 和 EdgeMesh-Agent。
+上图展示了 EdgeMesh 的简要架构，EdgeMesh 包含两个微服务：edgemesh-server 和 edgemesh-agent。
 
-EdgeMesh-Server 的核心组件包括：
+edgemesh-server 的核心组件包括：
 
-- **Tunnel-Server**: 基于 [LibP2P](https://github.com/libp2p/go-libp2p) 实现，与 EdgeMesh-Agent 建立连接，为EdgeMesh-Agent 提供中继能力和打洞能力
+- **Tunnel-Server**: 基于 [LibP2P](https://github.com/libp2p/go-libp2p) 实现，与 edgemesh-agent 建立连接，为edgemesh-agent 提供中继能力和打洞能力
 
-EdgeMesh-Agent 的核心组件包括：
+edgemesh-agent 的核心组件包括：
 
 - **Proxier**: 负责配置内核的 iptables 规则，将请求拦截到 EdgeMesh 进程内
 - **DNS**: 内置的 DNS 解析器，将节点内的域名请求解析成一个服务的集群 IP

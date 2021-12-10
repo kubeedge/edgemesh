@@ -1,7 +1,6 @@
 image: kubeedge/edgemesh-server:latest
 nodeName: "your node name"
 # publicIP overwrites the value of modules.tunnel.publicIP
-publicIP: ""
 advertiseAddress:
 
 # edgemesh-server configmap
@@ -17,4 +16,3 @@ modules:
   tunnel:
     enable: true
     listenPort: 20004
-    publicIP: ""

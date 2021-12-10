@@ -25,9 +25,6 @@ type TunnelServerConfig struct {
 	// ListenPort indicates the listen port of tunnel server
 	// default 20004
 	ListenPort int `json:"listenPort,omitempty"`
-	// PublicIP indicates the public ip of tunnel server
-	// Deprecated: Use AdvertiseAddress instead.
-	PublicIP string `json:"publicIP,omitempty"`
 	// EnableSecurity indicates whether to use the ca acl and security transport
 	// default false
 	EnableSecurity bool `json:"enableSecurity"`
@@ -52,7 +49,6 @@ func NewTunnelServerConfig() *TunnelServerConfig {
 			TLSCertFile:       meshConstants.ServerDefaultCertFile,
 		},
 		ListenPort:       defaultListenPort,
-		PublicIP:         publicIP,
 		EnableSecurity:   false,
 		AdvertiseAddress: advertiseAddress,
 	}

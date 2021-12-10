@@ -44,8 +44,6 @@ func newTunnelServer(c *config.TunnelServerConfig, ifm *informers.Manager) (serv
 		return server, fmt.Errorf("failed to get private key: %w", err)
 	}
 
-	// Compatible with old code, will delete in next version
-	c.AdvertiseAddress = append(c.AdvertiseAddress, c.PublicIP)
 	addressFactory := func(addrs []ma.Multiaddr) []ma.Multiaddr {
 		for _, advertiseAddress := range c.AdvertiseAddress {
 			multiAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", advertiseAddress, c.ListenPort))

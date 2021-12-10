@@ -1,5 +1,5 @@
 # Motivation
-Currently, the connections between EdgeMesh-Server and EdgeMesh-Agent, EdgeMesh-Agent and EdgeMesh-Agent are not securely designed, i.e. there is no authentication, authentication, encryption between EdgeMesh's service. This can lead to major security issues for EdgeMesh.
+Currently, the connections between edgemesh-server and edgemesh-agent, edgemesh-agent and edgemesh-agent are not securely designed, i.e. there is no authentication, authentication, encryption between EdgeMesh's service. This can lead to major security issues for EdgeMesh.
 
 # Goal
 + Based on KubeEdge's security framework, support bidirectional authentication between EdgeMesh services
@@ -15,7 +15,7 @@ Currently, the connections between EdgeMesh-Server and EdgeMesh-Agent, EdgeMesh-
 Make sure the cloudcore is health. EdgeMesh apply certificate from cloudcore.
 
 **step1:**  
-EdgeMesh( including EdgeMesh-Server and EdgeMesh-Agent) requests for CA certificate from the CloudCore(this time they don't verify the certificate of each other)
+EdgeMesh( including edgemesh-server and edgemesh-agent) requests for CA certificate from the CloudCore(this time they don't verify the certificate of each other)
 
 **step2:**  
 Return CA certificate directly to EdgeMesh without verifying identity.
@@ -32,10 +32,10 @@ Parse and verify token, If successful, use the CA certificate to sign the CSR an
 
 **step6:**  
 Parse and verify token, If successful, use the CA certificate to sign the CSR and return a certificate to EdgeMesh.
-Then the EdgeMesh-Server and EdgeMesh-Agent, EdgeMesh-Agent and EdgeMesh-Agent can establish mutual authentication TLS using [go-libp2p-tls-ca](https://github.com/khalid-jobs/go-libp2p-tls) library which forks from 
+Then the edgemesh-server and edgemesh-agent, edgemesh-agent and edgemesh-agent can establish mutual authentication TLS using [go-libp2p-tls-ca](https://github.com/khalid-jobs/go-libp2p-tls) library which forks from 
 [go-libp2p-tls](https://github.com/libp2p/go-libp2p-tls) and add the ca authentication feature.
 
-### Configuration of EdgeMesh-Server with security
+### Configuration of edgemesh-server with security
 ```yaml
     ......
     modules:
@@ -46,7 +46,7 @@ Then the EdgeMesh-Server and EdgeMesh-Agent, EdgeMesh-Agent and EdgeMesh-Agent c
           # cloudcore's https api for crts sign apply
           httpServer: <cloudhub-https-addr>
 ```
-### Configuration of EdgeMesh-Agent with security
+### Configuration of edgemesh-agent with security
 ```yaml
     ......
     modules:
@@ -59,7 +59,7 @@ Then the EdgeMesh-Server and EdgeMesh-Agent, EdgeMesh-Agent and EdgeMesh-Agent c
 ```
 
 # Future development tasks
-1. certification rotation: The certification roration will affect the connection between EdgeMesh-Server and EdgeMesh-Agent, EdgeMesh-Agent and EdgeMesh-Agent, we need think more about this.
+1. certification rotation: The certification roration will affect the connection between edgemesh-server and edgemesh-agent, edgemesh-agent and edgemesh-agent, we need think more about this.
 
 # Related Link
 1. kubeedge edge authentication: https://github.com/kubeedge/kubeedge/blob/master/docs/proposals/edge-authentication.md
