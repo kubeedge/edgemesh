@@ -22,8 +22,7 @@ spec:
       nodeName: cloud-node
       containers:
       - name: edgemesh-server
-        #image: kubeedge/edgemesh-server:latest
-        image: kubeedge/edgemesh-server:v1.7.0-209-gf56be0f
+        image: kubeedge/edgemesh-server:latest
         env:
           - name: MY_NODE_NAME
             valueFrom:

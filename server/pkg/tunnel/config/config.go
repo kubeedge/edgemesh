@@ -35,10 +35,12 @@ type TunnelServerConfig struct {
 func NewTunnelServerConfig() *TunnelServerConfig {
 	// fetch the public IP auto and append it to the advertiseAddress
 	publicIP := util.FetchPublicIP()
-	klog.Infof("Fetch public IP: %s", publicIP)
 	advertiseAddress := make([]string, 0)
 	if publicIP != "" {
+		klog.Infof("Fetch public IP: %s", publicIP)
 		advertiseAddress = append(advertiseAddress, publicIP)
+	} else {
+		klog.Infof("Unable to fetch public IP")
 	}
 
 	return &TunnelServerConfig{

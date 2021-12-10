@@ -1,6 +1,6 @@
 image: kubeedge/edgemesh-server:latest
 nodeName: "your node name"
-# publicIP overwrites the value of modules.tunnel.publicIP
+# advertiseAddress overwrites the value of modules.tunnel.advertiseAddress
 advertiseAddress:
 
 # edgemesh-server configmap
