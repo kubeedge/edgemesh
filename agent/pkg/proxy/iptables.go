@@ -25,7 +25,6 @@ import (
 
 const (
 	meshRootChain utiliptables.Chain = "EDGE-MESH"
-	None          string             = "None"
 	labelKubeDNS  string             = "k8s-app=kube-dns"
 	labelNoProxy  string             = "noproxy=edgemesh"
 )
@@ -112,13 +111,13 @@ func (proxier *Proxier) ignoreRuleByService(svc *corev1.Service) iptablesJumpCha
 		ruleExtraArgs = func(svc *corev1.Service) []string {
 			// Headless Service
 			switch svc.Spec.ClusterIP {
-			case None:
+			case corev1.ClusterIPNone:
 				endpoints, err := proxier.kubeClient.CoreV1().Endpoints(svc.Namespace).Get(context.Background(), svc.Name, metav1.GetOptions{})
 				if err != nil {
 					klog.Errorf("get the endpoints %s failed: %v", strings.Join([]string{svc.Namespace, svc.Name}, "."), err)
 					return nil
 				}
-				endpointIPs := []string{None}
+				endpointIPs := []string{corev1.ClusterIPNone}
 				for _, endpointSubset := range endpoints.Subsets {
 					epSubset := endpointSubset
 					for _, endpointAddress := range epSubset.Addresses {
@@ -332,7 +331,7 @@ func (proxier *Proxier) EnsureRules() {
 // setIgnoreRules Delete and Ensure ignore rule for EDGE-MESH chain
 func (proxier *Proxier) setIgnoreRules(ruleSetType string, ignoreRules []iptablesJumpChain) (err error) {
 	for _, ignoreRule := range ignoreRules {
-		if ignoreRule.extraArgs[0] == None {
+		if ignoreRule.extraArgs[0] == corev1.ClusterIPNone {
 			headLessIps := ignoreRule.extraArgs[1:]
 			if len(headLessIps) > 0 {
 				for _, headLessIp := range headLessIps {

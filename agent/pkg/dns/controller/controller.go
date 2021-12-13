@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	corev1 "k8s.io/api/core/v1"
 	listers "k8s.io/client-go/listers/core/v1"
 
 	"github.com/kubeedge/edgemesh/common/informers"
@@ -34,7 +35,7 @@ func (c *DNSController) GetSvcIP(namespace, name string) (ip string, err error) 
 		return "", err
 	}
 	ip = svc.Spec.ClusterIP
-	if ip == "" || ip == "None" {
+	if ip == "" || ip == corev1.ClusterIPNone {
 		return "", fmt.Errorf("service %s.%s no cluster ip", name, namespace)
 	}
 	return ip, nil
