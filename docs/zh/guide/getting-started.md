@@ -11,7 +11,6 @@ EdgeMesh 依赖于 KubeEdge 的边缘 [Local APIServer](https://github.com/kubee
 :::
 
 ## Helm 安装
-/
 - **步骤1**: 修改 KubeEdge 配置
 
 参考 [手动安装-步骤3](#step3)，修改 KubeEdge 配置。
@@ -23,18 +22,18 @@ EdgeMesh 依赖于 KubeEdge 的边缘 [Local APIServer](https://github.com/kubee
 ```
 $ helm install edgemesh \
 --set server.nodeName=<your node name> \
---set server.advertiseAddress=<your edgemesh server adveritise address list, such as node eip> \
+--set "server.advertiseAddress=<your edgemesh server adveritise address list, such as node eip>" \
 https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
-server.nodeName 指定 edgemesh-server 部署的节点，server.advertiseAddress 指定edgemesh-server对外暴露的服务IP列表。其中 server.advertiseAddress 是可以省略的，因为 edgemesh-server 会自动探测并配置这个列表，但不保证正确和齐全。
+server.nodeName 指定 edgemesh-server 部署的节点，server.advertiseAddress 指定 edgemesh-server 对外暴露的服务 IP 列表，多个 IP 之间使用逗号分隔，比如`{119.8.211.54,100.10.1.4}`。其中 server.advertiseAddress 是可以省略的，因为 edgemesh-server 会自动探测并配置这个列表，但不保证正确和齐全。
 
 **例子：**
 
 ```shell
 $ helm install edgemesh \
 --set server.nodeName=k8s-node1 \
---set "server.advertiseAddress={119.8.211.54}" \ \
+--set "server.advertiseAddress={119.8.211.54}" \
 https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
