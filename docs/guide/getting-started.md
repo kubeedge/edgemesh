@@ -23,23 +23,24 @@ Make sure you have installed Helm 3
 ```
 $ helm install edgemesh \
 --set server.nodeName=<your node name> \
---set server.publicIP=<your node eip> \
+--set "server.advertiseAddress=<your edgemesh server adveritise address list, such as node eip>" \
 https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
-server.nodeName specifies the node deployed by edgemesh-server, and server.publicIP specifies the public IP of the node. The server.publicIP can be omitted, because edgemesh-server will automatically detect and configure the public IP of the node, but it is not guaranteed to be correct.
+server.nodeName specifies the node deployed by edgemesh-server, and server.advertiseAddress specifies the edgemesh-server advertise address list. 
+The server.advertiseAddress can be omitted, because edgemesh-server will automatically detect and configure the advertiseAddress list, but it is not guaranteed to be correct.
 
 **Example：**
 
 ```shell
 $ helm install edgemesh \
 --set server.nodeName=k8s-node1 \
---set server.publicIP=119.8.211.54 \
+--set "server.advertiseAddress={119.8.211.54}" \
 https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
 ::: warning
-Please set server.nodeName and server.publicIP according to your K8s cluster, otherwise edgemesh-server may not run
+Please set server.nodeName and server.advertiseAddress according to your K8s cluster, otherwise edgemesh-server may not run
 :::
 
 - **Step 3**: Check it out
@@ -171,7 +172,7 @@ deployment.apps/edgemesh-server created
 ```
 
 ::: warning
-Please set the value of 05-configmap.yaml's publicIP and 06-deployment.yaml's nodeName according to your K8s cluster, otherwise edgemesh-server may not run
+Please set the value of 05-configmap.yaml's advertiseAddress and 06-deployment.yaml's nodeName according to your K8s cluster, otherwise edgemesh-server may not run
 :::
 
 - **Step 5**: Deploy edgemesh-agent

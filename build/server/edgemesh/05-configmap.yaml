@@ -19,3 +19,9 @@ data:
     modules:
       tunnel:
         enable: true
+        # Edgemesh-server will try to fetch advertise address by itself.
+        # You also can specify the advertise address for edgemesh-server by advertiseAddress field;
+        #advertiseAddress:
+        #- 119.8.58.38
+        #- 1.1.1.153
+        #- 192.168.0.7

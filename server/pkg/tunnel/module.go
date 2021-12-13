@@ -44,24 +44,24 @@ func newTunnelServer(c *config.TunnelServerConfig, ifm *informers.Manager) (serv
 		return server, fmt.Errorf("failed to get private key: %w", err)
 	}
 
-	var externalMultiAddr ma.Multiaddr
-	if c.PublicIP != "" {
-		externalMultiAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", c.PublicIP, c.ListenPort))
-		if err != nil {
-			klog.Warningf("New multiaddr err: %v", err)
-		}
-	}
 	addressFactory := func(addrs []ma.Multiaddr) []ma.Multiaddr {
-		if externalMultiAddr == nil {
-			return addrs
-		}
-		// if the externalMultiAddr is existed already, just skip
-		for _, addr := range addrs {
-			if string(addr.Bytes()) == string(externalMultiAddr.Bytes()) {
-				return addrs
+		for _, advertiseAddress := range c.AdvertiseAddress {
+			multiAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", advertiseAddress, c.ListenPort))
+			if err != nil {
+				klog.Warningf("New multiaddr err: %v", err)
+			}
+			// if the multiAddr is existed already, just skip
+			existed := false
+			for _, addr := range addrs {
+				if string(addr.Bytes()) == string(multiAddr.Bytes()) {
+					existed = true
+					break
+				}
+			}
+			if !existed {
+				addrs = append(addrs, multiAddr)
 			}
 		}
-		addrs = append(addrs, externalMultiAddr)
 		return addrs
 	}
 	opts := []libp2p.Option{

@@ -20,4 +20,9 @@ data:
       tunnel:
         enable: {{ .Values.modules.tunnel.enable }}
         listenPort: {{ .Values.modules.tunnel.listenPort }}
-        publicIP: {{ .Values.publicIP }}
+        {{- if .Values.advertiseAddress }}
+        advertiseAddress:
+        {{- range .Values.advertiseAddress }}
+        - {{ . | title }}
+        {{- end }}
+        {{- end }}

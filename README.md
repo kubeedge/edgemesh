@@ -118,13 +118,13 @@ EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge re
 
 ![image](./docs/.vuepress/public/images/advanced/em-arch.png)
 
-The above figure shows a brief overview of the EdgeMesh architecture, EdgeMesh contains EdgeMesh-Server and EdgeMesh-Agent.
+The above figure shows a brief overview of the EdgeMesh architecture, EdgeMesh contains edgemesh-server and edgemesh-agent.
 
-The core components of EdgeMesh-Server include:
+The core components of edgemesh-server include:
 
-- **Tunnel-Server**: Based on [LibP2P](https://github.com/libp2p/go-libp2p), establish a connection with EdgeMesh-Agent to provide relay capability and hole punching capability
+- **Tunnel-Server**: Based on [LibP2P](https://github.com/libp2p/go-libp2p), establish a connection with edgemesh-agent to provide relay capability and hole punching capability
 
-The core components of EdgeMesh-Agent include:
+The core components of edgemesh-agent include:
 
 - **Proxier**: Responsible for configuring the kernel's iptables rules, and intercepting requests to the EdgeMesh process
 - **DNS**: Built-in DNS resolver, which resolves the DNS request in the node into a service cluster IP

@@ -11,7 +11,7 @@ EdgeMesh 依赖于 KubeEdge 的边缘 [Local APIServer](https://github.com/kubee
 :::
 
 ## Helm 安装
-
+/
 - **步骤1**: 修改 KubeEdge 配置
 
 参考 [手动安装-步骤3](#step3)，修改 KubeEdge 配置。
@@ -23,23 +23,23 @@ EdgeMesh 依赖于 KubeEdge 的边缘 [Local APIServer](https://github.com/kubee
 ```
 $ helm install edgemesh \
 --set server.nodeName=<your node name> \
---set server.publicIP=<your node eip> \
+--set server.advertiseAddress=<your edgemesh server adveritise address list, such as node eip> \
 https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
-server.nodeName 指定 edgemesh-server 部署的节点，server.publicIP 指定节点的公网 IP。其中 server.publicIP 是可以省略的，因为 edgemesh-server 会自动探测并配置节点的公网 IP，但不保证正确。
+server.nodeName 指定 edgemesh-server 部署的节点，server.advertiseAddress 指定edgemesh-server对外暴露的服务IP列表。其中 server.advertiseAddress 是可以省略的，因为 edgemesh-server 会自动探测并配置这个列表，但不保证正确和齐全。
 
 **例子：**
 
 ```shell
 $ helm install edgemesh \
 --set server.nodeName=k8s-node1 \
---set server.publicIP=119.8.211.54 \
+--set "server.advertiseAddress={119.8.211.54}" \ \
 https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
 ::: warning
-请根据你的 K8s 集群设置 server.nodeName 和 server.publicIP，否则 edgemesh-server 可能无法运行
+请根据你的 K8s 集群设置 server.nodeName 和 server.advertiseAddress 否则 edgemesh-server 可能无法运行
 :::
 
 - **步骤3**: 检验部署结果
@@ -171,7 +171,7 @@ deployment.apps/edgemesh-server created
 ```
 
 ::: warning
-请根据你的 K8s 集群设置 05-configmap.yaml 的 publicIP 和 06-deployment.yaml 的 nodeName，否则 edgemesh-server 可能无法运行
+请根据你的 K8s 集群设置 05-configmap.yaml 的 advertiseAddress 和 06-deployment.yaml 的 nodeName，否则 edgemesh-server 可能无法运行
 :::
 
 - **步骤5**: 部署 edgemesh-agent
