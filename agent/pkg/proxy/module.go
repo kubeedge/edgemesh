@@ -14,9 +14,10 @@ import (
 
 // EdgeProxy is used for traffic proxy
 type EdgeProxy struct {
-	Config   *config.EdgeProxyConfig
-	TCPProxy *protocol.TCPProxy
-	Proxier  *Proxier
+	Config      *config.EdgeProxyConfig
+	TCPProxy    *protocol.TCPProxy
+	Proxier     *Proxier
+	Socks5Proxy *Socks5Proxy
 	// TODO(Poorunga) realize the proxy of UDP protocol
 	// UDPProxy *protocol.UDPProxy
 }
@@ -47,6 +48,14 @@ func newEdgeProxy(c *config.EdgeProxyConfig, ifm *informers.Manager) (proxy *Edg
 	proxy.Proxier, err = NewProxier(proxy.Config.SubNet, protoProxies, ifm.GetKubeClient())
 	if err != nil {
 		return proxy, fmt.Errorf("new proxier err: %v", err)
+	}
+
+	// new socks5 proxy
+	if proxy.Config.Socks5Proxy.Enable {
+		proxy.Socks5Proxy, err = NewSocks5Proxy(listenIP, proxy.Config.Socks5Proxy.ListenPort, proxy.Config.NodeName, ifm.GetKubeClient())
+		if err != nil {
+			return proxy, fmt.Errorf("new socks5Proxy err: %w", err)
+		}
 	}
 
 	return proxy, nil

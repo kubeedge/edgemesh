@@ -26,6 +26,10 @@ type sockAddr struct {
 func (proxy *EdgeProxy) Run() {
 	// ensure iptables
 	proxy.Proxier.Start()
+	// start sock5 proxy
+	if proxy.Config.Socks5Proxy.Enable {
+		proxy.Socks5Proxy.Start()
+	}
 
 	// start tcp proxy
 	for {
