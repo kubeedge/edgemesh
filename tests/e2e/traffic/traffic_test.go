@@ -67,10 +67,10 @@ var _ = Describe("Traffic", func() {
 			Expect(err).To(BeNil())
 			clusterIP := service.Spec.ClusterIP
 
-			// 3. use busybox pod exec dig <hostname-svc>.<namespace>
-			// use sys.call docker exec -it <busybox-id> dig hostname-svc.default A +noall +answer +tries=10
-			// s := "docker exec 980f466def1d dig hostname-svc.default"
-			domain := k8s.GenServiceNameFromUID(UID) + "." + defaultNamespace
+			// 3. use busybox pod exec dig <hostname-svc>.<namespace>.svc.cluster.local.
+			// use sys.call docker exec -it <busybox-id> dig hostname-svc.default.svc.cluster.local. A +noall +answer +tries=5
+			// s := "docker exec 980f466def1d dig hostname-svc.default.svc.cluster.local."
+			domain := k8s.GenServiceNameFromUID(UID) + "." + defaultNamespace + ".svc.cluster.local."
 			command := fmt.Sprintf("docker exec -i %s dig %s A +noall +answer +tries=5", busyboxToolContainerID, domain)
 			utils.Infof("command %v", command)
 			var outStr, resultIP string

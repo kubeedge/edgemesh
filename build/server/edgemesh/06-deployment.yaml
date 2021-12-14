@@ -18,7 +18,7 @@ spec:
         kubeedge: edgemesh-server
     spec:
       hostNetwork: true
-#     use label to selector node
+      # use label to selector node
       nodeName: cloud-node
       containers:
       - name: edgemesh-server

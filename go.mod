@@ -1,6 +1,6 @@
 module github.com/kubeedge/edgemesh
 
-go 1.14
+go 1.16
 
 require (
 	github.com/buraksezer/consistent v0.0.0-20191006190839-693edf70fd72
