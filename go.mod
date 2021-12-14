@@ -5,10 +5,10 @@ go 1.14
 require (
 	github.com/buraksezer/consistent v0.0.0-20191006190839-693edf70fd72
 	github.com/cespare/xxhash v1.1.0
+	github.com/coredns/coredns v1.8.6
 	github.com/go-chassis/go-archaius v0.20.0
 	github.com/go-chassis/go-chassis v1.7.1
 	github.com/golang/protobuf v1.5.2
-	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/kubeedge/beehive v0.0.0
 	github.com/kubeedge/kubeedge v1.6.2
 	github.com/libp2p/go-libp2p v0.13.1-0.20210224102305-f981b25d2738
@@ -16,28 +16,26 @@ require (
 	github.com/libp2p/go-libp2p-core v0.8.5
 	github.com/libp2p/go-libp2p-tls v0.1.3
 	github.com/libp2p/go-msgio v0.0.6
-	github.com/miekg/dns v1.1.43
 	github.com/multiformats/go-multiaddr v0.3.1
-	github.com/onsi/ginkgo v1.16.4
-	github.com/onsi/gomega v1.13.0
-	github.com/prometheus/client_golang v1.11.0 // indirect
+	github.com/onsi/ginkgo v1.16.5
+	github.com/onsi/gomega v1.16.0
 	github.com/spf13/cobra v1.1.1
-	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/thoas/go-funk v0.9.1
 	github.com/vishvananda/netlink v1.1.0
 	istio.io/api v0.0.0-20210131044048-bfeb10697307
 	istio.io/client-go v0.0.0-20210218000043-b598dd019200
-	k8s.io/api v0.21.1
-	k8s.io/apimachinery v0.21.1
-	k8s.io/client-go v0.21.1
+	k8s.io/api v0.23.0
+	k8s.io/apimachinery v0.23.0
+	k8s.io/client-go v0.23.0
 	k8s.io/component-base v0.21.1
-	k8s.io/klog/v2 v2.8.0
+	k8s.io/klog/v2 v2.30.0
 	k8s.io/kubernetes v1.21.1
-	k8s.io/utils v0.0.0-20210527160623-6fdb442a123b
+	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
 	sigs.k8s.io/yaml v1.2.0
 )
 
 replace (
+	github.com/coredns/coredns => github.com/Poorunga/coredns v1.8.7
 	github.com/kubeedge/beehive v0.0.0 => github.com/kubeedge/beehive v0.0.0-20201125122335-cd19bca6e436
 	github.com/kubeedge/viaduct v0.0.0 => github.com/kubeedge/viaduct v0.0.0-20210601015050-d832643a3d35
 	github.com/libp2p/go-libp2p-tls => github.com/khalid-jobs/go-libp2p-tls v1.9.0
