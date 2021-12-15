@@ -59,6 +59,9 @@ data:
         {{- if ne .Values.modules.edgeProxy.subNet "" }}
         subNet: {{ .Values.modules.edgeProxy.subNet }}
         {{- end}}
+        socks5Proxy:
+          enable: {{ .Values.modules.edgeProxy.socks5Proxy.enable }}
+          listenPort: {{ .Values.modules.edgeProxy.socks5Proxy.listenPort }}
       tunnel:
         enable: {{ .Values.modules.tunnel.enable }}
         listenPort: {{ .Values.modules.tunnel.listenPort }}

@@ -7,6 +7,7 @@ const guide = {
     '/guide/getting-started.md',
     '/guide/test-case.md',
     '/guide/edge-gateway.md',
+    '/guide/ssh.md',
   ],
 }
 

@@ -35,6 +35,9 @@ data:
       edgeProxy:
         enable: true
         listenPort: 40001
+        socks5Proxy:
+          enable: false
+          listenPort: 10800
       edgeGateway:
         enable: false
         nic: "*"
