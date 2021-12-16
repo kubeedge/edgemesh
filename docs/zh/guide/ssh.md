@@ -58,7 +58,7 @@ $ ssh -o "ProxyCommand nc --proxy-type socks5 --proxy 169.254.96.16:10800 %h %p"
 ECDSA key fingerprint is SHA256:uPUzjIPK+zvu8ymzrkd0IWSsmrs2r/Hl72iendYniVY.
 ECDSA key fingerprint is MD5:ca:80:85:84:bd:09:a6:fd:d9:ba:73:1c:b5:7c:f6:ae.
 Are you sure you want to continue connecting (yes/no)? yes
-root@edge-node-1002's password: 
+root@edge-node-1002's password:
 
 Activate the web console with: systemctl enable --now cockpit.socket
 
@@ -68,6 +68,6 @@ Last login: Wed Dec 15 14:07:04 2021 from 192.168.1.128
 [root@edge-node-1002 ~]#
 ```
 
-::: info
+::: tip
 不同的代理工具参数会不一样，具体请查看对应工具的文档。常用的代理工具有 nc, ncat
 :::

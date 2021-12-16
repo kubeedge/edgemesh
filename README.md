@@ -25,8 +25,8 @@ EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge re
     - Intra-LAN communication: direct access
     - Cross-LAN communication: when the hole punching is successful, a connection channel is established between the Agents, otherwise it is forwarded through the Server relay
 - **High reliability (offline scenario)**
-  - Both control plane and data plane traffic are delivered through the edge cloud channel
-  - EdgeMesh internally implements a lightweight DNS server, thus no longer accessing the cloud CoreDNS
+  - Metadata is distributed through the KubeEdge edgehub/cloudhub tunnel, no need to access the cloud apiserver
+  - EdgeMesh integrates a lightweight node-level DNS server, service discovery no longer accesses the cloud CoreDNS
 - **Extreme lightweight**
   - Each node has one and only one Agent, which saves edge resources
 

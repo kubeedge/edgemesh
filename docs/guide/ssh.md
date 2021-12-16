@@ -13,7 +13,7 @@ EdgeMesh's Socks5 agent provides the ability of SSH login and access between nod
 
 ## Configuration
 
-### Helm Configuration 
+### Helm Configuration
 
 ```shell
 $ helm install edgemesh \
@@ -23,7 +23,7 @@ $ helm install edgemesh \
 https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
-### Manual Configuration 
+### Manual Configuration
 
 ```shell
 $ vim build/agent/kubernetes/edgemesh-agent/05-configmap.yaml
@@ -57,7 +57,7 @@ $ ssh -o "ProxyCommand nc --proxy-type socks5 --proxy 169.254.96.16:10800 %h %p"
 ECDSA key fingerprint is SHA256:uPUzjIPK+zvu8ymzrkd0IWSsmrs2r/Hl72iendYniVY.
 ECDSA key fingerprint is MD5:ca:80:85:84:bd:09:a6:fd:d9:ba:73:1c:b5:7c:f6:ae.
 Are you sure you want to continue connecting (yes/no)? yes
-root@edge-node-1002's password: 
+root@edge-node-1002's password:
 
 Activate the web console with: systemctl enable --now cockpit.socket
 
@@ -67,6 +67,6 @@ Last login: Wed Dec 15 14:07:04 2021 from 192.168.1.128
 [root@edge-node-1002 ~]#
 ```
 
-::: info
+::: tip
 The parameters of different proxy tools will be different, please check the documentation of the corresponding tool for details. Commonly used proxy tools are nc, ncat
 :::

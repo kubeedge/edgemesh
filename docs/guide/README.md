@@ -15,8 +15,8 @@ EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge re
     - Intra-LAN communication: direct access
     - Cross-LAN communication: when the hole punching is successful, a connection channel is established between the Agents, otherwise it is forwarded through the Server relay
 - **High reliability (offline scenario)**
-  - Both control plane and data plane traffic are delivered through the edge cloud channel
-  - EdgeMesh internally implements a lightweight DNS server, thus no longer accessing the cloud CoreDNS
+  - Metadata is distributed through the KubeEdge edgehub/cloudhub tunnel, no need to access the cloud apiserver
+  - EdgeMesh integrates a lightweight node-level DNS server, service discovery no longer accesses the cloud CoreDNS
 - **Extreme lightweight**
   - Each node has one and only one Agent, which saves edge resources
 
@@ -28,47 +28,51 @@ EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge re
 ## Key Features
 
 <table align="center">
-	<tr>
-		<th align="center">Feature</th>
-		<th align="center">Sub-Feature</th>
-		<th align="center">Realization Degree</th>
-	</tr>
-	<tr>
-		<td align="center">Service Discovery</td>
-		<td align="center">/</td>
-		<td align="center">✓</td>
-	</tr>
-	<tr>
-		<td rowspan="4" align="center">Traffic Governance</td>
-	 	<td align="center">HTTP</td>
-		<td align="center">✓</td>
-	</tr>
-	<tr>
-	 	<td align="center">TCP</td>
-		<td align="center">✓</td>
-	</tr>
-	<tr>
-	 	<td align="center">Websocket</td>
-		<td align="center">✓</td>
-	</tr>
-	<tr>
-	 	<td align="center">HTTPS</td>
-		<td align="center">✓</td>
-	</tr>
-	<tr>
-		<td rowspan="3" align="center">Load Balance</td>
-	 	<td align="center">Random</td>
-		<td align="center">✓</td>
-	</tr>
-	<tr>
-	 	<td align="center">Round Robin</td>
-		<td align="center">✓</td>
-	</tr>
-	<tr>
-		<td align="center">Session Persistence</td>
-		<td align="center">✓</td>
-	</tr>
-	<tr>
+  <tr>
+    <th align="center">Feature</th>
+    <th align="center">Sub-Feature</th>
+    <th align="center">Realization Degree</th>
+  </tr>
+  <tr>
+    <td align="center">Service Discovery</td>
+    <td align="center">/</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td rowspan="5" align="center">Traffic Governance</td>
+    <td align="center">HTTP</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">TCP</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">Websocket</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">HTTPS</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">UDP</td>
+    <td align="center">+</td>
+  </tr>
+  <tr>
+    <td rowspan="3" align="center">Load Balance</td>
+    <td align="center">Random</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">Round Robin</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">Session Persistence</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
     <td rowspan="2" align="center">Edge Gateway</td>
     <td align="center">External Access</td>
     <td align="center">✓</td>
@@ -78,19 +82,19 @@ EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge re
     <td align="center">✓</td>
   </tr>
   <tr>
-		<td rowspan="2" align="center">Cross-Subnet Communication</td>
-	 	<td align="center">Cross-Cloud Communication</td>
-		<td align="center">✓</td>
-	</tr>
-	<tr>
-	 	<td align="center">Cross-LAN E2E Communication</td>
-		<td align="center">✓</td>
-	</tr>
+    <td rowspan="2" align="center">Cross-Subnet Communication</td>
+    <td align="center">Cross-Cloud Communication</td>
+    <td align="center">✓</td>
+  </tr>
   <tr>
-		<td align="center">Edge CNI</td>
-	 	<td align="center">Cross-Subnet Pod Communication</td>
-		<td align="center">+</td>
-	</tr>
+    <td align="center">Cross-LAN E2E Communication</td>
+    <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">Edge CNI</td>
+    <td align="center">Cross-Subnet Pod Communication</td>
+    <td align="center">+</td>
+  </tr>
 </table>
 
 **Noting:**
