@@ -1,20 +1,12 @@
-FROM golang:1.14-alpine3.11 AS builder
+FROM golang:1.17 AS builder
 
 ARG GO_LDFLAGS
 ARG TARGETARCH
 
-# set goproxy
-# using the go module
-RUN go env -w GO111MODULE=on
-# source
-RUN apk update && apk add gcc && \
-    apk --no-cache add build-base linux-headers sqlite-dev binutils-gold &&\
-    apk --no-cache add iptables
-
 WORKDIR /code
 COPY . .
 
-RUN GOOS=linux GOARCH=$TARGETARCH go build -v -o /usr/local/bin/edgemesh-agent -ldflags "$GO_LDFLAGS -w -s" \
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH go build -v -o /usr/local/bin/edgemesh-agent -ldflags "$GO_LDFLAGS -w -s" \
 ./agent/cmd/edgemesh-agent/agent.go
 
 

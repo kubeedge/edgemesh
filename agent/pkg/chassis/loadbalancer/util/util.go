@@ -18,7 +18,7 @@ func GetStrategyName(namespace, name string) string {
 	// find destination rule bound to service
 	dr, err := controller.APIConn.GetDrLister().DestinationRules(namespace).Get(name)
 	if err != nil {
-		klog.Warningf("DestinationRule \"%s.%s\" not found, use default strategy [%s] from config file", namespace, name, defaultStrategy)
+		klog.V(4).Infof("DestinationRule \"%s.%s\" not found, use default strategy [%s]", namespace, name, defaultStrategy)
 		return defaultStrategy
 	}
 

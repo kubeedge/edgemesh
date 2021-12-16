@@ -13,8 +13,6 @@ import (
 	"github.com/kubeedge/edgemesh/common/informers"
 )
 
-const None = "None"
-
 var (
 	APIConn *ProxyController
 	once    sync.Once
@@ -93,7 +91,7 @@ func (c *ProxyController) svcAdd(obj interface{}) {
 	svcPorts := getSvcPorts(svc)
 	svcName := svc.Namespace + "." + svc.Name
 	ip := svc.Spec.ClusterIP
-	if ip == "" || ip == None {
+	if ip == "" || ip == v1.ClusterIPNone {
 		return
 	}
 	c.addOrUpdateService(svcName, ip, svcPorts)
@@ -108,7 +106,7 @@ func (c *ProxyController) svcUpdate(oldObj, newObj interface{}) {
 	svcPorts := getSvcPorts(svc)
 	svcName := svc.Namespace + "." + svc.Name
 	ip := svc.Spec.ClusterIP
-	if ip == "" || ip == None {
+	if ip == "" || ip == v1.ClusterIPNone {
 		return
 	}
 	c.addOrUpdateService(svcName, ip, svcPorts)
@@ -122,7 +120,7 @@ func (c *ProxyController) svcDelete(obj interface{}) {
 	}
 	svcName := svc.Namespace + "." + svc.Name
 	ip := svc.Spec.ClusterIP
-	if ip == "" || ip == None {
+	if ip == "" || ip == v1.ClusterIPNone {
 		return
 	}
 	c.deleteService(svcName, ip)

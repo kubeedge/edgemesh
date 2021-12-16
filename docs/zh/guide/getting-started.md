@@ -46,7 +46,7 @@ https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```shell
 $ helm ls
 NAME            NAMESPACE       REVISION        UPDATED                                 STATUS          CHART           APP VERSION
-edgemesh        default         1               2021-11-01 23:30:02.927346553 +0800 CST deployed        edgemesh-0.1.0  1.8.0
+edgemesh        default         1               2021-11-01 23:30:02.927346553 +0800 CST deployed        edgemesh-0.1.0  latest
 ```
 
 ```shell
@@ -133,10 +133,8 @@ $ vim /etc/kubeedge/config/edgecore.yaml
 modules:
   ..
   edged:
-    # EdgeMesh 的 DNS 模块暂时不支持解析外网域名，如果你希望在 Pod 内部解析外网域名
-    # 可以将 clusterDNS 配置成 "169.254.96.16,8.8.8.8"
-    clusterDNS: "169.254.96.16"
-    clusterDomain: "cluster.local"
+    clusterDNS: 169.254.96.16
+    clusterDomain: cluster.local
 ..
 ```
 

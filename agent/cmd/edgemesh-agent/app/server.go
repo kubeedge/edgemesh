@@ -60,7 +60,6 @@ for the inter-communications between services at edge scenarios.`,
 			}
 
 			klog.Infof("Version: %+v", version.Get())
-			klog.Infof("edgemesh-agent running on %s", agentCfg.CommonConfig.Mode)
 			if err = Run(agentCfg); err != nil {
 				klog.Fatalf("run edgemesh-agent failed: %v", err)
 			}
@@ -105,6 +104,7 @@ func Run(cfg *config.EdgeMeshAgentConfig) error {
 	if err = prepareRun(cfg, ifm); err != nil {
 		return err
 	}
+	klog.Infof("edgemesh-agent running on %s", cfg.CommonConfig.Mode)
 	trace++
 
 	klog.Infof("[%d] Register beehive modules", trace)
@@ -135,7 +135,7 @@ func Run(cfg *config.EdgeMeshAgentConfig) error {
 // registerModules register all the modules started in edgemesh-agent
 func registerModules(c *config.EdgeMeshAgentConfig, ifm *informers.Manager) []error {
 	var errs []error
-	if err := dns.Register(c.Modules.EdgeDNSConfig, ifm); err != nil {
+	if err := dns.Register(c.Modules.EdgeDNSConfig); err != nil {
 		errs = append(errs, err)
 	}
 	if err := proxy.Register(c.Modules.EdgeProxyConfig, ifm); err != nil {
@@ -161,6 +161,12 @@ func registerModules(c *config.EdgeMeshAgentConfig, ifm *informers.Manager) []er
 
 // prepareRun prepares edgemesh-agent to run
 func prepareRun(c *config.EdgeMeshAgentConfig, ifm *informers.Manager) error {
+	// if the user sets KubeConfig or Master and Master is not equal to EdgeApiServer, enter the debug mode
+	if c.KubeAPIConfig.KubeConfig != "" || c.KubeAPIConfig.Master != "" &&
+		c.KubeAPIConfig.Master != config.DefaultEdgeApiServer {
+		c.CommonConfig.Mode = config.DebugMode
+	}
+
 	// set dns and proxy modules listenInterface
 	if c.Modules.EdgeDNSConfig.Enable || c.Modules.EdgeProxyConfig.Enable {
 		if err := commonutil.CreateEdgeMeshDevice(c.CommonConfig.DummyDeviceName, c.CommonConfig.DummyDeviceIP); err != nil {
@@ -181,6 +187,11 @@ func prepareRun(c *config.EdgeMeshAgentConfig, ifm *informers.Manager) error {
 		if err := resetConfigMapSubNet(c.CommonConfig.ConfigMapName, subNet, ifm.GetKubeClient()); err != nil {
 			return fmt.Errorf("reset edgemesh-agent configmap subNet err: %v", err)
 		}
+	}
+
+	// create Corefile for CoreDNS
+	if c.Modules.EdgeDNSConfig.Enable {
+		dns.UpdateCorefile(c)
 	}
 
 	return nil

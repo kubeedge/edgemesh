@@ -27,8 +27,8 @@ $ helm install edgemesh \
 https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
-server.nodeName specifies the node deployed by edgemesh-server, and server.advertiseAddress specifies the edgemesh-server 
-advertise address list and use commas to separate IP, such as `{119.8.211.54,100.10.1.4}`. 
+server.nodeName specifies the node deployed by edgemesh-server, and server.advertiseAddress specifies the edgemesh-server
+advertise address list and use commas to separate IP, such as `{119.8.211.54,100.10.1.4}`.
 The server.advertiseAddress can be omitted, because edgemesh-server will automatically detect and configure the advertiseAddress list, but it is not guaranteed to be correct.
 
 **Example：**
@@ -49,7 +49,7 @@ Please set server.nodeName and server.advertiseAddress according to your K8s clu
 ```shell
 $ helm ls
 NAME            NAMESPACE       REVISION        UPDATED                                 STATUS          CHART           APP VERSION
-edgemesh        default         1               2021-11-01 23:30:02.927346553 +0800 CST deployed        edgemesh-0.1.0  1.8.0
+edgemesh        default         1               2021-11-01 23:30:02.927346553 +0800 CST deployed        edgemesh-0.1.0  latest
 ```
 
 ```shell
@@ -136,10 +136,8 @@ $ vim /etc/kubeedge/config/edgecore.yaml
 modules:
   ..
   edged:
-    # EdgeMesh's DNS module does not support resolving external domain names temporarily, if you want to resolve external domain names inside the Pod
-    # You can configure clusterDNS to "169.254.96.16,8.8.8.8"
-    clusterDNS: "169.254.96.16"
-    clusterDomain: "cluster.local"
+    clusterDNS: 169.254.96.16
+    clusterDomain: cluster.local
 ..
 ```
 

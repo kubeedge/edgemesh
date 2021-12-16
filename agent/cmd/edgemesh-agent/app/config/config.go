@@ -29,8 +29,12 @@ const (
 	DefaultConfigMapName   = "edgemesh-agent-cfg"
 	DefaultEdgeApiServer   = "http://127.0.0.1:10550"
 
-	EdgeMode  = "EdgeMode"
+	// EdgeMode means that edgemesh-agent detects that it is currently running on the edge
+	EdgeMode = "EdgeMode"
+	// CloudMode means that edgemesh-agent detects that it is currently running on the cloud
 	CloudMode = "CloudMode"
+	// DebugMode indicates that the user manually configured kubeAPIConfig
+	DebugMode = "DebugMode"
 )
 
 // EdgeMeshAgentConfig indicates the config of edgeMeshAgent which get from edgeMeshAgent config file
@@ -88,7 +92,7 @@ func NewEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 			APIVersion: path.Join(GroupName, APIVersion),
 		},
 		CommonConfig: &CommonConfig{
-			Mode:            CloudMode,
+			Mode:            DebugMode,
 			DummyDeviceName: DefaultDummyDeviceName,
 			DummyDeviceIP:   DefaultDummyDeviceIP,
 			ConfigMapName:   DefaultConfigMapName,
@@ -109,7 +113,7 @@ func NewEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 		},
 	}
 
-	preConfigByMode(detectRunningMode(), c)
+	preConfigByMode(c, detectRunningMode())
 	return c
 }
 
@@ -141,12 +145,7 @@ func detectRunningMode() string {
 }
 
 // preConfigByMode will init the edgemesh-agent configuration according to the mode.
-func preConfigByMode(mode string, c *EdgeMeshAgentConfig) {
-	// if the user sets KubeConfig, nothing will be processed
-	if c.KubeAPIConfig.KubeConfig != "" {
-		return
-	}
-
+func preConfigByMode(c *EdgeMeshAgentConfig, mode string) {
 	c.CommonConfig.Mode = mode
 
 	if mode == EdgeMode {
