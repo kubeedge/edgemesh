@@ -28,6 +28,9 @@ modules:
     enable: true
     listenPort: 40001
     subNet: ""
+    socks5Proxy:
+      enable: false
+      listenPort: 10800
   tunnel:
     enable: true
     listenPort: 20006
