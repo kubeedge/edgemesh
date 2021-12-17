@@ -39,9 +39,15 @@ spec:
           volumeMounts:
             - name: conf
               mountPath: /etc/kubeedge/config
+            - name: host-time
+              mountPath: /etc/localtime
+              readOnly: true
       restartPolicy: Always
       serviceAccountName: {{ .Release.Name }}
       volumes:
         - name: conf
           configMap:
             name: {{ .Release.Name }}-cfg
+        - name: host-time
+          hostPath:
+            path: /etc/localtime

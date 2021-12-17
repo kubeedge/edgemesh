@@ -46,6 +46,9 @@ spec:
             mountPath: /etc/kubeedge/edgemesh
           - name: ca-server-token
             mountPath: /etc/kubeedge/cert
+          - name: host-time
+            mountPath: /etc/localtime
+            readOnly: true
       restartPolicy: Always
       serviceAccountName: edgemesh-server
       volumes:
@@ -59,3 +62,6 @@ spec:
         - name: ca-server-token
           secret:
             secretName: tokensecret
+        - name: host-time
+          hostPath:
+            path: /etc/localtime

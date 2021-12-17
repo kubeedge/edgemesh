@@ -19,7 +19,7 @@ EdgeMesh 的 SSH 代理提供了节点之间通过代理进行 SSH 登录访问�
 $ helm install edgemesh \
 --set server.nodeName=k8s-node1 \
 --set "server.advertiseAddress={119.8.211.54}" \
---set modules.edgeProxy.socks5Proxy.enable=true \
+--set agent.modules.edgeProxy.socks5Proxy.enable=true \
 https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
@@ -68,6 +68,6 @@ Last login: Wed Dec 15 14:07:04 2021 from 192.168.1.128
 [root@edge-node-1002 ~]#
 ```
 
-::: info
+::: tip
 不同的代理工具参数会不一样，具体请查看对应工具的文档。常用的代理工具有 nc, ncat
 :::

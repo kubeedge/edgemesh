@@ -19,7 +19,7 @@ EdgeMesh's Socks5 agent provides the ability of SSH login and access between nod
 $ helm install edgemesh \
 --set server.nodeName=k8s-node1 \
 --set "server.advertiseAddress={119.8.211.54}" \
---set modules.edgeProxy.socks5Proxy.enable=true \
+--set agent.modules.edgeProxy.socks5Proxy.enable=true \
 https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
@@ -67,6 +67,6 @@ Last login: Wed Dec 15 14:07:04 2021 from 192.168.1.128
 [root@edge-node-1002 ~]#
 ```
 
-::: info
+::: tip
 The parameters of different proxy tools will be different, please check the documentation of the corresponding tool for details. Commonly used proxy tools are nc, ncat
 :::

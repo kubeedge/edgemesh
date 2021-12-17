@@ -43,6 +43,9 @@ spec:
             mountPath: /etc/kubeedge/config
           - name: edgemesh
             mountPath: /etc/kubeedge/edgemesh
+          - name: host-time
+            mountPath: /etc/localtime
+            readOnly: true
       restartPolicy: Always
       serviceAccountName: {{ .Release.Name }}-server
       volumes:
@@ -53,3 +56,6 @@ spec:
           hostPath:
             path: /etc/kubeedge/edgemesh
             type: DirectoryOrCreate
+        - name: host-time
+          hostPath:
+            path: /etc/localtime
