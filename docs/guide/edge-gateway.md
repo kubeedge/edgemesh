@@ -7,8 +7,9 @@ Edge Gateway provides the ability to access the internal services of the cluster
 ## Deploy
 
 ### Helm Deploy
+
 ```shell
-$ helm install edgemesh-gateway --set nodeName=nodeName \
+$ helm install edgemesh-gateway --set nodeName=<your node name> \
 https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh-gateway.tgz
 ```
 
@@ -17,17 +18,20 @@ Please set the value of  nodeName according to your K8s cluster, otherwise edgem
 :::
 
 ### Manual Deploy
+
 ```shell
 $ kubectl apply -f build/agent/kubernetes/edgemesh-gateway/
 namespace/kubeedge unchanged
+serviceaccount/edgemesh-gateway created
+clusterrole.rbac.authorization.k8s.io/edgemesh-gateway created
+clusterrolebinding.rbac.authorization.k8s.io/edgemesh-gateway created
 configmap/edgemesh-gateway-cfg created
 deployment.apps/edgemesh-gateway created
 ```
 
 ::: warning
-Please set the value of 03-deployment.yaml's nodeName according to your K8s cluster, otherwise edgemesh-gateway may not run
+Please set the value of 06-deployment.yaml's nodeName according to your K8s cluster, otherwise edgemesh-gateway may not run
 :::
-
 
 ## HTTP Gateway
 
