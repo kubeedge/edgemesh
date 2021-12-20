@@ -1,4 +1,4 @@
-package acl
+package security
 
 import (
 	"crypto/ecdsa"
@@ -23,8 +23,8 @@ func init() {
 	constructMap[TypeWithNoCA] = newNoCaManager
 }
 
-// newNoCaManager creates a noCaManager for edge acl management according to EdgeHub config
-func newNoCaManager(tunnel TunnelACLConfig) Manager {
+// newNoCaManager creates a noCaManager for edge security management according to EdgeHub config
+func newNoCaManager(tunnel Security) Manager {
 	return &noCaManager{
 		keyFile: tunnel.TLSPrivateKeyFile,
 	}
@@ -45,7 +45,7 @@ func (m *noCaManager) Start() {
 	}
 }
 
-// generateKey realizes the acl application by token
+// generateKey realizes the security application by token
 func (m *noCaManager) generateKey() error {
 	pk, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
