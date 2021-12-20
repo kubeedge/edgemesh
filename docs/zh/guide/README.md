@@ -16,8 +16,8 @@ EdgeMesh 满足边缘场景下的新需求（如边缘资源有限、边云网�
     - 局域网内的通信：直接通信
     - 跨局域网的通信：打洞成功时 Agent 之间建立直连通道，否则通过 Server 中继转发
 - **高可靠性 （离线场景）**
-  - 控制面和数据面流量都通过边云通道下发
-  - EdgeMesh 内部实现轻量级的 DNS 服务器，不再访问云端 CoreDNS
+  - 元数据通过 KubeEdge 边云通道下发，无需访问云端 apiserver
+  - EdgeMesh 内部集成轻量的节点级 DNS 服务器，服务发现不依赖云端 CoreDNS
 - **极致轻量化**
   - 每个节点有且仅有一个 Agent，节省边缘资源
 
@@ -40,7 +40,7 @@ EdgeMesh 满足边缘场景下的新需求（如边缘资源有限、边云网�
     <td align="center">✓</td>
   </tr>
   <tr>
-    <td rowspan="4" align="center">流量治理</td>
+    <td rowspan="5" align="center">流量治理</td>
     <td align="center">HTTP</td>
     <td align="center">✓</td>
   </tr>
@@ -55,6 +55,10 @@ EdgeMesh 满足边缘场景下的新需求（如边缘资源有限、边云网�
   <tr>
     <td align="center">HTTPS</td>
     <td align="center">✓</td>
+  </tr>
+  <tr>
+    <td align="center">UDP</td>
+    <td align="center">+</td>
   </tr>
   <tr>
     <td rowspan="3" align="center">负载均衡</td>

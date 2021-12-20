@@ -11,21 +11,32 @@ const guide = {
   ],
 }
 
+const reference = {
+  text: 'Reference',
+  children: [
+    '/reference/config-items.md',
+  ],
+}
+
+const advanced = {
+  text: 'Advanced',
+  children: [
+    '/advanced/architecture.md',
+    '/advanced/hybirdnat.md',
+    '/advanced/security.md',
+  ],
+}
+
 export const en: SidebarConfig = {
   '/': [
     guide,
+    reference,
   ],
   '/guide/': [
     guide,
+    reference,
   ],
   '/advanced/': [
-    {
-      text: 'Advanced',
-      children: [
-        '/advanced/architecture.md',
-        '/advanced/hybirdnat.md',
-        '/advanced/security.md',
-      ],
-    },
+    advanced,
   ],
 }
