@@ -11,21 +11,32 @@ const guide = {
   ],
 }
 
+const reference = {
+  text: '参考',
+  children: [
+    '/zh/reference/config-items.md',
+  ],
+}
+
+const advanced = {
+  text: '深入',
+  children: [
+    '/zh/advanced/architecture.md',
+    '/zh/advanced/hybirdnat.md',
+    '/zh/advanced/security.md',
+  ],
+}
+
 export const zh: SidebarConfig = {
   '/zh/': [
     guide,
+    reference,
   ],
   '/zh/guide/': [
     guide,
+    reference,
   ],
   '/zh/advanced/': [
-    {
-      text: '深入',
-      children: [
-        '/zh/advanced/architecture.md',
-        '/zh/advanced/hybirdnat.md',
-        '/zh/advanced/security.md',
-      ],
-    },
+    advanced,
   ]
 }
