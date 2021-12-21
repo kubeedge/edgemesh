@@ -1,0 +1,15 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: edgemesh-gateway
+  labels:
+    k8s-app: kubeedge
+    kubeedge: edgemesh-gateway
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edgemesh-gateway
+subjects:
+  - kind: ServiceAccount
+    name: edgemesh-gateway
+    namespace: kubeedge

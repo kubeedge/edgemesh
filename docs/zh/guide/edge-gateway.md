@@ -9,7 +9,7 @@ EdgeMesh 的边缘网关提供了通过网关的方式访问集群内部服务�
 ### Helm 部署
 
 ```shell
-$ helm install edgemesh-gateway --set nodeName=nodeName \
+$ helm install edgemesh-gateway --set nodeName=<your node name> \
 https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh-gateway.tgz
 ```
 
@@ -17,20 +17,21 @@ https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh-gat
 请根据你的 K8s 集群设置 nodeName，否则 edgemesh-gateway 可能无法运行
 :::
 
-
 ### 手动部署
 
 ```shell
 $ kubectl apply -f build/agent/kubernetes/edgemesh-gateway/
 namespace/kubeedge unchanged
+serviceaccount/edgemesh-gateway created
+clusterrole.rbac.authorization.k8s.io/edgemesh-gateway created
+clusterrolebinding.rbac.authorization.k8s.io/edgemesh-gateway created
 configmap/edgemesh-gateway-cfg created
 deployment.apps/edgemesh-gateway created
 ```
 
 ::: warning
-请根据你的 K8s 集群设置 03-deployment.yaml 的 nodeName，否则 edgemesh-gateway 可能无法运行
+请根据你的 K8s 集群设置 06-deployment.yaml 的 nodeName，否则 edgemesh-gateway 可能无法运行
 :::
-
 
 ## HTTP 网关
 

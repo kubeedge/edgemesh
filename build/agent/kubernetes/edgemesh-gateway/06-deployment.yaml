@@ -45,6 +45,7 @@ spec:
               mountPath: /etc/localtime
               readOnly: true
       restartPolicy: Always
+      serviceAccountName: edgemesh-gateway
       volumes:
         - name: conf
           configMap:

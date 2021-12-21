@@ -34,8 +34,7 @@ import (
 
 // copy from https://github.com/kubernetes/dns/blob/1.21.0/cmd/node-cache/app/configmap.go and update
 const (
-	stubDomainBlock = `
-{{.DomainName}}:{{.Port}} {
+	stubDomainBlock = `{{.DomainName}}:{{.Port}} {
     bind {{.LocalIP}}
     cache {{.CacheTTL}}
     errors
