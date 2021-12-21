@@ -1,5 +1,8 @@
 image: kubeedge/edgemesh-agent:latest
 nodeName: "your node name"
+livenessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 5
 
 # edgemesh-gateway configmap
 apiVersion: agent.edgemesh.config.kubeedge.io/v1alpha1
