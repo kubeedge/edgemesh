@@ -163,7 +163,7 @@ modules:
 
 | 名称 | 类型 | 默认值 | 描述 |
 | ---- | ---- | ---- | ---- |
-| mode | string | DebugMode | edgemesh-agent 处于的运行模式(DebugMode, CloudMode, EdgeMode)。禁止用户手动配置，由程序自动识别 |
+| mode | string | DebugMode | edgemesh-agent 处于的运行模式(DebugMode, CloudMode, EdgeMode)。无需手动配置，由程序自动识别 |
 | configMapName | string | edgemesh-agent-cfg | edgemesh-agent 挂载的 configmap 的名称 |
 | dummyDeviceName | string | edgemesh0 | edgemesh-agent 创建的网卡名称 |
 | dummyDeviceIP | string | 169.254.96.16 | edgemesh-agent 创建的网卡 IP |
@@ -206,7 +206,7 @@ modules:
 | tcpBufferSize | int | 8192 | TCP 通信的缓存区大小 |
 | tcpClientTimeout | int | 5 | TCP 客户端超时时间，单位秒 |
 | tcpReconnectTimes | int | 3 | TCP 建立连接的重试次数 |
-| nodeName | string | 无 | edgemesh-agent 被调度到的节点名称。禁止用户手动配置，由程序自动识别 |
+| nodeName | string | 无 | edgemesh-agent 被调度到的节点名称。无需手动配置，由程序自动识别 |
 
 <a name="t1-4"></a>
 
@@ -236,7 +236,7 @@ modules:
 | ---- | ---- | ---- | ---- |
 | enable | bool | true | 子模块启动开关 |
 | listenPort | int | 53 | TCP 代理监听的端口 |
-| subNet | string | 无 | Kubernetes 集群的 Cluster IP 网段。禁止用户手动配置，由程序自动识别 |
+| subNet | string | 无 | Kubernetes 集群的 Cluster IP 网段。无需手动配置，由程序自动识别 |
 | socks5Proxy | object | [表1-4-2-1](#t1-4-2-1) | socks5 代理子模块 |
 
 <a name="t1-4-2-1"></a>
@@ -267,7 +267,7 @@ modules:
 | ---- | ---- | ---- | ---- |
 | enable | bool | true | 子模块启动开关 |
 | listenPort | int | 53 | tunnelagent 监听的端口 |
-| nodeName | string | 无 | edgemesh-agent 被调度到的节点名称。禁止用户手动配置，由程序自动识别 |
+| nodeName | string | 无 | edgemesh-agent 被调度到的节点名称。无需手动配置，由程序自动识别 |
 | security | object | [表1-4-4-1](#t1-4-4-1) | tunnel security 配置项 |
 
 <a name="t1-4-4-1"></a>
@@ -280,7 +280,7 @@ modules:
 | tlsCaFile | string | /etc/kubeedge/edgemesh/agent/acls/rootCA.crt | CA 文件路径 |
 | tlsCertFile | string | /etc/kubeedge/edgemesh/agent/acls/server.crt | 证书文件路径 |
 | tlsPrivateKeyFile | string | /etc/kubeedge/edgemesh/agent/acls/server.key | 私钥文件路径 |
-| token | string | 无 | 口令。等同于 edgecore.yaml 中的 token。禁止用户手动配置。这个值会通过挂载kubeedge namespace下面的`tokensecret` secret 自动获取 |
+| token | string | 无 | 口令。无需手动配置，这个值会通过挂载 kubeedge namespace 下面的 `tokensecret` secret 自动获取 |
 | httpServer | string | 无 | 用于下载证书的地址。等同于 cloudcore 的 advertiseAddress |
 
 ::: tip
@@ -337,5 +337,5 @@ modules:
 | enable | bool | true | 子模块启动开关 |
 | listenPort | int | 20004 | tunnelserver 监听的端口 |
 | advertiseAddress | []string | 无 | edgemesh-server 对外暴露的服务 IP 列表 |
-| nodeName | string | 无 | edgemesh-server 被调度到的节点名称。禁止用户手动配置，由程序自动识别 |
+| nodeName | string | 无 | edgemesh-server 被调度到的节点名称。无需手动配置，由程序自动识别 |
 | security | object | [表1-4-4-1](#t1-4-4-1) | tunnel security 配置项 |
