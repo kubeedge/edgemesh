@@ -2,7 +2,7 @@
 
 The EdgeMesh service does not turn on security by default, and edgemesh-server establishes a connection with edgemesh-agent without any authentication. Here's the guide that how to turn on security (identity authentication, connection access, and communication encryption) for EdgeMesh services.
 
-## dependency
+## Dependency
 
 KubeEdge version >= 1.8.2
 
