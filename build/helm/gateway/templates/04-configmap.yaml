@@ -48,6 +48,9 @@ data:
           replicationFactor: {{ .Values.goChassisConfig.loadBalancer.consistentHash.replicationFactor }}
           load: {{ .Values.goChassisConfig.loadBalancer.consistentHash.load }}
     modules:
+      edgeDNS:
+        enable: {{ .Values.modules.edgeDNS.enable }}
+        listenPort: {{ .Values.modules.edgeDNS.listenPort }}
       edgeGateway:
         enable: {{ .Values.modules.edgeGateway.enable }}
         nic: {{ .Values.modules.edgeGateway.nic | quote }}
@@ -56,3 +59,9 @@ data:
       tunnel:
         enable: {{ .Values.modules.tunnel.enable }}
         listenPort: {{ .Values.modules.tunnel.listenPort }}
+        security:
+          enable: {{ .Values.modules.tunnel.security.enable }}
+          httpServer: {{ .Values.modules.tunnel.security.httpServer }}
+          tlsCaFile: {{ .Values.modules.tunnel.security.tlsCaFile }}
+          tlsCertFile: {{ .Values.modules.tunnel.security.tlsCertFile}}
+          tlsPrivateKeyFile: {{ .Values.modules.tunnel.security.tlsPrivateKeyFile }}
