@@ -53,7 +53,7 @@ edgemesh::buildx::push-multi-platform-images() {
     edgemesh::buildx:generate-dockerfile build/${component}/Dockerfile > ${temp_dockerfile}
 
     docker buildx build --push \
-      --build-arg "GO_LDFLAGS=${GO_LDFLAGS}" \
+      --build-arg GO_LDFLAGS="${GO_LDFLAGS}" \
       --platform ${PLATFORMS} \
       -t ${IMAGE_REPO}/edgemesh-${component}:${IMAGE_TAG} \
       -f ${temp_dockerfile} .
@@ -80,7 +80,7 @@ edgemesh::buildx::build-multi-platform-images() {
       echo "building ${arch} image for ${component} and the image tag name is ${tag_name}"
 
       docker buildx build -o type=docker \
-        --build-arg "GO_LDFLAGS=${GO_LDFLAGS}" \
+        --build-arg GO_LDFLAGS="${GO_LDFLAGS}" \
         --platform ${arch} \
         -t ${tag_name} \
         -f ${temp_dockerfile} .

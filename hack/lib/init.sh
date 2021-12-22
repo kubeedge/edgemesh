@@ -20,7 +20,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-# The root of the kubeedge
+# The root of the edgemesh
 EDGEMESH_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 
 EDGEMESH_OUTPUT_SUBPATH="${EDGEMESH_OUTPUT_SUBPATH:-_output/local}"
