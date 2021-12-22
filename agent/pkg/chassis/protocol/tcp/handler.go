@@ -58,7 +58,7 @@ func (h *L4ProxyHandler) Handle(chain *handler.Chain, i *invocation.Invocation, 
 	}
 	klog.Infof("l4 proxy get tcpserver address: %v", i.Endpoint)
 
-	if targetNodeName == config.Chassis.Protocol.NodeName {
+	if targetNodeName == "" || targetNodeName == config.Chassis.Protocol.NodeName {
 		addr := &net.TCPAddr{
 			IP:   net.ParseIP(targetIP),
 			Port: int(targetPort),

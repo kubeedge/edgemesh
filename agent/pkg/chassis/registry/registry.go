@@ -20,20 +20,6 @@ const (
 	EdgeRegistry = "edge"
 )
 
-type instanceList []*registry.MicroServiceInstance
-
-func (I instanceList) Len() int {
-	return len(I)
-}
-
-func (I instanceList) Less(i, j int) bool {
-	return strings.Compare(I[i].InstanceID, I[j].InstanceID) < 0
-}
-
-func (I instanceList) Swap(i, j int) {
-	I[i], I[j] = I[j], I[i]
-}
-
 // init initialize the service discovery of edge meta registry
 func init() {
 	registry.InstallServiceDiscovery(EdgeRegistry, NewEdgeServiceDiscovery)
@@ -57,7 +43,7 @@ func (esd *EdgeServiceDiscovery) GetAllMicroServices() ([]*registry.MicroService
 
 // FindMicroServiceInstances find micro-service instances (subnets)
 func (esd *EdgeServiceDiscovery) FindMicroServiceInstances(consumerID, microServiceName string, tags utiltags.Tags) ([]*registry.MicroServiceInstance, error) {
-	var microServiceInstances instanceList
+	var microServiceInstances []*registry.MicroServiceInstance
 
 	// parse microServiceName
 	name, namespace, svcPort, err := parseServiceURL(microServiceName)
@@ -98,25 +84,20 @@ func (esd *EdgeServiceDiscovery) FindMicroServiceInstances(consumerID, microServ
 	// gen MicroServiceInstances
 	for _, subset := range eps.Subsets {
 		for _, addr := range subset.Addresses {
-			for _, port := range subset.Ports {
-				if addr.NodeName == nil || port.Port != int32(targetPort) {
-					// Each backend(Address) must have a nodeName, so we do not support custom Endpoints now.
-					// This means that external services cannot be used.
-					continue
-				}
-
+			if addr.NodeName != nil && addr.TargetRef != nil {
 				microServiceInstances = append(microServiceInstances, &registry.MicroServiceInstance{
 					InstanceID:   fmt.Sprintf("%s.%s|%s:%s:%d", namespace, name, *addr.NodeName, addr.IP, targetPort),
 					ServiceID:    fmt.Sprintf("%s#%s#%s", namespace, name, addr.TargetRef.Name),
 					EndpointsMap: map[string]string{proto: fmt.Sprintf("%s:%s:%d", *addr.NodeName, addr.IP, targetPort)},
 				})
+			} else {
+				microServiceInstances = append(microServiceInstances, &registry.MicroServiceInstance{
+					InstanceID:   fmt.Sprintf("%s.%s|%s:%s:%d", namespace, name, "", addr.IP, targetPort),
+					ServiceID:    fmt.Sprintf("%s#%s#%s", namespace, name, addr.IP),
+					EndpointsMap: map[string]string{proto: fmt.Sprintf("%s:%s:%d", "", addr.IP, targetPort)},
+				})
 			}
 		}
-	}
-
-	// no instances found
-	if len(microServiceInstances) == 0 {
-		return nil, fmt.Errorf("service %s.%s has no instances", namespace, name)
 	}
 
 	return microServiceInstances, nil
