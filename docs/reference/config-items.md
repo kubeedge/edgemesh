@@ -163,7 +163,7 @@ modules:
 
 | Name | Type | Default | Description |
 | ---- | ---- | ---- | ---- |
-| mode | string | DebugMode | The operating mode (DebugMode, CloudMode, EdgeMode) that edgemesh-agent is in. Prohibit user manual configuration, automatically recognized by the program |
+| mode | string | DebugMode | The operating mode (DebugMode, CloudMode, EdgeMode) that edgemesh-agent is in. No manual configuration required, automatically recognized by the program |
 | configMapName | string | edgemesh-agent-cfg | name of configmap mounted by edgemesh-agent |
 | dummyDeviceName | string | edgemesh0 | Name of the network card created by edgemesh-agent |
 | dummyDeviceIP | string | 169.254.96.16 | IP of the network card created by edgemesh-agent |
@@ -206,7 +206,7 @@ modules:
 | tcpBufferSize | int | 8192 | buffer size for TCP communication |
 | tcpClientTimeout | int | 5 | TCP client timeout time, in seconds |
 | tcpReconnectTimes | int | 3 | number of retries for TCP connection establishment |
-| nodeName | string | empty | the name of the node where edgemesh-agent is scheduled. Prohibit user manual configuration, automatically recognized by the program |
+| nodeName | string | empty | the name of the node where edgemesh-agent is scheduled. No manual configuration required, automatically recognized by the program |
 
 <a name="t1-4"></a>
 
@@ -236,7 +236,7 @@ modules:
 | ---- | ---- | ---- | ---- |
 | enable | bool | true | submodule start switch |
 | listenPort | int | 53 | TCP proxy listening port |
-| subNet | string | empty | The Cluster IP network segment of the Kubernetes cluster. Prohibit user manual configuration, automatically recognized by the program |
+| subNet | string | empty | The Cluster IP network segment of the Kubernetes cluster. No manual configuration required, automatically recognized by the program |
 | socks5Proxy | object | [Table 1-4-2-1](#t1-4-2-1) | socks5 proxy submodule |
 
 <a name="t1-4-2-1"></a>
@@ -267,7 +267,7 @@ modules:
 | ---- | ---- | ---- | ---- |
 | enable | bool | true | submodule start switch |
 | listenPort | int | 53 | the port that tunnelagent listens to |
-| nodeName | string | empty | the name of the node where edgemesh-agent is scheduled. Prohibit user manual configuration, automatically recognized by the program |
+| nodeName | string | empty | the name of the node where edgemesh-agent is scheduled. No manual configuration required, automatically recognized by the program |
 | security | object | [Table 1-4-4-1](#t1-4-4-1) | tunnel security configuration |
 
 <a name="t1-4-4-1"></a>
@@ -280,7 +280,7 @@ modules:
 | tlsCaFile | string | /etc/kubeedge/edgemesh/agent/acls/rootCA.crt | CA file path |
 | tlsCertFile | string | /etc/kubeedge/edgemesh/agent/acls/server.crt | certificate file path |
 | tlsPrivateKeyFile | string | /etc/kubeedge/edgemesh/agent/acls/server.key | private key file path |
-| token | string | empty | equivalent to token in edgecore.yaml.Prohibit user manual configuration. Auto fetch from  `tokensecret` secret in kubeedge namespace |
+| token | string | empty | token. No manual configuration required, auto fetch from  `tokensecret` secret in kubeedge namespace |
 | httpServer | string | empty | the address used to download the certificate, which is equivalent to the advertiseAddress of cloudcore |
 
 ::: tip
@@ -337,5 +337,5 @@ modules:
 | enable | bool | true | submodule start switch |
 | listenPort | int | 20004 | the port that tunnelserver listens to |
 | advertiseAddress | []string | empty | IP list of services exposed by edgemesh-server |
-| nodeName | string | empty | the name of the node where edgemesh-server is scheduled. Prohibit user manual configuration, automatically recognized by the program |
+| nodeName | string | empty | the name of the node where edgemesh-server is scheduled. No manual configuration required, automatically recognized by the program |
 | security | object | [Table 1-4-4-1](#t1-4-4-1) | tunnel security configuration |
