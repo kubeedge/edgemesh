@@ -306,9 +306,9 @@ modules:
     nodeName: k8s-master
     security:
       enable: true
-      tlsCaFile: /etc/kubeedge/edgemesh/agent/acls/rootCA.crt
-      tlsCertFile: /etc/kubeedge/edgemesh/agent/acls/server.crt
-      tlsPrivateKeyFile: /etc/kubeedge/edgemesh/agent/acls/server.key
+      tlsCaFile: /etc/kubeedge/edgemesh/server/acls/rootCA.crt
+      tlsCertFile: /etc/kubeedge/edgemesh/server/acls/server.crt
+      tlsPrivateKeyFile: /etc/kubeedge/edgemesh/server/acls/server.key
       token: "4cdfc5b7dc37b716feb0156eebaad1c00297145088c9d069a797a94d2379410b.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MzQ3MTI0Mjd9.w2l5pulUdI1IekLe-ZngvATjlhhqwsvrTjv_aNSBjF8"
       httpServer: https://119.8.211.54:10002
 ```

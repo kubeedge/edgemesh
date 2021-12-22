@@ -82,21 +82,25 @@ func (esd *EdgeServiceDiscovery) FindMicroServiceInstances(consumerID, microServ
 	}
 
 	// gen MicroServiceInstances
+	var nodeName string
+	var podName string
 	for _, subset := range eps.Subsets {
 		for _, addr := range subset.Addresses {
-			if addr.NodeName != nil && addr.TargetRef != nil {
-				microServiceInstances = append(microServiceInstances, &registry.MicroServiceInstance{
-					InstanceID:   fmt.Sprintf("%s.%s|%s:%s:%d", namespace, name, *addr.NodeName, addr.IP, targetPort),
-					ServiceID:    fmt.Sprintf("%s#%s#%s", namespace, name, addr.TargetRef.Name),
-					EndpointsMap: map[string]string{proto: fmt.Sprintf("%s:%s:%d", *addr.NodeName, addr.IP, targetPort)},
-				})
+			if addr.NodeName != nil {
+				nodeName = *addr.NodeName
 			} else {
-				microServiceInstances = append(microServiceInstances, &registry.MicroServiceInstance{
-					InstanceID:   fmt.Sprintf("%s.%s|%s:%s:%d", namespace, name, "", addr.IP, targetPort),
-					ServiceID:    fmt.Sprintf("%s#%s#%s", namespace, name, addr.IP),
-					EndpointsMap: map[string]string{proto: fmt.Sprintf("%s:%s:%d", "", addr.IP, targetPort)},
-				})
+				nodeName = ""
 			}
+			if addr.TargetRef != nil {
+				podName = addr.TargetRef.Name
+			} else {
+				podName = ""
+			}
+			microServiceInstances = append(microServiceInstances, &registry.MicroServiceInstance{
+				InstanceID:   fmt.Sprintf("%s.%s|%s:%s:%d", namespace, name, nodeName, addr.IP, targetPort),
+				ServiceID:    fmt.Sprintf("%s#%s#%s", namespace, name, podName),
+				EndpointsMap: map[string]string{proto: fmt.Sprintf("%s:%s:%d", nodeName, addr.IP, targetPort)},
+			})
 		}
 	}
 

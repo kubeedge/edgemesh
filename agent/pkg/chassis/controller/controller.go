@@ -168,12 +168,18 @@ func (c *ChassisController) createHashRing(namespace, name string) {
 
 	// create service instances from endpoints
 	var instances []hashring.ServiceInstance
+	var instanceName string
 	for _, subset := range eps.Subsets {
 		for _, addr := range subset.Addresses {
+			if addr.TargetRef != nil {
+				instanceName = addr.TargetRef.Name
+			} else {
+				instanceName = ""
+			}
 			instances = append(instances, hashring.ServiceInstance{
 				Namespace:    namespace,
 				Name:         name,
-				InstanceName: addr.TargetRef.Name,
+				InstanceName: instanceName,
 			})
 		}
 	}
@@ -262,9 +268,15 @@ func findDiff(eps *v1.Endpoints, hr *consistent.Consistent) ([]string, []string)
 	klog.V(4).Infof("src: %+v", src)
 
 	// build destination array from endpoints
+	var instanceName string
 	for _, subset := range eps.Subsets {
 		for _, addr := range subset.Addresses {
-			dest = append(dest, fmt.Sprintf("%s#%s#%s", eps.Namespace, eps.Name, addr.TargetRef.Name))
+			if addr.TargetRef != nil {
+				instanceName = addr.TargetRef.Name
+			} else {
+				instanceName = ""
+			}
+			dest = append(dest, fmt.Sprintf("%s#%s#%s", eps.Namespace, eps.Name, instanceName))
 		}
 	}
 	klog.V(4).Infof("dest: %+v", dest)
