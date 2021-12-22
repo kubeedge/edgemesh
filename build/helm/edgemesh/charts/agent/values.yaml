@@ -1,4 +1,7 @@
 image: kubeedge/edgemesh-agent:latest
+livenessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 5
 
 # edgemesh-agent configmap
 apiVersion: agent.edgemesh.config.kubeedge.io/v1alpha1

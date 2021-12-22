@@ -1,5 +1,8 @@
 image: kubeedge/edgemesh-server:latest
 nodeName: "your node name"
+livenessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 5
 # advertiseAddress overwrites the value of modules.tunnel.advertiseAddress
 advertiseAddress:
 

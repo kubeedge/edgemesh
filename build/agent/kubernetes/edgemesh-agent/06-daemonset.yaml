@@ -20,6 +20,11 @@ spec:
       hostNetwork: true
       containers:
         - name: edgemesh-agent
+          livenessProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            tcpSocket:
+              port: 20006
           securityContext:
             privileged: true
           image: kubeedge/edgemesh-agent:latest
