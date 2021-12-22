@@ -13,7 +13,6 @@ export const zh: NavbarConfig = [
         children: [
           '/zh/advanced/architecture.md',
           '/zh/advanced/hybirdnat.md',
-          '/zh/advanced/security.md',
         ],
       }
     ],
