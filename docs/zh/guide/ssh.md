@@ -26,7 +26,7 @@ https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ### 手动配置
 
 ```shell
-$ vim build/agent/kubernetes/edgemesh-agent/05-configmap.yaml
+$ vim build/agent/kubernetes/edgemesh-agent/04-configmap.yaml
   modules:
     ..
     edgeProxy:

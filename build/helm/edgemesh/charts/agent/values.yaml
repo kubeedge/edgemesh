@@ -43,5 +43,3 @@ modules:
       tlsCaFile: /etc/kubeedge/edgemesh/agent/acls/rootCA.crt
       tlsCertFile: /etc/kubeedge/edgemesh/agent/acls/server.crt
       tlsPrivateKeyFile: /etc/kubeedge/edgemesh/agent/acls/server.key
-
-

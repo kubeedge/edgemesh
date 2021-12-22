@@ -146,7 +146,7 @@ $ systemctl restart edgecore
 ```
 
 ::: tip
-The value '169.254.96.16' set by clusterDNS comes from commonConfig.dummyDeviceIP in build/agent/kubernetes/edgemesh-agent/05-configmap.yaml. If you need to modify it, please keep the two consistent
+The value '169.254.96.16' set by clusterDNS comes from commonConfig.dummyDeviceIP in build/agent/kubernetes/edgemesh-agent/04-configmap.yaml. If you need to modify it, please keep the two consistent
 :::
 
 (3) Check it out
@@ -162,7 +162,6 @@ $ curl 127.0.0.1:10550/api/v1/services
 
 ```shell
 $ kubectl apply -f build/server/edgemesh/
-namespace/kubeedge configured
 serviceaccount/edgemesh-server created
 clusterrole.rbac.authorization.k8s.io/edgemesh-server created
 clusterrolebinding.rbac.authorization.k8s.io/edgemesh-server created
@@ -171,14 +170,13 @@ deployment.apps/edgemesh-server created
 ```
 
 ::: warning
-Please set the value of 05-configmap.yaml's advertiseAddress and 06-deployment.yaml's nodeName according to your K8s cluster, otherwise edgemesh-server may not run
+Please set the value of 04-configmap.yaml's advertiseAddress and 05-deployment.yaml's nodeName according to your K8s cluster, otherwise edgemesh-server may not run
 :::
 
 - **Step 5**: Deploy edgemesh-agent
 
 ```shell
 $ kubectl apply -f build/agent/kubernetes/edgemesh-agent/
-namespace/kubeedge configured
 serviceaccount/edgemesh-agent created
 clusterrole.rbac.authorization.k8s.io/edgemesh-agent created
 clusterrolebinding.rbac.authorization.k8s.io/edgemesh-agent created

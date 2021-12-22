@@ -20,12 +20,15 @@ data:
       tunnel:
         enable: {{ .Values.modules.tunnel.enable }}
         listenPort: {{ .Values.modules.tunnel.listenPort }}
-        security:
-          enable: {{ .Values.modules.tunnel.security.enable }}
-          httpServer: {{ .Values.modules.tunnel.security.httpServer }}
         {{- if .Values.advertiseAddress }}
         advertiseAddress:
         {{- range .Values.advertiseAddress }}
         - {{ . | title }}
         {{- end }}
         {{- end }}
+        security:
+          enable: {{ .Values.modules.tunnel.security.enable }}
+          httpServer: {{ .Values.modules.tunnel.security.httpServer }}
+          tlsCaFile: {{ .Values.modules.tunnel.security.tlsCaFile }}
+          tlsCertFile: {{ .Values.modules.tunnel.security.tlsCertFile}}
+          tlsPrivateKeyFile: {{ .Values.modules.tunnel.security.tlsPrivateKeyFile }}

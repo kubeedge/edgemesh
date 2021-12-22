@@ -1,13 +1,13 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: edgemesh-agent
+  name: edgemesh-gateway
   labels:
     k8s-app: kubeedge
-    kubeedge: edgemesh-agent
+    kubeedge: edgemesh-gateway
 rules:
   - apiGroups: [""]
-    resources: ["pods", "endpoints"]
+    resources: ["pods", "endpoints", "namespaces"]
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]
     resources: ["secrets", "services", "configmaps"]

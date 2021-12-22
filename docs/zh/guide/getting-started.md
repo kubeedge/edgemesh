@@ -143,7 +143,7 @@ $ systemctl restart edgecore
 ```
 
 ::: tip
-clusterDNS 设置的值 '169.254.96.16' 来自于 build/agent/kubernetes/edgemesh-agent/05-configmap.yaml 中的 commonConfig.dummyDeviceIP，如需修改请保持两者一致
+clusterDNS 设置的值 '169.254.96.16' 来自于 build/agent/kubernetes/edgemesh-agent/04-configmap.yaml 中的 commonConfig.dummyDeviceIP，如需修改请保持两者一致
 :::
 
 （3）验证
@@ -159,7 +159,6 @@ $ curl 127.0.0.1:10550/api/v1/services
 
 ```shell
 $ kubectl apply -f build/server/edgemesh/
-namespace/kubeedge configured
 serviceaccount/edgemesh-server created
 clusterrole.rbac.authorization.k8s.io/edgemesh-server created
 clusterrolebinding.rbac.authorization.k8s.io/edgemesh-server created
@@ -168,14 +167,13 @@ deployment.apps/edgemesh-server created
 ```
 
 ::: warning
-请根据你的 K8s 集群设置 05-configmap.yaml 的 advertiseAddress 和 06-deployment.yaml 的 nodeName，否则 edgemesh-server 可能无法运行
+请根据你的 K8s 集群设置 04-configmap.yaml 的 advertiseAddress 和 05-deployment.yaml 的 nodeName，否则 edgemesh-server 可能无法运行
 :::
 
 - **步骤5**: 部署 edgemesh-agent
 
 ```shell
 $ kubectl apply -f build/agent/kubernetes/edgemesh-agent/
-namespace/kubeedge configured
 serviceaccount/edgemesh-agent created
 clusterrole.rbac.authorization.k8s.io/edgemesh-agent created
 clusterrolebinding.rbac.authorization.k8s.io/edgemesh-agent created

@@ -22,3 +22,6 @@ modules:
     security:
       enable: false
       httpServer: ""
+      tlsCaFile: /etc/kubeedge/edgemesh/server/acls/rootCA.crt
+      tlsCertFile: /etc/kubeedge/edgemesh/server/acls/server.crt
+      tlsPrivateKeyFile: /etc/kubeedge/edgemesh/server/acls/server.key
