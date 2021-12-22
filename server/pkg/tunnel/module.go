@@ -12,9 +12,9 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/beehive/pkg/core"
-	"github.com/kubeedge/edgemesh/common/acl"
 	"github.com/kubeedge/edgemesh/common/informers"
 	"github.com/kubeedge/edgemesh/common/modules"
+	"github.com/kubeedge/edgemesh/common/security"
 	"github.com/kubeedge/edgemesh/common/util"
 	"github.com/kubeedge/edgemesh/server/pkg/tunnel/config"
 	"github.com/kubeedge/edgemesh/server/pkg/tunnel/controller"
@@ -35,7 +35,7 @@ func newTunnelServer(c *config.TunnelServerConfig, ifm *informers.Manager) (serv
 
 	controller.Init(ifm)
 
-	aclManager := acl.NewACLManager(c.EnableSecurity, &c.TunnelACLConfig)
+	aclManager := security.NewManager(c.Security)
 
 	aclManager.Start()
 
@@ -72,10 +72,10 @@ func newTunnelServer(c *config.TunnelServerConfig, ifm *informers.Manager) (serv
 		libp2p.Identity(privateKey),
 	}
 
-	if c.EnableSecurity {
-		libp2ptlsca.Init(c.TunnelACLConfig.TLSCAFile,
-			c.TunnelACLConfig.TLSCertFile,
-			c.TunnelACLConfig.TLSPrivateKeyFile,
+	if c.Security.Enable {
+		libp2ptlsca.Init(c.Security.TLSCAFile,
+			c.Security.TLSCertFile,
+			c.Security.TLSPrivateKeyFile,
 		)
 		opts = append(opts, libp2p.Security(libp2ptlsca.ID, libp2ptlsca.New))
 	} else {

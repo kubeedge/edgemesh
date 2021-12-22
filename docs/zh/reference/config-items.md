@@ -125,8 +125,8 @@ modules:
     enable: true
     listenPort: 20006
     nodeName: ke-edge1
-    enableSecurity: true
-    ACL:
+    security:
+      enable: true
       tlsCaFile: /etc/kubeedge/edgemesh/agent/acls/rootCA.crt
       tlsCertFile: /etc/kubeedge/edgemesh/agent/acls/server.crt
       tlsPrivateKeyFile: /etc/kubeedge/edgemesh/agent/acls/server.key
@@ -268,19 +268,19 @@ modules:
 | enable | bool | true | 子模块启动开关 |
 | listenPort | int | 53 | tunnelagent 监听的端口 |
 | nodeName | string | 无 | edgemesh-agent 被调度到的节点名称。禁止用户手动配置，由程序自动识别 |
-| enableSecurity | bool | false | 安全模块启动开关 |
-| ACL | object | [表1-4-4-1](#t1-4-4-1) | tunnel acl 配置项 |
+| security | object | [表1-4-4-1](#t1-4-4-1) | tunnel security 配置项 |
 
 <a name="t1-4-4-1"></a>
 
-#### 表1-4-4-1: ACL
+#### 表1-4-4-1: security
 
 | 名称 | 类型 | 默认值 | 描述 |
 | ---- | ---- | ---- | ---- |
+| enable | bool | false | 子模块启动开关 |
 | tlsCaFile | string | /etc/kubeedge/edgemesh/agent/acls/rootCA.crt | CA 文件路径 |
 | tlsCertFile | string | /etc/kubeedge/edgemesh/agent/acls/server.crt | 证书文件路径 |
 | tlsPrivateKeyFile | string | /etc/kubeedge/edgemesh/agent/acls/server.key | 私钥文件路径 |
-| token | string | 无 | 口令。等同于 edgecore.yaml 中的 token |
+| token | string | 无 | 口令。等同于 edgecore.yaml 中的 token。禁止用户手动配置。这个值会通过挂载kubeedge namespace下面的`tokensecret` secret 自动获取 |
 | httpServer | string | 无 | 用于下载证书的地址。等同于 cloudcore 的 advertiseAddress |
 
 ::: tip
@@ -304,8 +304,8 @@ modules:
     enable: true
     listenPort: 20004
     nodeName: k8s-master
-    enableSecurity: true
-    ACL:
+    security:
+      enable: true
       tlsCaFile: /etc/kubeedge/edgemesh/agent/acls/rootCA.crt
       tlsCertFile: /etc/kubeedge/edgemesh/agent/acls/server.crt
       tlsPrivateKeyFile: /etc/kubeedge/edgemesh/agent/acls/server.key
@@ -338,5 +338,4 @@ modules:
 | listenPort | int | 20004 | tunnelserver 监听的端口 |
 | advertiseAddress | []string | 无 | edgemesh-server 对外暴露的服务 IP 列表 |
 | nodeName | string | 无 | edgemesh-server 被调度到的节点名称。禁止用户手动配置，由程序自动识别 |
-| enableSecurity | bool | false | 安全模块启动开关 |
-| ACL | object | [表1-4-4-1](#t1-4-4-1) | tunnel acl 配置项 |
+| security | object | [表1-4-4-1](#t1-4-4-1) | tunnel security 配置项 |

@@ -7,6 +7,7 @@ const guide = {
     '/zh/guide/getting-started.md',
     '/zh/guide/test-case.md',
     '/zh/guide/edge-gateway.md',
+    '/zh/guide/security.md',
     '/zh/guide/ssh.md',
   ],
 }
@@ -23,7 +24,6 @@ const advanced = {
   children: [
     '/zh/advanced/architecture.md',
     '/zh/advanced/hybirdnat.md',
-    '/zh/advanced/security.md',
   ],
 }
 

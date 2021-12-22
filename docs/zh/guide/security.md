@@ -21,8 +21,8 @@ data:
     modules:
       tunnel:
         # 插入如下内容
-        enableSecurity: true
-        ACL:
+        security:
+          enable: true
           # cloudcore 提供的https服务接口，用于证书签发
           httpServer: <cloudhub-https-addr>
 ```
@@ -43,10 +43,25 @@ data:
     modules:
       tunnel:
         # 插入如下内容
-        enableSecurity: true
-        ACL:
+        security:
+          enable: true
           # cloudcore 提供的https服务接口，用于证书签发
           httpServer: <cloudhub-https-addr>
   ```
 2. 重新部署
 完成上面的变更后，重新部署edgemesh-agent就可以了
+
+### helm安装
+master分支代码支持helm部署时直接开启security特性
+假设cloudcore服务暴露的服务为110.8.52.21，则部署具体命令如下：
+```yaml
+helm install edgemesh --set server.nodeName=dev-02 \
+--set "server.advertiseAddress={109.8.58.38}" \
+--set server.modules.tunnel.security.enable=true \
+--set server.modules.tunnel.security.httpServer="https://110.8.52.21:10002" \
+--set server.image=kubeedge/edgemesh-server:latest \
+--set agent.modules.tunnel.security.enable=true \
+--set agent.modules.tunnel.security.httpServer="https://110.8.52.21:10002" \
+--set agent.image=kubeedge/edgemesh-agent:latest \
+https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
+```

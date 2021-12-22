@@ -125,8 +125,8 @@ modules:
     enable: true
     listenPort: 20006
     nodeName: ke-edge1
-    enableSecurity: true
-    ACL:
+    security:
+      enable: true
       tlsCaFile: /etc/kubeedge/edgemesh/agent/acls/rootCA.crt
       tlsCertFile: /etc/kubeedge/edgemesh/agent/acls/server.crt
       tlsPrivateKeyFile: /etc/kubeedge/edgemesh/agent/acls/server.key
@@ -268,19 +268,19 @@ modules:
 | enable | bool | true | submodule start switch |
 | listenPort | int | 53 | the port that tunnelagent listens to |
 | nodeName | string | empty | the name of the node where edgemesh-agent is scheduled. Prohibit user manual configuration, automatically recognized by the program |
-| enableSecurity | bool | false | safety module start switch |
-| ACL | object | [Table 1-4-4-1](#t1-4-4-1) | tunnel acl configuration |
+| security | object | [Table 1-4-4-1](#t1-4-4-1) | tunnel security configuration |
 
 <a name="t1-4-4-1"></a>
 
-#### Table 1-4-4-1: ACL
+#### Table 1-4-4-1: security
 
 | Name | Type | Default | Description |
 | ---- | ---- | ---- | ---- |
+| enable | bool | false | submodule start switch |
 | tlsCaFile | string | /etc/kubeedge/edgemesh/agent/acls/rootCA.crt | CA file path |
 | tlsCertFile | string | /etc/kubeedge/edgemesh/agent/acls/server.crt | certificate file path |
 | tlsPrivateKeyFile | string | /etc/kubeedge/edgemesh/agent/acls/server.key | private key file path |
-| token | string | empty | equivalent to token in edgecore.yaml |
+| token | string | empty | equivalent to token in edgecore.yaml.Prohibit user manual configuration. Auto fetch from  `tokensecret` secret in kubeedge namespace |
 | httpServer | string | empty | the address used to download the certificate, which is equivalent to the advertiseAddress of cloudcore |
 
 ::: tip
@@ -304,8 +304,8 @@ modules:
     enable: true
     listenPort: 20004
     nodeName: k8s-master
-    enableSecurity: true
-    ACL:
+    security:
+      enable: true
       tlsCaFile: /etc/kubeedge/edgemesh/agent/acls/rootCA.crt
       tlsCertFile: /etc/kubeedge/edgemesh/agent/acls/server.crt
       tlsPrivateKeyFile: /etc/kubeedge/edgemesh/agent/acls/server.key
@@ -338,5 +338,4 @@ modules:
 | listenPort | int | 20004 | the port that tunnelserver listens to |
 | advertiseAddress | []string | empty | IP list of services exposed by edgemesh-server |
 | nodeName | string | empty | the name of the node where edgemesh-server is scheduled. Prohibit user manual configuration, automatically recognized by the program |
-| enableSecurity | bool | false | safety module start switch |
-| ACL | object | [Table 1-4-4-1](#t1-4-4-1) | tunnel acl configuration |
+| security | object | [Table 1-4-4-1](#t1-4-4-1) | tunnel security configuration |

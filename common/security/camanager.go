@@ -1,6 +1,6 @@
 // copy and update from https://github.com/kubeedge/kubeedge/blob/c77318a1c3a97d63bcc3d5fd6cf4607d5df939ff/edge/pkg/edgehub/certificate/certmanager.go
 
-package acl
+package security
 
 import (
 	"bytes"
@@ -51,8 +51,8 @@ func init() {
 	constructMap[TypeWithCA] = newCAManager
 }
 
-// newCAManager creates a caManager for edge acl management according to EdgeHub config
-func newCAManager(tunnel TunnelACLConfig) Manager {
+// newCAManager creates a caManager for edge security management according to EdgeHub config
+func newCAManager(tunnel Security) Manager {
 	certReq := &x509.CertificateRequest{
 		Subject: pkix.Name{
 			Country:      []string{"CN"},
@@ -77,13 +77,13 @@ func newCAManager(tunnel TunnelACLConfig) Manager {
 func (m *caManager) Start() {
 	_, err := m.getCurrentCert()
 	if err != nil {
-		klog.Infof("acl cert, key file are no exist, start generate and fetch")
+		klog.Infof("security cert, key file are no exist, start generate and fetch")
 		err = m.applyCerts()
 		if err != nil {
 			klog.Fatalf("Error: %v", err)
 		}
 	} else {
-		klog.Infof("acl cert, key file already exist, skip generate")
+		klog.Infof("security cert, key file already exist, skip generate")
 	}
 }
 
@@ -153,7 +153,7 @@ func (m *caManager) applyCerts() error {
 	return nil
 }
 
-// generateKey realizes the acl application by token
+// generateKey realizes the security application by token
 func (m *caManager) generateKey() error {
 	pk, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {

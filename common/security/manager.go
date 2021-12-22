@@ -1,4 +1,4 @@
-package acl
+package security
 
 import (
 	"io/ioutil"
@@ -22,21 +22,21 @@ const (
 	TypeWithNoCA
 )
 
-var constructMap = make(map[Type]func(config TunnelACLConfig) Manager)
+var constructMap = make(map[Type]func(config Security) Manager)
 
-func New(tunnel TunnelACLConfig, t Type) Manager {
+func New(tunnel Security, t Type) Manager {
 	construct, ok := constructMap[t]
 	if !ok {
 		klog.Fatalf("new ACL manager failed because type %d", t)
 	}
 	m := construct(tunnel)
-	klog.Infof("Use %s to handle acl", m.Name())
+	klog.Infof("Use %s to handle security", m.Name())
 	return m
 }
 
-func NewACLManager(enableSecurity bool, tunnel *TunnelACLConfig) Manager {
-	var aclManager Manager
-	if enableSecurity {
+func NewManager(security *Security) Manager {
+	var manager Manager
+	if security.Enable {
 		// fetch the cloudcore token
 		content, err := ioutil.ReadFile(meshConstants.CaServerTokenPath)
 		if err != nil {
@@ -44,11 +44,11 @@ func NewACLManager(enableSecurity bool, tunnel *TunnelACLConfig) Manager {
 		} else {
 			klog.Infof("fetch token from %s success", meshConstants.CaServerTokenPath)
 		}
-		tunnel.Token = string(content)
+		security.Token = string(content)
 
-		aclManager = New(*tunnel, TypeWithCA)
+		manager = New(*security, TypeWithCA)
 	} else {
-		aclManager = New(*tunnel, TypeWithNoCA)
+		manager = New(*security, TypeWithNoCA)
 	}
-	return aclManager
+	return manager
 }

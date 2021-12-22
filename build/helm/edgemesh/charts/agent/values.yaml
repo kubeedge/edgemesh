@@ -34,3 +34,11 @@ modules:
   tunnel:
     enable: true
     listenPort: 20006
+    security:
+      enable: false
+      httpServer: ""
+      tlsCaFile: /etc/kubeedge/edgemesh/agent/acls/rootCA.crt
+      tlsCertFile: /etc/kubeedge/edgemesh/agent/acls/server.crt
+      tlsPrivateKeyFile: /etc/kubeedge/edgemesh/agent/acls/server.key
+
+
