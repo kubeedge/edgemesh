@@ -22,8 +22,8 @@ data:
     modules:
       tunnel:
         # insert the following
-        enableSecurity: true
-        ACL:
+        security:
+          enable: true
           # cloudcore's https api for crts sign apply
           httpServer: <cloudhub-https-addr>
 ```
@@ -44,10 +44,26 @@ data:
     modules:
       tunnel:
         # insert the following
-        enableSecurity: true
-        ACL:
+        security:
+          enable: true
           # cloudcore's https api for crt sign apply
           httpServer: <cloudhub-https-addr>
 ```
 2. redeploy
 Once the changes above have been made, we can redeploy edgemesh-agent directly
+
+
+### helm installation
+The master branch code supports directly enabling the security feature using helm.
+Assume that the ip of cloudcore service is 110.8.52.21, the installation commands are as follows:
+```yaml
+helm install edgemesh --set server.nodeName=dev-02 \
+--set "server.advertiseAddress={109.8.58.38}" \
+--set server.modules.tunnel.security.enable=true \
+--set server.modules.tunnel.security.httpServer="https://110.8.52.21:10002" \
+--set server.image=kubeedge/edgemesh-server:latest \
+--set agent.modules.tunnel.security.enable=true \
+--set agent.modules.tunnel.security.httpServer="https://110.8.52.21:10002" \
+--set agent.image=kubeedge/edgemesh-agent:latest \
+https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
+```

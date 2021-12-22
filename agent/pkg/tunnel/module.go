@@ -14,9 +14,9 @@ import (
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/config"
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/controller"
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/protocol/tcp"
-	"github.com/kubeedge/edgemesh/common/acl"
 	"github.com/kubeedge/edgemesh/common/informers"
 	"github.com/kubeedge/edgemesh/common/modules"
+	"github.com/kubeedge/edgemesh/common/security"
 	"github.com/kubeedge/edgemesh/common/util"
 )
 
@@ -47,7 +47,7 @@ func newTunnelAgent(c *config.TunnelAgentConfig, ifm *informers.Manager, mode Tu
 
 	controller.Init(ifm)
 
-	aclManager := acl.NewACLManager(c.EnableSecurity, &c.TunnelACLConfig)
+	aclManager := security.NewManager(c.Security)
 
 	aclManager.Start()
 
@@ -64,10 +64,10 @@ func newTunnelAgent(c *config.TunnelAgentConfig, ifm *informers.Manager, mode Tu
 		libp2p.Identity(privateKey),
 	}
 
-	if c.EnableSecurity {
-		libp2ptlsca.Init(c.TunnelACLConfig.TLSCAFile,
-			c.TunnelACLConfig.TLSCertFile,
-			c.TunnelACLConfig.TLSPrivateKeyFile,
+	if c.Security.Enable {
+		libp2ptlsca.Init(c.Security.TLSCAFile,
+			c.Security.TLSCertFile,
+			c.Security.TLSPrivateKeyFile,
 		)
 		opts = append(opts, libp2p.Security(libp2ptlsca.ID, libp2ptlsca.New))
 	} else {

@@ -1,6 +1,7 @@
-package acl
+package security
 
-type TunnelACLConfig struct {
+type Security struct {
+	Enable bool `json:"enable,omitempty"`
 	// TLSCAFile set ca file path
 	TLSCAFile string `json:"tlsCaFile,omitempty"`
 	// TLSCertFile indicates the file containing x509 Certificate for HTTPS

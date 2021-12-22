@@ -23,6 +23,9 @@ goChassisConfig:
       replicationFactor: 10
       load: 1.25
 modules:
+  edgeDNS:
+    enable: false
+    listenPort: 53
   edgeGateway:
     enable: true
     nic: "*"
@@ -31,3 +34,9 @@ modules:
   tunnel:
     enable: true
     listenPort: 20008
+    security:
+      enable: false
+      httpServer: ""
+      tlsCaFile: /etc/kubeedge/edgemesh/gateway/acls/rootCA.crt
+      tlsCertFile: /etc/kubeedge/edgemesh/gateway/acls/server.crt
+      tlsPrivateKeyFile: /etc/kubeedge/edgemesh/gateway/acls/server.key

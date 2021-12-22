@@ -39,6 +39,10 @@ spec:
           volumeMounts:
             - name: conf
               mountPath: /etc/kubeedge/config
+            - name: edgemesh
+              mountPath: /etc/kubeedge/edgemesh
+            - name: ca-server-token
+              mountPath: /etc/kubeedge/cert
             - name: host-time
               mountPath: /etc/localtime
               readOnly: true
@@ -48,6 +52,13 @@ spec:
         - name: conf
           configMap:
             name: {{ .Release.Name }}-cfg
+        - name: edgemesh
+          hostPath:
+            path: /etc/kubeedge/edgemesh
+            type: DirectoryOrCreate
+        - name: ca-server-token
+          secret:
+            secretName: tokensecret
         - name: host-time
           hostPath:
             path: /etc/localtime
