@@ -17,13 +17,13 @@ type EdgeProxyConfig struct {
 	// ListenPort indicates the listen port of edgeproxy
 	// default 40001
 	ListenPort int `json:"listenPort,omitempty"`
-	// Socks5Proxy indicates the Socks5Proxy config
-	Socks5Proxy Socks5Proxy `json:"socks5Proxy,omitempty"`
+	// Socks5Proxy indicates the socks5 proxy config
+	Socks5Proxy *Socks5Proxy `json:"socks5Proxy,omitempty"`
 	// NodeName indicates name of host
 	NodeName string `json:"nodeName,omitempty"`
 }
 
-// Socks5Proxy indicates the Socks5Proxy config
+// Socks5Proxy indicates the socks5 proxy config
 type Socks5Proxy struct {
 	// Enable indicates whether enable socks5 proxy server
 	// default false
@@ -38,7 +38,7 @@ func NewEdgeProxyConfig() *EdgeProxyConfig {
 		Enable:     false,
 		ListenPort: 40001,
 		NodeName:   util.FetchNodeName(),
-		Socks5Proxy: Socks5Proxy{
+		Socks5Proxy: &Socks5Proxy{
 			Enable:     false,
 			ListenPort: 10800,
 		},
