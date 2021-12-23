@@ -174,7 +174,7 @@ func (c *ChassisController) createHashRing(namespace, name string) {
 			if addr.TargetRef != nil {
 				instanceName = addr.TargetRef.Name
 			} else {
-				instanceName = ""
+				instanceName = addr.IP
 			}
 			instances = append(instances, hashring.ServiceInstance{
 				Namespace:    namespace,
@@ -274,7 +274,7 @@ func findDiff(eps *v1.Endpoints, hr *consistent.Consistent) ([]string, []string)
 			if addr.TargetRef != nil {
 				instanceName = addr.TargetRef.Name
 			} else {
-				instanceName = ""
+				instanceName = addr.IP
 			}
 			dest = append(dest, fmt.Sprintf("%s#%s#%s", eps.Namespace, eps.Name, instanceName))
 		}

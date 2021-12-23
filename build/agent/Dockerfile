@@ -6,14 +6,13 @@ ARG TARGETARCH
 WORKDIR /code
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH go build -v -o /usr/local/bin/edgemesh-agent -ldflags "$GO_LDFLAGS -w -s" \
-./agent/cmd/edgemesh-agent/agent.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH GO_LDFLAGS=$GO_LDFLAGS make WHAT=edgemesh-agent
 
 
 FROM alpine:3.11
 
 RUN apk update && apk --no-cache add iptables
 
-COPY --from=builder /usr/local/bin/edgemesh-agent /usr/local/bin/edgemesh-agent
+COPY --from=builder /code/_output/local/bin/edgemesh-agent /usr/local/bin/edgemesh-agent
 
 ENTRYPOINT ["edgemesh-agent"]

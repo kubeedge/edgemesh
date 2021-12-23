@@ -6,12 +6,11 @@ ARG TARGETARCH
 WORKDIR /code
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH go build -v -o /usr/local/bin/edgemesh-server -ldflags "$GO_LDFLAGS -w -s" \
-./server/cmd/edgemesh-server/server.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH GO_LDFLAGS=$GO_LDFLAGS make WHAT=edgemesh-server
 
 
 FROM alpine:3.11
 
-COPY --from=builder /usr/local/bin/edgemesh-server /usr/local/bin/edgemesh-server
+COPY --from=builder /code/_output/local/bin/edgemesh-server /usr/local/bin/edgemesh-server
 
 ENTRYPOINT ["edgemesh-server"]
