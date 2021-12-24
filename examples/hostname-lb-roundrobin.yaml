@@ -25,7 +25,7 @@ spec:
                   operator: Exists
       containers:
         - name: hostname
-          image: mirrorgooglecontainers/serve_hostname:latest
+          image: poorunga/serve_hostname:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 9376
