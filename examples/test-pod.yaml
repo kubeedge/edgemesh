@@ -27,7 +27,7 @@ metadata:
 spec:
   containers:
     - name: websocket
-      image: kevindavis/websocket:0.1
+      image: poorunga/websocket_echo:latest
       imagePullPolicy: IfNotPresent
   affinity:
     nodeAffinity:

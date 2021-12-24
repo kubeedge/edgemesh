@@ -118,9 +118,9 @@ service/ws-svc created
 Enter the test pod and use websocket `client` to access the service
 
 ```shell
-$ kubectl exec -it websocket-test -- bash
+$ kubectl exec -it websocket-test -- sh
 (in the container environment)
-root@websocket-test:/home/service# ./client --addr ws-svc:12348
+/ # ./client --addr ws-svc:12348
 connecting to ws://ws-svc.default:12348/echo
 recv: 2021-12-02 03:42:20.191695384 +0000 UTC m=+1.004526202
 recv: 2021-12-02 03:42:21.191724176 +0000 UTC m=+2.004554995
