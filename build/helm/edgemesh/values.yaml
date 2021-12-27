@@ -1,0 +1,87 @@
+server:
+  image: kubeedge/edgemesh-server:latest
+  nodeName: "your node name"
+  affinity: {}
+  # nodeAffinity:
+  #   requiredDuringSchedulingIgnoredDuringExecution:
+  #     nodeSelectorTerms:
+  #     - matchExpressions:
+  #       - key: node-role.kubernetes.io/edge
+  #         operator: DoesNotExist
+  tolerations: {}
+  nodeSelector: {}
+  livenessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 5
+  # advertiseAddress overwrites the value of modules.tunnel.advertiseAddress
+  advertiseAddress:
+
+  # edgemesh-server configmap
+  apiVersion: server.edgemesh.config.kubeedge.io/v1alpha1
+  kind: EdgeMeshServer
+  kubeAPIConfig:
+    burst: 200
+    contentType: application/vnd.kubernetes.protobuf
+    kubeConfig: ""
+    master: ""
+    qps: 100
+  modules:
+    tunnel:
+      enable: true
+      listenPort: 20004
+      security:
+        enable: false
+        httpServer: ""
+        tlsCaFile: /etc/kubeedge/edgemesh/server/acls/rootCA.crt
+        tlsCertFile: /etc/kubeedge/edgemesh/server/acls/server.crt
+        tlsPrivateKeyFile: /etc/kubeedge/edgemesh/server/acls/server.key
+
+agent:
+  image: kubeedge/edgemesh-agent:latest
+  affinity: {}
+  nodeSelector: {}
+  tolerations: {}
+  livenessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 5
+
+  # edgemesh-agent configmap
+  apiVersion: agent.edgemesh.config.kubeedge.io/v1alpha1
+  kind: EdgeMeshAgent
+  commonConfig:
+    dummyDeviceName: edgemesh0
+    dummyDeviceIP: 169.254.96.16
+  goChassisConfig:
+    protocol:
+      tcpBufferSize: 8192
+      tcpClientTimeout: 5
+      tcpReconnectTimes: 3
+    loadBalancer:
+      defaultLBStrategy: RoundRobin
+      supportLBStrategies:
+      - RoundRobin
+      - Random
+      - ConsistentHash
+      consistentHash:
+        partitionCount: 100
+        replicationFactor: 10
+        load: 1.25
+  modules:
+    edgeDNS:
+      listenPort: 53
+    edgeProxy:
+      enable: true
+      listenPort: 40001
+      subNet: ""
+      socks5Proxy:
+        enable: false
+        listenPort: 10800
+    tunnel:
+      enable: true
+      listenPort: 20006
+      security:
+        enable: false
+        httpServer: ""
+        tlsCaFile: /etc/kubeedge/edgemesh/agent/acls/rootCA.crt
+        tlsCertFile: /etc/kubeedge/edgemesh/agent/acls/server.crt
+        tlsPrivateKeyFile: /etc/kubeedge/edgemesh/agent/acls/server.key
