@@ -1,5 +1,14 @@
 image: kubeedge/edgemesh-agent:latest
 nodeName: "your node name"
+affinity: 
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: node-role.kubernetes.io/edge
+          operator: DoesNotExist
+nodeSelector: {}
+tolerations: {}
 livenessProbe:
   initialDelaySeconds: 10
   periodSeconds: 5

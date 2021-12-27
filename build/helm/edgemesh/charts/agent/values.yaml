@@ -1,4 +1,7 @@
 image: kubeedge/edgemesh-agent:latest
+affinity: {}
+nodeSelector: {}
+tolerations: {}
 livenessProbe:
   initialDelaySeconds: 10
   periodSeconds: 5
