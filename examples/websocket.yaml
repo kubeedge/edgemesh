@@ -25,7 +25,7 @@ spec:
                   operator: Exists
       containers:
         - name: ws
-          image: kevindavis/websocket:0.1
+          image: poorunga/websocket_echo:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
