@@ -27,7 +27,7 @@ spec:
                   operator: Exists
       containers:
         - name: tcp-echo-container
-          image: cjimti/go-echo:latest
+          image: poorunga/go-echo:latest
           imagePullPolicy: Always
           env:
             - name: TCP_PORT
