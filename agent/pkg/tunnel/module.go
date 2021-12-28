@@ -60,8 +60,11 @@ func newTunnelAgent(c *config.TunnelAgentConfig, ifm *informers.Manager, mode Tu
 		libp2p.EnableRelay(circuit.OptActive),
 		libp2p.ForceReachabilityPrivate(),
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", c.ListenPort)),
-		libp2p.EnableHolePunching(),
 		libp2p.Identity(privateKey),
+	}
+
+	if c.EnableHolePunch {
+		opts = append(opts, libp2p.EnableHolePunching())
 	}
 
 	if c.Security.Enable {
