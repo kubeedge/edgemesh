@@ -1,0 +1,31 @@
+name: Helm-Auto-Release
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [closed]
+
+jobs:
+  helm-release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.4.0
+
+      - name: Release helm package
+        run: |
+          chmod a+x hack/update-helm-package.sh && hack/update-helm-package.sh

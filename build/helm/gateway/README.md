@@ -14,6 +14,7 @@ helm install edgemesh-gateway \
 helm install edgemesh-gateway \
     --set nodeName=ke-edge1 .
 ```
+> If `--set nodeName=ke-edge1 .` is not set, nodeAffinity or nodeSelector will be used for scheduling. Please add the value of at least one of these two fields
 
 ## Uninstall
 
