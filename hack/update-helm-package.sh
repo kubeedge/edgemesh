@@ -26,10 +26,10 @@ GATEWAY_HELM_DIR=${KUBE_ROOT}/build/helm/gateway
 _tmpdir=/tmp/edgemesh
 
 function package:helm:files {
-    echo "helm files will be updated...";
     mkdir -p ${_tmpdir}
     cd $EDGEMESH_HELM_DIR && helm package . -d ${_tmpdir} > /dev/null && mv ${_tmpdir}/*.tgz $EDGEMESH_HELM_DIR/../edgemesh.tgz
     cd $GATEWAY_HELM_DIR && helm package . -d ${_tmpdir}  > /dev/null && mv ${_tmpdir}/*.tgz $GATEWAY_HELM_DIR/../edgemesh-gateway.tgz
+    echo "helm files updated...";
 }
 
 function cleanup {
