@@ -234,7 +234,7 @@ modules:
 
 | 名称 | 类型 | 默认值 | 描述 |
 | ---- | ---- | ---- | ---- |
-| enable | bool | true | 子模块启动开关 |
+| enable | bool | false | 子模块启动开关 |
 | listenPort | int | 53 | TCP 代理监听的端口 |
 | subNet | string | 无 | Kubernetes 集群的 Cluster IP 网段。无需手动配置，由程序自动识别 |
 | socks5Proxy | object | [表1-4-2-1](#t1-4-2-1) | socks5 代理子模块 |
@@ -245,7 +245,7 @@ modules:
 
 | 名称 | 类型 | 默认值 | 描述 |
 | ---- | ---- | ---- | ---- |
-| enable | bool | true | 子模块启动开关 |
+| enable | bool | false | 子模块启动开关 |
 | listenPort | int | 10080 | Socks5 代理监听的端口 |
 
 <a name="t1-4-3"></a>
@@ -254,7 +254,7 @@ modules:
 
 | 名称 | 类型 | 默认值 | 描述 |
 | ---- | ---- | ---- | ---- |
-| enable | bool | true | 子模块启动开关 |
+| enable | bool | false | 子模块启动开关 |
 | nic | string | * | 边缘网关需要监听的网卡列表，例如"lo,eth0"；空或"*"代表监听所有网卡 |
 | includeIP | string | * | 边缘网关需要监听的 IP 列表，例如"192.168.1.56,10.3.2.1"；空或"*"代表监听所有网卡 |
 | excludeIP | string | * | 边缘网关需要过滤的 IP 列表，例如"192.168.1.56,10.3.2.1"；空或"*"代表无 IP 需要过滤 |
@@ -265,10 +265,11 @@ modules:
 
 | 名称 | 类型 | 默认值 | 描述 |
 | ---- | ---- | ---- | ---- |
-| enable | bool | true | 子模块启动开关 |
+| enable | bool | false | 子模块启动开关 |
 | listenPort | int | 53 | tunnelagent 监听的端口 |
 | nodeName | string | 无 | edgemesh-agent 被调度到的节点名称。无需手动配置，由程序自动识别 |
 | security | object | [表1-4-4-1](#t1-4-4-1) | tunnel security 配置项 |
+| enableHolePunch | bool | true | p2p 打洞开关 |
 
 <a name="t1-4-4-1"></a>
 
@@ -334,7 +335,7 @@ modules:
 
 | 名称 | 类型 | 默认值 | 描述 |
 | ---- | ---- | ---- | ---- |
-| enable | bool | true | 子模块启动开关 |
+| enable | bool | false | 子模块启动开关 |
 | listenPort | int | 20004 | tunnelserver 监听的端口 |
 | advertiseAddress | []string | 无 | edgemesh-server 对外暴露的服务 IP 列表 |
 | nodeName | string | 无 | edgemesh-server 被调度到的节点名称。无需手动配置，由程序自动识别 |

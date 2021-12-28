@@ -65,3 +65,4 @@ data:
           tlsCaFile: {{ .Values.modules.tunnel.security.tlsCaFile }}
           tlsCertFile: {{ .Values.modules.tunnel.security.tlsCertFile}}
           tlsPrivateKeyFile: {{ .Values.modules.tunnel.security.tlsPrivateKeyFile }}
+        enableHolePunch: {{ .Values.modules.tunnel.enableHolePunch }}

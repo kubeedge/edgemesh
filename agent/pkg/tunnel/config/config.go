@@ -21,6 +21,9 @@ type TunnelAgentConfig struct {
 	// ListenPort indicates the listen port of tunnel agent
 	// default 20006
 	ListenPort int `json:"listenPort,omitempty"`
+	// EnableHolePunch indicates whether p2p hole punching feature is enabled,
+	// default true
+	EnableHolePunch bool `json:"enableHolePunch,omitempty"`
 }
 
 func NewTunnelAgentConfig() *TunnelAgentConfig {
@@ -32,6 +35,7 @@ func NewTunnelAgentConfig() *TunnelAgentConfig {
 			TLSCAFile:         meshConstants.AgentDefaultCAFile,
 			TLSCertFile:       meshConstants.AgentDefaultCertFile,
 		},
-		ListenPort: defaultListenPort,
+		ListenPort:      defaultListenPort,
+		EnableHolePunch: true,
 	}
 }

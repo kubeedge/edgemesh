@@ -234,7 +234,7 @@ modules:
 
 | Name | Type | Default | Description |
 | ---- | ---- | ---- | ---- |
-| enable | bool | true | submodule start switch |
+| enable | bool | false | submodule start switch |
 | listenPort | int | 53 | TCP proxy listening port |
 | subNet | string | empty | The Cluster IP network segment of the Kubernetes cluster. No manual configuration required, automatically recognized by the program |
 | socks5Proxy | object | [Table 1-4-2-1](#t1-4-2-1) | socks5 proxy submodule |
@@ -245,7 +245,7 @@ modules:
 
 | Name | Type | Default | Description |
 | ---- | ---- | ---- | ---- |
-| enable | bool | true | submodule start switch |
+| enable | bool | false | submodule start switch |
 | listenPort | int | 10080 | socks5 proxy listening port |
 
 <a name="t1-4-3"></a>
@@ -254,7 +254,7 @@ modules:
 
 | Name | Type | Default | Description |
 | ---- | ---- | ---- | ---- |
-| enable | bool | true | submodule start switch |
+| enable | bool | false | submodule start switch |
 | nic | string | * | the list of network cards that the edge gateway needs to listen, such as "lo,eth0"; empty or "*" means to monitor all network cards |
 | includeIP | string | * | the IP list that the edge gateway needs to listen, such as "192.168.1.56,10.3.2.1"; blank or "*" means to monitor all network cards |
 | excludeIP | string | * | the IP list that needs to be filtered by the edge gateway, such as "192.168.1.56,10.3.2.1"; empty or "*" instead of Table No IP needs to be filtered |
@@ -265,10 +265,11 @@ modules:
 
 | Name | Type | Default | Description |
 | ---- | ---- | ---- | ---- |
-| enable | bool | true | submodule start switch |
+| enable | bool | false | submodule start switch |
 | listenPort | int | 53 | the port that tunnelagent listens to |
 | nodeName | string | empty | the name of the node where edgemesh-agent is scheduled. No manual configuration required, automatically recognized by the program |
 | security | object | [Table 1-4-4-1](#t1-4-4-1) | tunnel security configuration |
+| enableHolePunch | bool | true | p2p hole punching option |
 
 <a name="t1-4-4-1"></a>
 
@@ -334,7 +335,7 @@ modules:
 
 | Name | Type | Default | Description |
 | ---- | ---- | ---- | ---- |
-| enable | bool | true | submodule start switch |
+| enable | bool | false | submodule start switch |
 | listenPort | int | 20004 | the port that tunnelserver listens to |
 | advertiseAddress | []string | empty | IP list of services exposed by edgemesh-server |
 | nodeName | string | empty | the name of the node where edgemesh-server is scheduled. No manual configuration required, automatically recognized by the program |
