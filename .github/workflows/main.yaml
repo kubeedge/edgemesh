@@ -95,6 +95,11 @@ jobs:
             chmod +x ./keadm-$KUBEEDGE_VERSION-linux-amd64/keadm/keadm
             sudo mv ./keadm-$KUBEEDGE_VERSION-linux-amd64/keadm/keadm /usr/local/bin/keadm
           }
+          type helm || {
+            wget -O helm.tar.gz https://get.helm.sh/helm-v3.0.0-linux-amd64.tar.gz
+            tar zxvf helm.tar.gz
+            sudo cp linux-amd64/helm /usr/bin/
+          }
       - name: Checkout code
         uses: actions/checkout@v2
         with:

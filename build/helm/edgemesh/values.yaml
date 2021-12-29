@@ -1,3 +1,7 @@
+# default: default mode for edgemesh
+# ci: ci mode for ci, we use k8s list-watch directly in ci
+global:
+  mode: default
 server:
   image: kubeedge/edgemesh-server:latest
   nodeName: "your node name"
