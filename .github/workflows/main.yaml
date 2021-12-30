@@ -84,6 +84,11 @@ jobs:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
 
+      - name: Set up Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.4.0
+
       - name: Install dependences
         run: |
           command -v ginkgo || go get github.com/onsi/ginkgo/ginkgo
@@ -94,11 +99,6 @@ jobs:
             tar -C . -xzf keadm-$KUBEEDGE_VERSION-linux-amd64.tar.gz
             chmod +x ./keadm-$KUBEEDGE_VERSION-linux-amd64/keadm/keadm
             sudo mv ./keadm-$KUBEEDGE_VERSION-linux-amd64/keadm/keadm /usr/local/bin/keadm
-          }
-          type helm || {
-            wget -O helm.tar.gz https://get.helm.sh/helm-v3.0.0-linux-amd64.tar.gz
-            tar zxvf helm.tar.gz
-            sudo cp linux-amd64/helm /usr/bin/
           }
       - name: Checkout code
         uses: actions/checkout@v2
