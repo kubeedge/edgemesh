@@ -146,7 +146,7 @@ $ systemctl restart edgecore
 ```
 
 ::: tip
-The value '169.254.96.16' set by clusterDNS comes from commonConfig.dummyDeviceIP in build/agent/kubernetes/edgemesh-agent/04-configmap.yaml. If you need to modify it, please keep the two consistent
+The value '169.254.96.16' set by clusterDNS comes from the default value of dummyDeviceIP in [commonConfig](../reference/config-items.md#table-1-2-commonconfig), if you need to modify it, please keep the two consistent
 :::
 
 (3) Check it out
@@ -170,7 +170,7 @@ deployment.apps/edgemesh-server created
 ```
 
 ::: warning
-Please set the value of 04-configmap.yaml's advertiseAddress and 05-deployment.yaml's nodeName according to your K8s cluster, otherwise edgemesh-server may not run
+Please set the value of build/server/edgemesh/04-configmap.yaml's advertiseAddress and build/server/edgemesh/05-deployment.yaml's nodeName according to your K8s cluster, otherwise edgemesh-server may not run
 :::
 
 - **Step 5**: Deploy edgemesh-agent
