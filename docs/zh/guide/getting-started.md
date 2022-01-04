@@ -143,7 +143,7 @@ $ systemctl restart edgecore
 ```
 
 ::: tip
-clusterDNS 设置的值 '169.254.96.16' 来自于 build/agent/kubernetes/edgemesh-agent/04-configmap.yaml 中的 commonConfig.dummyDeviceIP，如需修改请保持两者一致
+clusterDNS 设置的值 '169.254.96.16' 来自于 [commonConfig](../reference/config-items.md#表1-2-commonconfig) 中 dummyDeviceIP 的默认值，如需修改请保持两者一致
 :::
 
 （3）验证
@@ -167,7 +167,7 @@ deployment.apps/edgemesh-server created
 ```
 
 ::: warning
-请根据你的 K8s 集群设置 04-configmap.yaml 的 advertiseAddress 和 05-deployment.yaml 的 nodeName，否则 edgemesh-server 可能无法运行
+请根据你的 K8s 集群设置 build/server/edgemesh/04-configmap.yaml 的 advertiseAddress 和 build/server/edgemesh/05-deployment.yaml 的 nodeName，否则 edgemesh-server 可能无法运行
 :::
 
 - **步骤5**: 部署 edgemesh-agent
