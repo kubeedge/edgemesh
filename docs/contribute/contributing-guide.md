@@ -3,7 +3,7 @@ Welcome to EdgeMesh. Here is the contributing guide for you.
 
 ## Getting Started
 1. Fork the [repository](https://github.com/kubeedge/edgemesh) on Github.
-2. Read the [setup](https://github.com/kubeedge/edgemesh#getting-started) for installation.
+2. Read the [setup](../guide/getting-started.md) for installation.
 3. Read the [developer guide](developer-guide.md) for more detail.
 
 ## Filing issues
