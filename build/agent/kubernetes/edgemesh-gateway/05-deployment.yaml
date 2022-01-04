@@ -17,7 +17,7 @@ spec:
         k8s-app: kubeedge
         kubeedge: edgemesh-gateway
     spec:
-      nodeName: ke-edge1
+      nodeName: <your node name>
       hostNetwork: true
       containers:
         - name: edgemesh-gateway
