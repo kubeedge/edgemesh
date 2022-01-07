@@ -94,6 +94,7 @@ func NewProxier(subnet string, protoProxies []protocol.ProtoProxy, kubeClient ku
 func (proxier *Proxier) Start() {
 	go func() {
 		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:
