@@ -191,7 +191,9 @@ func prepareRun(c *config.EdgeMeshAgentConfig, ifm *informers.Manager) error {
 
 	// create Corefile for CoreDNS
 	if c.Modules.EdgeDNSConfig.Enable {
-		dns.UpdateCorefile(c)
+		if err := dns.UpdateCorefile(c); err != nil {
+			return fmt.Errorf("create or update Corefile err: %w", err)
+		}
 	}
 
 	return nil
