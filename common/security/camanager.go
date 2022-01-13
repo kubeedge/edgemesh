@@ -199,7 +199,7 @@ func (m *caManager) GetNodeCert(url string, capem []byte, cert tls.Certificate, 
 		}
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to send a http request:%w", err)
 	}
 	defer res.Body.Close()
 
