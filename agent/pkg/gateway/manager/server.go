@@ -130,7 +130,7 @@ func (srv *Server) serve() {
 			}
 			proto, err := srv.newProto(conn)
 			if err != nil {
-				klog.Errorf("get proto from conn err: %v", err)
+				klog.Errorf("get pb from conn err: %v", err)
 				err = conn.Close()
 				if err != nil {
 					klog.Errorf("close conn err: %v", err)
