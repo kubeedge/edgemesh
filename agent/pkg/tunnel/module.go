@@ -13,7 +13,7 @@ import (
 	"github.com/kubeedge/beehive/pkg/core"
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/config"
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/controller"
-	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/protocol/tcp"
+	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/proxy"
 	"github.com/kubeedge/edgemesh/common/informers"
 	"github.com/kubeedge/edgemesh/common/modules"
 	"github.com/kubeedge/edgemesh/common/security"
@@ -32,10 +32,10 @@ var Agent *TunnelAgent
 
 // TunnelAgent is used for solving cross subset communication
 type TunnelAgent struct {
-	Config      *config.TunnelAgentConfig
-	Host        host.Host
-	TCPProxySvc *tcp.TCPProxyService
-	Mode        TunnelMode
+	Config   *config.TunnelAgentConfig
+	Host     host.Host
+	ProxySvc *proxy.ProxyService
+	Mode     TunnelMode
 }
 
 func newTunnelAgent(c *config.TunnelAgentConfig, ifm *informers.Manager, mode TunnelMode) (*TunnelAgent, error) {
@@ -83,12 +83,12 @@ func newTunnelAgent(c *config.TunnelAgentConfig, ifm *informers.Manager, mode Tu
 	}
 
 	Agent.Host = h
-	Agent.TCPProxySvc = tcp.NewTCPProxyService(h)
+	Agent.ProxySvc = proxy.NewProxyService(h)
 	Agent.Mode = mode
 	klog.V(4).Infof("tunnel agent mode is %v", mode)
 
 	if mode == ServerClientMode {
-		h.SetStreamHandler(tcp.TCPProxyProtocol, Agent.TCPProxySvc.ProxyStreamHandler)
+		h.SetStreamHandler(proxy.ProxyProtocol, Agent.ProxySvc.ProxyStreamHandler)
 	}
 
 	return Agent, nil

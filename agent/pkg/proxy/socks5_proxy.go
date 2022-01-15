@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"io"
 	"net"
 	"strings"
 	"sync"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/kubeedge/edgemesh/agent/pkg/proxy/protocol"
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel"
+	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/proxy"
 	"github.com/kubeedge/edgemesh/common/constants"
 )
 
@@ -206,17 +206,6 @@ func NewSocks5Proxy(ip net.IP, port int, NodeName string, kubeClient kubernetes.
 	return socks, nil
 }
 
-func pipe(dst io.WriteCloser, src io.ReadCloser, closeOnce *sync.Once) {
-	_, err := io.Copy(dst, src)
-	if err != nil && err != io.EOF && !strings.Contains(err.Error(), constants.ConnectionClosed) && !strings.Contains(err.Error(), constants.StreamReset) {
-		klog.Errorf("io copy between proxy and client error: %v", err)
-	}
-	closeOnce.Do(func() {
-		dst.Close()
-		src.Close()
-	})
-}
-
 func (s *Socks5Proxy) HandleSocksProxy(conn net.Conn) {
 	if conn == nil {
 		return
@@ -250,7 +239,13 @@ func (s *Socks5Proxy) HandleSocksProxy(conn net.Conn) {
 }
 
 func proxyConnectToRemote(host string, targetIP string, port int32, conn net.Conn) {
-	stream, err := tunnel.Agent.TCPProxySvc.GetProxyStream(host, targetIP, port)
+	proxyOpts := proxy.ProxyOptions{
+		Protocol: "tcp",
+		NodeName: host,
+		IP:       targetIP,
+		Port:     port,
+	}
+	stream, err := tunnel.Agent.ProxySvc.GetProxyStream(proxyOpts)
 	if err != nil {
 		klog.Errorf("l4 proxy get proxy stream from %s error: %w", host, err)
 		return
@@ -263,8 +258,8 @@ func proxyConnectToRemote(host string, targetIP string, port int32, conn net.Con
 	}
 
 	closeOnce := &sync.Once{}
-	go pipe(conn, stream, closeOnce)
-	pipe(stream, conn, closeOnce)
+	go proxy.Pipe(conn, stream, closeOnce)
+	proxy.Pipe(stream, conn, closeOnce)
 
 	klog.Infof("Success proxy to %v", host)
 }
