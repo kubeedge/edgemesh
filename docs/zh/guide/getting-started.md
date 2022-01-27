@@ -7,7 +7,9 @@
 [KubeEdge v1.7+](https://github.com/kubeedge/kubeedge/releases)
 
 ::: tip
-EdgeMesh 依赖于 KubeEdge 的边缘 [Local APIServer](https://github.com/kubeedge/kubeedge/blob/master/CHANGELOG/CHANGELOG-1.6.md) 功能，KubeEdge v1.6+ 开始支持此功能，直到 KubeEdge v1.7+ 趋于稳定
+- EdgeMesh 并不依赖于 KubeEdge，它仅与标准 Kubernetes API 交互
+
+- 鉴于边缘节点可能被割裂在不同边缘网络中的情况，我们借助于“autonomic Kube-API endpoint”功能以简化设置
 :::
 
 ## Helm 安装
