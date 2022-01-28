@@ -7,7 +7,9 @@
 [KubeEdge v1.7+](https://github.com/kubeedge/kubeedge/releases)
 
 ::: tip
-EdgeMesh relies on the [Local APIServer](https://github.com/kubeedge/kubeedge/blob/master/CHANGELOG/CHANGELOG-1.6.md) function of KubeEdge. KubeEdge v1.6+ starts to support this function until KubeEdge v1.7+ tends to be stable
+- EdgeMesh isn't really depending on KubeEdge, it interacts with standard Kubernetes APIs only
+
+- Regarding the fact that edge nodes may be isolated in different edge network, we are benefiting from "autonomic Kube-API endpoint" feature to simplify the setup
 :::
 
 ## Helm Installation
