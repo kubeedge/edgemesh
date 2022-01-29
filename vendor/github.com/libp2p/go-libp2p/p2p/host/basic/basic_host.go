@@ -9,7 +9,13 @@ import (
 	"sync"
 	"time"
 
-	autonat "github.com/libp2p/go-libp2p-autonat"
+	"github.com/libp2p/go-libp2p/p2p/host/pstoremanager"
+	"github.com/libp2p/go-libp2p/p2p/host/relaysvc"
+	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
+	"github.com/libp2p/go-libp2p/p2p/protocol/holepunch"
+	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
+	"github.com/libp2p/go-libp2p/p2p/protocol/ping"
+
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/event"
@@ -19,18 +25,15 @@ import (
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-core/record"
-	"github.com/libp2p/go-libp2p/p2p/protocol/holepunch"
 
 	addrutil "github.com/libp2p/go-addr-util"
 	"github.com/libp2p/go-eventbus"
+	autonat "github.com/libp2p/go-libp2p-autonat"
 	inat "github.com/libp2p/go-libp2p-nat"
-	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
-	"github.com/libp2p/go-libp2p/p2p/protocol/ping"
 	"github.com/libp2p/go-netroute"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 
-	"github.com/multiformats/go-multiaddr"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -48,7 +51,7 @@ var log = logging.Logger("basichost")
 
 var (
 	// DefaultNegotiationTimeout is the default value for HostOpts.NegotiationTimeout.
-	DefaultNegotiationTimeout = time.Second * 60
+	DefaultNegotiationTimeout = 10 * time.Second
 
 	// DefaultAddrsFactory is the default value for HostOpts.AddrsFactory.
 	DefaultAddrsFactory = func(addrs []ma.Multiaddr) []ma.Multiaddr { return addrs }
@@ -57,20 +60,6 @@ var (
 // AddrsFactory functions can be passed to New in order to override
 // addresses returned by Addrs.
 type AddrsFactory func([]ma.Multiaddr) []ma.Multiaddr
-
-// Option is a type used to pass in options to the host.
-//
-// Deprecated in favor of HostOpts and NewHost.
-type Option int
-
-// NATPortMap makes the host attempt to open port-mapping in NAT devices
-// for all its listeners. Pass in this option in the constructor to
-// asynchronously a) find a gateway, b) open port mappings, c) republish
-// port mappings periodically. The NATed addresses are included in the
-// Host's Addrs() list.
-//
-// This option is deprecated in favor of HostOpts and NewHost.
-const NATPortMap Option = iota
 
 // BasicHost is the basic implementation of the host.Host interface. This
 // particular host implementation:
@@ -85,15 +74,17 @@ type BasicHost struct {
 	// keep track of resources we need to wait on before shutting down
 	refCount sync.WaitGroup
 
-	network    network.Network
-	mux        *msmux.MultistreamMuxer
-	ids        *identify.IDService
-	hps        *holepunch.HolePunchService
-	pings      *ping.PingService
-	natmgr     NATManager
-	maResolver *madns.Resolver
-	cmgr       connmgr.ConnManager
-	eventbus   event.Bus
+	network      network.Network
+	psManager    *pstoremanager.PeerstoreManager
+	mux          *msmux.MultistreamMuxer
+	ids          identify.IDService
+	hps          *holepunch.Service
+	pings        *ping.PingService
+	natmgr       NATManager
+	maResolver   *madns.Resolver
+	cmgr         connmgr.ConnManager
+	eventbus     event.Bus
+	relayManager *relaysvc.RelayManager
 
 	AddrsFactory AddrsFactory
 
@@ -114,7 +105,7 @@ type BasicHost struct {
 	signKey                 crypto.PrivKey
 	caBook                  peerstore.CertifiedAddrBook
 
-	AutoNat autonat.AutoNAT
+	autoNat autonat.AutoNAT
 }
 
 var _ host.Host = (*BasicHost)(nil)
@@ -148,7 +139,12 @@ type HostOpts struct {
 	// EnablePing indicates whether to instantiate the ping service
 	EnablePing bool
 
-	// UserAgent sets the user-agent for the host. Defaults to ClientVersion.
+	// EnableRelayService enables the circuit v2 relay (if we're publicly reachable).
+	EnableRelayService bool
+	// RelayServiceOpts are options for the circuit v2 relay.
+	RelayServiceOpts []relayv2.Option
+
+	// UserAgent sets the user-agent for the host.
 	UserAgent string
 
 	// DisableSignedPeerRecord disables the generation of Signed Peer Records on this host.
@@ -156,19 +152,30 @@ type HostOpts struct {
 
 	// EnableHolePunching enables the peer to initiate/respond to hole punching attempts for NAT traversal.
 	EnableHolePunching bool
+	// HolePunchingOptions are options for the hole punching service
+	HolePunchingOptions []holepunch.Option
 }
 
 // NewHost constructs a new *BasicHost and activates it by attaching its stream and connection handlers to the given inet.Network.
-func NewHost(ctx context.Context, n network.Network, opts *HostOpts) (*BasicHost, error) {
-	hostCtx, cancel := context.WithCancel(ctx)
+func NewHost(n network.Network, opts *HostOpts) (*BasicHost, error) {
+	eventBus := eventbus.NewBus()
+	psManager, err := pstoremanager.NewPeerstoreManager(n.Peerstore(), eventBus)
+	if err != nil {
+		return nil, err
+	}
+	hostCtx, cancel := context.WithCancel(context.Background())
+	if opts == nil {
+		opts = &HostOpts{}
+	}
 
 	h := &BasicHost{
 		network:                 n,
+		psManager:               psManager,
 		mux:                     msmux.NewMultistreamMuxer(),
 		negtimeout:              DefaultNegotiationTimeout,
 		AddrsFactory:            DefaultAddrsFactory,
 		maResolver:              madns.DefaultResolver,
-		eventbus:                eventbus.NewBus(),
+		eventbus:                eventBus,
 		addrChangeChan:          make(chan struct{}, 1),
 		ctx:                     hostCtx,
 		ctxCancel:               cancel,
@@ -177,13 +184,17 @@ func NewHost(ctx context.Context, n network.Network, opts *HostOpts) (*BasicHost
 
 	h.updateLocalIpAddr()
 
-	var err error
 	if h.emitters.evtLocalProtocolsUpdated, err = h.eventbus.Emitter(&event.EvtLocalProtocolsUpdated{}); err != nil {
 		return nil, err
 	}
-	if h.emitters.evtLocalAddrsUpdated, err = h.eventbus.Emitter(&event.EvtLocalAddressesUpdated{}); err != nil {
+	if h.emitters.evtLocalAddrsUpdated, err = h.eventbus.Emitter(&event.EvtLocalAddressesUpdated{}, eventbus.Stateful); err != nil {
 		return nil, err
 	}
+	evtPeerConnectednessChanged, err := h.eventbus.Emitter(&event.EvtPeerConnectednessChanged{})
+	if err != nil {
+		return nil, err
+	}
+	h.Network().Notify(newPeerConnectWatcher(evtPeerConnectednessChanged))
 
 	if !h.disableSignedPeerRecord {
 		cab, ok := peerstore.GetCertifiedAddrBook(n.Peerstore())
@@ -198,7 +209,10 @@ func NewHost(ctx context.Context, n network.Network, opts *HostOpts) (*BasicHost
 		}
 
 		// persist a signed peer record for self to the peerstore.
-		rec := peer.PeerRecordFromAddrInfo(peer.AddrInfo{h.ID(), h.Addrs()})
+		rec := peer.PeerRecordFromAddrInfo(peer.AddrInfo{
+			ID:    h.ID(),
+			Addrs: h.Addrs(),
+		})
 		ev, err := record.Seal(rec, h.signKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create signed record for self: %w", err)
@@ -212,8 +226,6 @@ func NewHost(ctx context.Context, n network.Network, opts *HostOpts) (*BasicHost
 		h.mux = opts.MultistreamMuxer
 	}
 
-	h.Peerstore().Put(h.ID(), identify.UDPNATDeviceTypeKey, network.NATDeviceTypeUnknown)
-	h.Peerstore().Put(h.ID(), identify.TCPNATDeviceTypeKey, network.NATDeviceTypeUnknown)
 	// we can't set this as a default above because it depends on the *BasicHost.
 	if h.disableSignedPeerRecord {
 		h.ids, err = identify.NewIDService(h, identify.UserAgent(opts.UserAgent), identify.DisableSignedPeerRecord())
@@ -225,7 +237,7 @@ func NewHost(ctx context.Context, n network.Network, opts *HostOpts) (*BasicHost
 	}
 
 	if opts.EnableHolePunching {
-		h.hps, err = holepunch.NewHolePunchService(h, h.ids, false)
+		h.hps, err = holepunch.NewService(h, h.ids, opts.HolePunchingOptions...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create hole punch service: %w", err)
 		}
@@ -252,6 +264,10 @@ func NewHost(ctx context.Context, n network.Network, opts *HostOpts) (*BasicHost
 	} else {
 		h.cmgr = opts.ConnManager
 		n.Notify(h.cmgr.Notifee())
+	}
+
+	if opts.EnableRelayService {
+		h.relayManager = relaysvc.NewRelayManager(h, opts.RelayServiceOpts...)
 	}
 
 	if opts.EnablePing {
@@ -341,46 +357,9 @@ func (h *BasicHost) updateLocalIpAddr() {
 	}
 }
 
-// New constructs and sets up a new *BasicHost with given Network and options.
-// The following options can be passed:
-// * NATPortMap
-// * AddrsFactory
-// * connmgr.ConnManager
-// * madns.Resolver
-//
-// This function is deprecated in favor of NewHost and HostOpts.
-func New(net network.Network, opts ...interface{}) *BasicHost {
-	hostopts := &HostOpts{}
-
-	for _, o := range opts {
-		switch o := o.(type) {
-		case Option:
-			switch o {
-			case NATPortMap:
-				hostopts.NATManager = NewNATManager
-			}
-		case AddrsFactory:
-			hostopts.AddrsFactory = o
-		case connmgr.ConnManager:
-			hostopts.ConnManager = o
-		case *madns.Resolver:
-			hostopts.MultiaddrResolver = o
-		}
-	}
-
-	h, err := NewHost(context.Background(), net, hostopts)
-	if err != nil {
-		// this cannot happen with legacy options
-		// plus we want to keep the (deprecated) legacy interface unchanged
-		panic(err)
-	}
-	h.Start()
-
-	return h
-}
-
 // Start starts background tasks in the host
 func (h *BasicHost) Start() {
+	h.psManager.Start()
 	h.refCount.Add(1)
 	go h.background()
 }
@@ -404,7 +383,7 @@ func (h *BasicHost) newStreamHandler(s network.Stream) {
 		if err == io.EOF {
 			logf := log.Debugf
 			if took > time.Second*10 {
-				logf = log.Warningf
+				logf = log.Warnf
 			}
 			logf("protocol EOF: %s (took %s)", s.Conn().RemotePeer(), took)
 		} else {
@@ -476,12 +455,15 @@ func makeUpdatedAddrEvent(prev, current []ma.Multiaddr) *event.EvtLocalAddresses
 }
 
 func (h *BasicHost) makeSignedPeerRecord(evt *event.EvtLocalAddressesUpdated) (*record.Envelope, error) {
-	current := make([]multiaddr.Multiaddr, 0, len(evt.Current))
+	current := make([]ma.Multiaddr, 0, len(evt.Current))
 	for _, a := range evt.Current {
 		current = append(current, a.Address)
 	}
 
-	rec := peer.PeerRecordFromAddrInfo(peer.AddrInfo{h.ID(), current})
+	rec := peer.PeerRecordFromAddrInfo(peer.AddrInfo{
+		ID:    h.ID(),
+		Addrs: current,
+	})
 	return record.Seal(rec, h.signKey)
 }
 
@@ -529,7 +511,11 @@ func (h *BasicHost) background() {
 	defer ticker.Stop()
 
 	for {
-		h.updateLocalIpAddr()
+		if len(h.network.ListenAddresses()) > 0 {
+			h.updateLocalIpAddr()
+		}
+		// Request addresses anyways because, technically, address filters still apply.
+		// The underlying AllAddrs call is effectivley a no-op.
 		curr := h.Addrs()
 		emitAddrChange(curr, lastAddrs)
 		lastAddrs = curr
@@ -564,7 +550,7 @@ func (h *BasicHost) Mux() protocol.Switch {
 }
 
 // IDService returns
-func (h *BasicHost) IDService() *identify.IDService {
+func (h *BasicHost) IDService() identify.IDService {
 	return h.ids
 }
 
@@ -628,6 +614,7 @@ func (h *BasicHost) NewStream(ctx context.Context, p peer.ID, pids ...protocol.I
 	select {
 	case <-h.ids.IdentifyWait(s.Conn()):
 	case <-ctx.Done():
+		_ = s.Reset()
 		return nil, ctx.Err()
 	}
 
@@ -745,7 +732,7 @@ func (h *BasicHost) resolveAddrs(ctx context.Context, pi peer.AddrInfo) ([]ma.Mu
 		// We've resolved too many addresses. We can keep all the fully
 		// resolved addresses but we'll need to skip the rest.
 		if resolveSteps >= maxAddressResolution {
-			log.Warningf(
+			log.Warnf(
 				"peer %s asked us to resolve too many addresses: %s/%s",
 				pi.ID,
 				resolveSteps,
@@ -825,14 +812,19 @@ func dedupAddrs(addrs []ma.Multiaddr) (uniqueAddrs []ma.Multiaddr) {
 // AllAddrs returns all the addresses of BasicHost at this moment in time.
 // It's ok to not include addresses if they're not available to be used now.
 func (h *BasicHost) AllAddrs() []ma.Multiaddr {
+	listenAddrs := h.Network().ListenAddresses()
+	if len(listenAddrs) == 0 {
+		return nil
+	}
+
 	h.addrMu.RLock()
 	filteredIfaceAddrs := h.filteredInterfaceAddrs
 	allIfaceAddrs := h.allInterfaceAddrs
+	autonat := h.autoNat
 	h.addrMu.RUnlock()
 
 	// Iterate over all _unresolved_ listen addresses, resolving our primary
 	// interface only to avoid advertising too many addresses.
-	listenAddrs := h.Network().ListenAddresses()
 	var finalAddrs []ma.Multiaddr
 	if resolved, err := addrutil.ResolveUnspecifiedAddresses(listenAddrs, filteredIfaceAddrs); err != nil {
 		// This can happen if we're listening on no addrs, or listening
@@ -848,8 +840,8 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 	// but not have an external network card,
 	// so net.InterfaceAddrs() not has the public ip
 	// The host can indeed be dialed ！！！
-	if h.AutoNat != nil {
-		publicAddr, _ := h.AutoNat.PublicAddr()
+	if autonat != nil {
+		publicAddr, _ := autonat.PublicAddr()
 		if publicAddr != nil {
 			finalAddrs = append(finalAddrs, publicAddr)
 		}
@@ -960,7 +952,7 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 
 			// Did the router give us a routable public addr?
 			if manet.IsPublicAddr(extMaddr) {
-				//well done
+				// well done
 				continue
 			}
 
@@ -1009,6 +1001,22 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 	return dedupAddrs(finalAddrs)
 }
 
+// SetAutoNat sets the autonat service for the host.
+func (h *BasicHost) SetAutoNat(a autonat.AutoNAT) {
+	h.addrMu.Lock()
+	defer h.addrMu.Unlock()
+	if h.autoNat == nil {
+		h.autoNat = a
+	}
+}
+
+// Return the host's AutoNAT service, if AutoNAT is enabled.
+func (h *BasicHost) GetAutoNat() autonat.AutoNAT {
+	h.addrMu.Lock()
+	defer h.addrMu.Unlock()
+	return h.autoNat
+}
+
 // Close shuts down the Host's services (network, etc).
 func (h *BasicHost) Close() error {
 	h.closeSync.Do(func() {
@@ -1022,7 +1030,12 @@ func (h *BasicHost) Close() error {
 		if h.ids != nil {
 			h.ids.Close()
 		}
-
+		if h.autoNat != nil {
+			h.autoNat.Close()
+		}
+		if h.relayManager != nil {
+			h.relayManager.Close()
+		}
 		if h.hps != nil {
 			h.hps.Close()
 		}
@@ -1031,6 +1044,7 @@ func (h *BasicHost) Close() error {
 		_ = h.emitters.evtLocalAddrsUpdated.Close()
 		h.Network().Close()
 
+		h.psManager.Close()
 		if h.Peerstore() != nil {
 			h.Peerstore().Close()
 		}

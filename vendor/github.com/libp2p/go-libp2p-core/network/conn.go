@@ -63,5 +63,5 @@ type ConnMultiaddrs interface {
 // ConnStat is an interface mixin for connection types that provide connection statistics.
 type ConnStat interface {
 	// Stat stores metadata pertaining to this conn.
-	Stat() Stat
+	Stat() ConnStats
 }

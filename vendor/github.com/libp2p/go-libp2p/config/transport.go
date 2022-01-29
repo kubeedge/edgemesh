@@ -36,14 +36,14 @@ var transportArgTypes = argTypes
 //
 // And returns a type implementing transport.Transport and, optionally, an error
 // (as the second argument).
-func TransportConstructor(tpt interface{}) (TptC, error) {
+func TransportConstructor(tpt interface{}, opts ...interface{}) (TptC, error) {
 	// Already constructed?
 	if t, ok := tpt.(transport.Transport); ok {
 		return func(_ host.Host, _ *tptu.Upgrader, _ connmgr.ConnectionGater) (transport.Transport, error) {
 			return t, nil
 		}, nil
 	}
-	ctor, err := makeConstructor(tpt, transportType, transportArgTypes)
+	ctor, err := makeConstructor(tpt, transportType, transportArgTypes, opts...)
 	if err != nil {
 		return nil, err
 	}
