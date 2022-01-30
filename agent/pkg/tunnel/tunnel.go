@@ -13,7 +13,7 @@ import (
 	"github.com/kubeedge/edgemesh/common/constants"
 )
 
-const RETRY_CONNECT_TIME = 3
+const RetryConnectTime = 3
 
 func (t *TunnelAgent) Run() {
 	for {
@@ -27,7 +27,7 @@ func (t *TunnelAgent) Run() {
 		if len(t.Host.Network().ConnsToPeer(relay.ID)) == 0 {
 			klog.Warningf("Connection between agent and server %v is not established, try connect", relay.Addrs)
 			retryTime := 0
-			for retryTime < RETRY_CONNECT_TIME {
+			for retryTime < RetryConnectTime {
 				klog.Infof("Tunnel agent connecting to tunnel server")
 				err = t.Host.Connect(context.Background(), *relay)
 				if err != nil {

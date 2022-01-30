@@ -2,9 +2,6 @@ image: kubeedge/edgemesh-agent:latest
 affinity: {}
 nodeSelector: {}
 tolerations: {}
-livenessProbe:
-  initialDelaySeconds: 10
-  periodSeconds: 5
 
 # edgemesh-agent configmap
 apiVersion: agent.edgemesh.config.kubeedge.io/v1alpha1
@@ -47,3 +44,4 @@ modules:
       tlsCertFile: /etc/kubeedge/edgemesh/agent/acls/server.crt
       tlsPrivateKeyFile: /etc/kubeedge/edgemesh/agent/acls/server.key
     enableHolePunch: true
+    transport: tcp

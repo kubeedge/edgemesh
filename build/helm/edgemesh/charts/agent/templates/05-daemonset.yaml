@@ -40,11 +40,6 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Release.Name }}-agent
-          livenessProbe:
-            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
-            tcpSocket:
-              port: {{ .Values.modules.tunnel.listenPort }}
           securityContext:
             privileged: true
           image: {{ .Values.image }}

@@ -13,7 +13,7 @@ type transportConn struct {
 	network.ConnMultiaddrs
 	network.ConnSecurity
 	transport transport.Transport
-	stat      network.Stat
+	stat      network.ConnStats
 }
 
 func (t *transportConn) Transport() transport.Transport {
@@ -35,6 +35,6 @@ func (t *transportConn) String() string {
 	)
 }
 
-func (t *transportConn) Stat() network.Stat {
+func (t *transportConn) Stat() network.ConnStats {
 	return t.stat
 }

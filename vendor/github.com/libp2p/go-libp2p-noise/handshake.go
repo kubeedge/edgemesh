@@ -5,13 +5,14 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
-	pool "github.com/libp2p/go-buffer-pool"
-	"golang.org/x/crypto/poly1305"
 	"time"
+
+	"golang.org/x/crypto/poly1305"
 
 	"github.com/flynn/noise"
 	"github.com/gogo/protobuf/proto"
 
+	pool "github.com/libp2p/go-buffer-pool"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 
@@ -59,9 +60,9 @@ func (s *secureSession) runHandshake(ctx context.Context) error {
 		}
 	}
 
-	// We can re-use this buffer for all handshake messages as it's size
+	// We can re-use this buffer for all handshake messages as its size
 	// will be the size of the maximum handshake message for the Noise XX pattern.
-	// Also, since we prefix every noise handshake message with it's length, we need to account for
+	// Also, since we prefix every noise handshake message with its length, we need to account for
 	// it when we fetch the buffer from the pool
 	maxMsgSize := 2*noise.DH25519.DHLen() + len(payload) + 2*poly1305.TagSize
 	hbuf := pool.Get(maxMsgSize + LengthPrefixLength)
@@ -94,8 +95,8 @@ func (s *secureSession) runHandshake(ctx context.Context) error {
 		}
 	} else {
 		// stage 0 //
-		plaintext, err := s.readHandshakeMessage(hs)
-		if err != nil {
+		// We don't expect any payload on the first message.
+		if _, err := s.readHandshakeMessage(hs); err != nil {
 			return fmt.Errorf("error reading handshake message: %w", err)
 		}
 
@@ -108,7 +109,7 @@ func (s *secureSession) runHandshake(ctx context.Context) error {
 		}
 
 		// stage 2 //
-		plaintext, err = s.readHandshakeMessage(hs)
+		plaintext, err := s.readHandshakeMessage(hs)
 		if err != nil {
 			return fmt.Errorf("error reading handshake message: %w", err)
 		}
@@ -198,7 +199,7 @@ func (s *secureSession) readHandshakeMessage(hs *noise.HandshakeState) ([]byte, 
 func (s *secureSession) generateHandshakePayload(localStatic noise.DHKey) ([]byte, error) {
 	// obtain the public key from the handshake session so we can sign it with
 	// our libp2p secret key.
-	localKeyRaw, err := s.LocalPublicKey().Bytes()
+	localKeyRaw, err := crypto.MarshalPublicKey(s.LocalPublicKey())
 	if err != nil {
 		return nil, fmt.Errorf("error serializing libp2p identity key: %w", err)
 	}
@@ -241,8 +242,10 @@ func (s *secureSession) handleRemoteHandshakePayload(payload []byte, remoteStati
 		return err
 	}
 
-	// if we know who we're trying to reach, make sure we have the right peer
-	if s.initiator && s.remoteID != id {
+	// check the peer ID for:
+	// * all outbound connection
+	// * inbound connections, if we know which peer we want to connect to (SecureInbound called with a peer ID)
+	if (s.initiator && s.remoteID != id) || (!s.initiator && s.remoteID != "" && s.remoteID != id) {
 		// use Pretty() as it produces the full b58-encoded string, rather than abbreviated forms.
 		return fmt.Errorf("peer id mismatch: expected %s, but remote key matches %s", s.remoteID.Pretty(), id.Pretty())
 	}

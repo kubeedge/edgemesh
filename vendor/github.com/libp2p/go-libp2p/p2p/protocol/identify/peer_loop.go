@@ -27,10 +27,8 @@ type identifySnapshot struct {
 }
 
 type peerHandler struct {
-	ids     *IDService
-	started bool
+	ids *idService
 
-	ctx    context.Context
 	cancel context.CancelFunc
 
 	pid peer.ID
@@ -42,7 +40,7 @@ type peerHandler struct {
 	deltaCh chan struct{}
 }
 
-func newPeerHandler(pid peer.ID, ids *IDService) *peerHandler {
+func newPeerHandler(pid peer.ID, ids *idService) *peerHandler {
 	ph := &peerHandler{
 		ids: ids,
 		pid: pid,

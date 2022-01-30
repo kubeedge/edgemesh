@@ -9,9 +9,6 @@ affinity:
           operator: DoesNotExist
 nodeSelector: {}
 tolerations: {}
-livenessProbe:
-  initialDelaySeconds: 10
-  periodSeconds: 5
 
 # edgemesh-gateway configmap
 apiVersion: agent.edgemesh.config.kubeedge.io/v1alpha1
@@ -53,3 +50,4 @@ modules:
       tlsCertFile: /etc/kubeedge/edgemesh/gateway/acls/server.crt
       tlsPrivateKeyFile: /etc/kubeedge/edgemesh/gateway/acls/server.key
     enableHolePunch: true
+    transport: tcp

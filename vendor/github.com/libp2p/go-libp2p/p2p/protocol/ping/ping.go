@@ -8,7 +8,7 @@ import (
 	"time"
 
 	u "github.com/ipfs/go-ipfs-util"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -84,7 +84,7 @@ func (ps *PingService) Ping(ctx context.Context, p peer.ID) <-chan Result {
 // Ping pings the remote peer until the context is canceled, returning a stream
 // of RTTs or errors.
 func Ping(ctx context.Context, h host.Host, p peer.ID) <-chan Result {
-	s, err := h.NewStream(ctx, p, ID)
+	s, err := h.NewStream(network.WithUseTransient(ctx, "ping"), p, ID)
 	if err != nil {
 		ch := make(chan Result, 1)
 		ch <- Result{Error: err}
@@ -146,7 +146,7 @@ func ping(s network.Stream) (time.Duration, error) {
 	}
 
 	if !bytes.Equal(buf, rbuf) {
-		return 0, errors.New("ping packet was incorrect!")
+		return 0, errors.New("ping packet was incorrect")
 	}
 
 	return time.Since(before), nil

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"runtime"
@@ -81,7 +82,11 @@ func callConstructor(c reflect.Value, args []reflect.Value) (interface{}, error)
 type constructor func(h host.Host, u *tptu.Upgrader, cg connmgr.ConnectionGater) interface{}
 
 func makeArgumentConstructors(fnType reflect.Type, argTypes map[reflect.Type]constructor) ([]constructor, error) {
-	out := make([]constructor, fnType.NumIn())
+	params := fnType.NumIn()
+	if fnType.IsVariadic() {
+		params--
+	}
+	out := make([]constructor, params)
 	for i := range out {
 		argType := fnType.In(i)
 		c, ok := argTypes[argType]
@@ -93,11 +98,38 @@ func makeArgumentConstructors(fnType reflect.Type, argTypes map[reflect.Type]con
 	return out, nil
 }
 
+func getConstructorOpts(t reflect.Type, opts ...interface{}) ([]reflect.Value, error) {
+	if !t.IsVariadic() {
+		if len(opts) > 0 {
+			return nil, errors.New("constructor doesn't accept any options")
+		}
+		return nil, nil
+	}
+	if len(opts) == 0 {
+		return nil, nil
+	}
+	// variadic parameters always go last
+	wantType := t.In(t.NumIn() - 1).Elem()
+	values := make([]reflect.Value, 0, len(opts))
+	for _, opt := range opts {
+		val := reflect.ValueOf(opt)
+		if opt == nil {
+			return nil, errors.New("expected a transport option, got nil")
+		}
+		if val.Type() != wantType {
+			return nil, fmt.Errorf("expected option of type %s, got %s", wantType, reflect.TypeOf(opt))
+		}
+		values = append(values, val.Convert(wantType))
+	}
+	return values, nil
+}
+
 // makes a transport constructor.
 func makeConstructor(
 	tpt interface{},
 	tptType reflect.Type,
 	argTypes map[reflect.Type]constructor,
+	opts ...interface{},
 ) (func(host.Host, *tptu.Upgrader, connmgr.ConnectionGater) (interface{}, error), error) {
 	v := reflect.ValueOf(tpt)
 	// avoid panicing on nil/zero value.
@@ -117,19 +149,24 @@ func makeConstructor(
 	if err != nil {
 		return nil, err
 	}
+	optValues, err := getConstructorOpts(t, opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	return func(h host.Host, u *tptu.Upgrader, cg connmgr.ConnectionGater) (interface{}, error) {
-		arguments := make([]reflect.Value, len(argConstructors))
+		arguments := make([]reflect.Value, 0, len(argConstructors)+len(opts))
 		for i, makeArg := range argConstructors {
 			if arg := makeArg(h, u, cg); arg != nil {
-				arguments[i] = reflect.ValueOf(arg)
+				arguments = append(arguments, reflect.ValueOf(arg))
 			} else {
 				// ValueOf an un-typed nil yields a zero reflect
 				// value. However, we _want_ the zero value of
 				// the _type_.
-				arguments[i] = reflect.Zero(t.In(i))
+				arguments = append(arguments, reflect.Zero(t.In(i)))
 			}
 		}
+		arguments = append(arguments, optValues...)
 		return callConstructor(v, arguments)
 	}, nil
 }

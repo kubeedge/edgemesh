@@ -1,5 +1,5 @@
 image: kubeedge/edgemesh-server:latest
-nodeName: "your node name"
+nodeName: "your cloud node name"
 affinity: {}
   # nodeAffinity:
   #   requiredDuringSchedulingIgnoredDuringExecution:
@@ -9,9 +9,6 @@ affinity: {}
   #         operator: DoesNotExist
 tolerations: {}
 nodeSelector: {}
-livenessProbe:
-  initialDelaySeconds: 10
-  periodSeconds: 5
 # advertiseAddress overwrites the value of modules.tunnel.advertiseAddress
 advertiseAddress:
 
@@ -34,3 +31,4 @@ modules:
       tlsCaFile: /etc/kubeedge/edgemesh/server/acls/rootCA.crt
       tlsCertFile: /etc/kubeedge/edgemesh/server/acls/server.crt
       tlsPrivateKeyFile: /etc/kubeedge/edgemesh/server/acls/server.key
+    transport: tcp

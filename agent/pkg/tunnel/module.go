@@ -1,11 +1,9 @@
 package tunnel
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/libp2p/go-libp2p"
-	circuit "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-core/host"
 	libp2ptlsca "github.com/libp2p/go-libp2p-tls"
 	"k8s.io/klog/v2"
@@ -57,29 +55,32 @@ func newTunnelAgent(c *config.TunnelAgentConfig, ifm *informers.Manager, mode Tu
 	}
 
 	opts := []libp2p.Option{
-		libp2p.EnableRelay(circuit.OptActive),
+		libp2p.ListenAddrStrings(util.GenerateMultiAddr(c.Transport, "0.0.0.0", c.ListenPort)),
+		util.GenerateTransportOption(c.Transport),
+		libp2p.EnableRelay(),
 		libp2p.ForceReachabilityPrivate(),
-		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", c.ListenPort)),
 		libp2p.Identity(privateKey),
+	}
+
+	if c.Security.Enable {
+		libp2ptlsca.EnableCAEncryption(c.Security.TLSCAFile,
+			c.Security.TLSCertFile,
+			c.Security.TLSPrivateKeyFile)
+		opts = append(opts, libp2p.Security(libp2ptlsca.CAID, libp2ptlsca.New))
+	} else {
+		opts = append(opts, libp2p.NoSecurity)
 	}
 
 	if c.EnableHolePunch {
 		opts = append(opts, libp2p.EnableHolePunching())
 	}
 
-	if c.Security.Enable {
-		libp2ptlsca.Init(c.Security.TLSCAFile,
-			c.Security.TLSCertFile,
-			c.Security.TLSPrivateKeyFile,
-		)
-		opts = append(opts, libp2p.Security(libp2ptlsca.ID, libp2ptlsca.New))
-	} else {
-		opts = append(opts, libp2p.NoSecurity)
-	}
-
-	h, err := libp2p.New(context.Background(), opts...)
+	h, err := libp2p.New(opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to start tunnel server: %w", err)
+		return nil, fmt.Errorf("failed to start tunnel agent: %w", err)
+	}
+	for _, addr := range h.Addrs() {
+		fmt.Println("Listening on", addr)
 	}
 
 	Agent.Host = h

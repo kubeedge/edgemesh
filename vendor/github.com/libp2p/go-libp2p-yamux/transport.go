@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"net"
 
-	mux "github.com/libp2p/go-libp2p-core/mux"
+	"github.com/libp2p/go-libp2p-core/mux"
 	"github.com/libp2p/go-yamux/v2"
 )
 
@@ -23,6 +23,7 @@ func init() {
 	// We always run over a security transport that buffers internally
 	// (i.e., uses a block cipher).
 	config.ReadBufSize = 0
+	config.MaxIncomingStreams = 256
 	DefaultTransport = (*Transport)(config)
 }
 

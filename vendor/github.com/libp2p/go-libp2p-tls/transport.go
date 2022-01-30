@@ -3,44 +3,28 @@ package libp2ptls
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"errors"
-	"io/ioutil"
-	"log"
 	"net"
 	"sync"
 
-	libp2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
+	ci "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/sec"
 )
 
-// ID is the protocol ID
-const ID = "/tls-ca/1.0.0"
+// ID is the protocol ID (used when negotiating with multistream)
+const ID = "/tls/1.0.0"
 
-type Config struct {
-	caFile   string
-	certFile string
-	keyFile  string
-}
-
-var config Config
-
+// Transport constructs secure communication sessions for a peer.
 type Transport struct {
-	identity  *Identity
+	identity *Identity
+
 	localPeer peer.ID
-	privKey   libp2pcrypto.PrivKey
+	privKey   ci.PrivKey
 }
 
-func Init(caFile, certFile, keyFile string) {
-	config = Config{
-		caFile:   caFile,
-		certFile: certFile,
-		keyFile:  keyFile,
-	}
-}
-
-func New(key libp2pcrypto.PrivKey) (*Transport, error) {
+// New creates a TLS encrypted transport
+func New(key ci.PrivKey) (*Transport, error) {
 	id, err := peer.IDFromPrivateKey(key)
 	if err != nil {
 		return nil, err
@@ -50,25 +34,7 @@ func New(key libp2pcrypto.PrivKey) (*Transport, error) {
 		privKey:   key,
 	}
 
-	var cert tls.Certificate
-	cert, err = tls.LoadX509KeyPair(config.certFile, config.keyFile)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	var clientCertPool *x509.CertPool
-	caCertBytes, err := ioutil.ReadFile(config.caFile)
-	if err != nil {
-		panic("unable to read client.pem")
-	}
-	clientCertPool = x509.NewCertPool()
-	ok := clientCertPool.AppendCertsFromPEM(caCertBytes)
-	if !ok {
-		panic("failed to parse root certificate")
-	}
-
-	identity, err := NewIdentity(cert, clientCertPool)
+	identity, err := NewIdentity(key)
 	if err != nil {
 		return nil, err
 	}
@@ -76,25 +42,31 @@ func New(key libp2pcrypto.PrivKey) (*Transport, error) {
 	return t, nil
 }
 
+var _ sec.SecureTransport = &Transport{}
+
 // SecureInbound runs the TLS handshake as a server.
-func (t *Transport) SecureInbound(ctx context.Context, insecure net.Conn) (sec.SecureConn, error) {
-	config, keyCh := t.identity.ConfigForAny()
+// If p is empty, connections from any peer are accepted.
+func (t *Transport) SecureInbound(ctx context.Context, insecure net.Conn, p peer.ID) (sec.SecureConn, error) {
+	config, keyCh := t.identity.ConfigForPeer(p)
 	cs, err := t.handshake(ctx, tls.Server(insecure, config), keyCh)
 	if err != nil {
 		insecure.Close()
-		log.Printf("transport handshake error %s", err.Error())
 	}
 	return cs, err
 }
 
-// SecureOutbound runs the TLS handshake as a client
+// SecureOutbound runs the TLS handshake as a client.
+// Note that SecureOutbound will not return an error if the server doesn't
+// accept the certificate. This is due to the fact that in TLS 1.3, the client
+// sends its certificate and the ClientFinished in the same flight, and can send
+// application data immediately afterwards.
+// If the handshake fails, the server will close the connection. The client will
+// notice this after 1 RTT when calling Read.
 func (t *Transport) SecureOutbound(ctx context.Context, insecure net.Conn, p peer.ID) (sec.SecureConn, error) {
-	addr := insecure.RemoteAddr().String()
-	config, keyCh := t.identity.ConfigForPeer(p, addr)
+	config, keyCh := t.identity.ConfigForPeer(p)
 	cs, err := t.handshake(ctx, tls.Client(insecure, config), keyCh)
 	if err != nil {
 		insecure.Close()
-		log.Printf("transport handshake error %s", err.Error())
 	}
 	return cs, err
 }
@@ -102,7 +74,7 @@ func (t *Transport) SecureOutbound(ctx context.Context, insecure net.Conn, p pee
 func (t *Transport) handshake(
 	ctx context.Context,
 	tlsConn *tls.Conn,
-	keyCh <-chan libp2pcrypto.PubKey,
+	keyCh <-chan ci.PubKey,
 ) (sec.SecureConn, error) {
 	// There's no way to pass a context to tls.Conn.Handshake().
 	// See https://github.com/golang/go/issues/18482.
@@ -140,8 +112,8 @@ func (t *Transport) handshake(
 		return nil, err
 	}
 
-	//Should be ready by this point, don't block.
-	var remotePubKey libp2pcrypto.PubKey
+	// Should be ready by this point, don't block.
+	var remotePubKey ci.PubKey
 	select {
 	case remotePubKey = <-keyCh:
 	default:
@@ -158,11 +130,10 @@ func (t *Transport) handshake(
 		}
 		return nil, err
 	}
-	log.Printf("set up connection with remote %v", conn.RemoteAddr())
 	return conn, nil
 }
 
-func (t *Transport) setupConn(tlsConn *tls.Conn, remotePubKey libp2pcrypto.PubKey) (sec.SecureConn, error) {
+func (t *Transport) setupConn(tlsConn *tls.Conn, remotePubKey ci.PubKey) (sec.SecureConn, error) {
 	remotePeerID, err := peer.IDFromPublicKey(remotePubKey)
 	if err != nil {
 		return nil, err

@@ -4,7 +4,7 @@ global:
   mode: default
 server:
   image: kubeedge/edgemesh-server:latest
-  nodeName: "your node name"
+  nodeName: "your cloud node name"
   affinity: {}
   # nodeAffinity:
   #   requiredDuringSchedulingIgnoredDuringExecution:
@@ -14,9 +14,6 @@ server:
   #         operator: DoesNotExist
   tolerations: {}
   nodeSelector: {}
-  livenessProbe:
-    initialDelaySeconds: 10
-    periodSeconds: 5
   # advertiseAddress overwrites the value of modules.tunnel.advertiseAddress
   advertiseAddress:
 
@@ -39,15 +36,13 @@ server:
         tlsCaFile: /etc/kubeedge/edgemesh/server/acls/rootCA.crt
         tlsCertFile: /etc/kubeedge/edgemesh/server/acls/server.crt
         tlsPrivateKeyFile: /etc/kubeedge/edgemesh/server/acls/server.key
+      transport: tcp
 
 agent:
   image: kubeedge/edgemesh-agent:latest
   affinity: {}
   nodeSelector: {}
   tolerations: {}
-  livenessProbe:
-    initialDelaySeconds: 10
-    periodSeconds: 5
 
   # edgemesh-agent configmap
   apiVersion: agent.edgemesh.config.kubeedge.io/v1alpha1
@@ -89,3 +84,4 @@ agent:
         tlsCaFile: /etc/kubeedge/edgemesh/agent/acls/rootCA.crt
         tlsCertFile: /etc/kubeedge/edgemesh/agent/acls/server.crt
         tlsPrivateKeyFile: /etc/kubeedge/edgemesh/agent/acls/server.key
+      transport: tcp

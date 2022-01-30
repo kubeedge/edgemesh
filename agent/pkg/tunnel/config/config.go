@@ -24,6 +24,8 @@ type TunnelAgentConfig struct {
 	// EnableHolePunch indicates whether p2p hole punching feature is enabled,
 	// default true
 	EnableHolePunch bool `json:"enableHolePunch,omitempty"`
+	// Transport indicates the transport protocol used by the p2p tunnel
+	Transport string `json:"transport,omitempty"`
 }
 
 func NewTunnelAgentConfig() *TunnelAgentConfig {
@@ -37,5 +39,6 @@ func NewTunnelAgentConfig() *TunnelAgentConfig {
 		},
 		ListenPort:      defaultListenPort,
 		EnableHolePunch: true,
+		Transport:       "tcp",
 	}
 }
