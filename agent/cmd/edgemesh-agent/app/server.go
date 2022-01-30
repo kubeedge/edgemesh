@@ -47,21 +47,21 @@ for the inter-communications between services at edge scenarios.`,
 			flag.PrintFlags(cmd.Flags())
 
 			if errs := opts.Validate(); len(errs) > 0 {
-				klog.Fatal(util.SpliceErrors(errs))
+				klog.Exit(util.SpliceErrors(errs))
 			}
 
 			agentCfg, err := opts.Config()
 			if err != nil {
-				klog.Fatal(err)
+				klog.Exit(err)
 			}
 
 			if errs := validation.ValidateEdgeMeshAgentConfiguration(agentCfg); len(errs) > 0 {
-				klog.Fatal(util.SpliceErrors(errs.ToAggregate().Errors()))
+				klog.Exit(util.SpliceErrors(errs.ToAggregate().Errors()))
 			}
 
 			klog.Infof("Version: %+v", version.Get())
 			if err = Run(agentCfg); err != nil {
-				klog.Fatalf("run edgemesh-agent failed: %v", err)
+				klog.Exit("run edgemesh-agent failed: %v", err)
 			}
 		},
 	}

@@ -1,11 +1,9 @@
 package tunnel
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/libp2p/go-libp2p"
-	circuit "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-core/host"
 	libp2ptlsca "github.com/libp2p/go-libp2p-tls"
 	ma "github.com/multiformats/go-multiaddr"
@@ -46,7 +44,7 @@ func newTunnelServer(c *config.TunnelServerConfig, ifm *informers.Manager) (serv
 
 	addressFactory := func(addrs []ma.Multiaddr) []ma.Multiaddr {
 		for _, advertiseAddress := range c.AdvertiseAddress {
-			multiAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", advertiseAddress, c.ListenPort))
+			multiAddr, err := ma.NewMultiaddr(util.GenerateMultiAddr(c.Transport, advertiseAddress, c.ListenPort))
 			if err != nil {
 				klog.Warningf("New multiaddr err: %v", err)
 			}
@@ -64,32 +62,31 @@ func newTunnelServer(c *config.TunnelServerConfig, ifm *informers.Manager) (serv
 		}
 		return addrs
 	}
+
 	opts := []libp2p.Option{
-		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", c.ListenPort)),
+		libp2p.ListenAddrStrings(util.GenerateMultiAddr(c.Transport, "0.0.0.0", c.ListenPort)),
+		util.GenerateTransportOption(c.Transport),
 		libp2p.AddrsFactory(addressFactory),
-		libp2p.EnableRelay(circuit.OptHop),
+		libp2p.EnableRelay(),
 		libp2p.ForceReachabilityPrivate(),
 		libp2p.Identity(privateKey),
 	}
 
 	if c.Security.Enable {
-		libp2ptlsca.Init(c.Security.TLSCAFile,
+		libp2ptlsca.EnableCAEncryption(c.Security.TLSCAFile,
 			c.Security.TLSCertFile,
-			c.Security.TLSPrivateKeyFile,
-		)
+			c.Security.TLSPrivateKeyFile)
 		opts = append(opts, libp2p.Security(libp2ptlsca.ID, libp2ptlsca.New))
 	} else {
 		opts = append(opts, libp2p.NoSecurity)
 	}
 
-	host, err := libp2p.New(context.Background(), opts...)
+	h, err := libp2p.New(opts...)
 	if err != nil {
-		errMsg := fmt.Errorf("Start tunnel server failed, %v", err)
-		klog.Errorln(errMsg)
-		return server, errMsg
+		return nil, fmt.Errorf("failed to start tunnel server: %w", err)
 	}
-	server.Host = host
 
+	server.Host = h
 	return server, err
 }
 

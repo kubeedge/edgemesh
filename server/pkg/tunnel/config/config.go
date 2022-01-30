@@ -27,6 +27,8 @@ type TunnelServerConfig struct {
 	ListenPort int `json:"listenPort,omitempty"`
 	// AdvertiseAddress sets the IP address for the edgemesh-server to advertise
 	AdvertiseAddress []string `json:"advertiseAddress,omitempty"`
+	// Transport indicates the transport protocol used by the p2p tunnel
+	Transport string `json:"transport,omitempty"`
 }
 
 func NewTunnelServerConfig() *TunnelServerConfig {
@@ -50,5 +52,6 @@ func NewTunnelServerConfig() *TunnelServerConfig {
 		},
 		ListenPort:       defaultListenPort,
 		AdvertiseAddress: advertiseAddress,
+		Transport:        "tcp",
 	}
 }

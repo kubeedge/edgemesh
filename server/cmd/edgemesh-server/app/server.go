@@ -5,7 +5,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/pkg/version"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/cli/globalflag"
 	"k8s.io/component-base/term"
@@ -19,6 +18,7 @@ import (
 	"github.com/kubeedge/edgemesh/server/pkg/tunnel"
 	"github.com/kubeedge/kubeedge/pkg/util"
 	"github.com/kubeedge/kubeedge/pkg/util/flag"
+	"github.com/kubeedge/kubeedge/pkg/version"
 	"github.com/kubeedge/kubeedge/pkg/version/verflag"
 )
 
@@ -35,17 +35,17 @@ func NewEdgeMeshServerCommand() *cobra.Command {
 				klog.Exit(util.SpliceErrors(errs))
 			}
 
-			edgeMeshServerConfig, err := opts.Config()
+			serverCfg, err := opts.Config()
 			if err != nil {
 				klog.Exit(err)
 			}
 
-			if errs := validation.ValidateEdgeMeshServerConfiguration(edgeMeshServerConfig); len(errs) > 0 {
+			if errs := validation.ValidateEdgeMeshServerConfiguration(serverCfg); len(errs) > 0 {
 				klog.Exit(util.SpliceErrors(errs.ToAggregate().Errors()))
 			}
 
 			klog.Infof("Version: %+v", version.Get())
-			if err = Run(edgeMeshServerConfig); err != nil {
+			if err = Run(serverCfg); err != nil {
 				klog.Exit("run edgemesh-server failed: %v", err)
 			}
 		},
