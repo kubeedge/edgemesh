@@ -132,6 +132,7 @@ modules:
       tlsPrivateKeyFile: /etc/kubeedge/edgemesh/agent/acls/server.key
       token: "4cdfc5b7dc37b716feb0156eebaad1c00297145088c9d069a797a94d2379410b.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MzQ3MTI0Mjd9.w2l5pulUdI1IekLe-ZngvATjlhhqwsvrTjv_aNSBjF8"
       httpServer: https://119.8.211.54:10002
+    transport: tcp
 ```
 
 #### Table 1: edgemesh-agent
@@ -270,6 +271,7 @@ modules:
 | nodeName | string | empty | the name of the node where edgemesh-agent is scheduled. No manual configuration required, automatically recognized by the program |
 | security | object | [Table 1-4-4-1](#t1-4-4-1) | tunnel security configuration |
 | enableHolePunch | bool | true | p2p hole punching option |
+| transport | string | tcp | tunnel transport protocol, optional: ["tcp", "ws", "quic"] |
 
 <a name="t1-4-4-1"></a>
 
@@ -312,6 +314,7 @@ modules:
       tlsPrivateKeyFile: /etc/kubeedge/edgemesh/server/acls/server.key
       token: "4cdfc5b7dc37b716feb0156eebaad1c00297145088c9d069a797a94d2379410b.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MzQ3MTI0Mjd9.w2l5pulUdI1IekLe-ZngvATjlhhqwsvrTjv_aNSBjF8"
       httpServer: https://119.8.211.54:10002
+    transport: tcp
 ```
 
 #### Table 2: edgemesh-server
@@ -340,3 +343,4 @@ modules:
 | advertiseAddress | []string | empty | IP list of services exposed by edgemesh-server |
 | nodeName | string | empty | the name of the node where edgemesh-server is scheduled. No manual configuration required, automatically recognized by the program |
 | security | object | [Table 1-4-4-1](#t1-4-4-1) | tunnel security configuration |
+| transport | string | tcp | tunnel transport protocol, optional: ["tcp", "ws", "quic"] |

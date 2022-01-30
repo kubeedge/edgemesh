@@ -132,6 +132,7 @@ modules:
       tlsPrivateKeyFile: /etc/kubeedge/edgemesh/agent/acls/server.key
       token: "4cdfc5b7dc37b716feb0156eebaad1c00297145088c9d069a797a94d2379410b.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MzQ3MTI0Mjd9.w2l5pulUdI1IekLe-ZngvATjlhhqwsvrTjv_aNSBjF8"
       httpServer: https://119.8.211.54:10002
+    transport: tcp
 ```
 
 #### 表1: edgemesh-agent
@@ -270,6 +271,7 @@ modules:
 | nodeName | string | 无 | edgemesh-agent 被调度到的节点名称。无需手动配置，由程序自动识别 |
 | security | object | [表1-4-4-1](#t1-4-4-1) | tunnel security 配置项 |
 | enableHolePunch | bool | true | p2p 打洞开关 |
+| transport | string | tcp | 隧道传输协议，可选项：["tcp", "ws", "quic"] |
 
 <a name="t1-4-4-1"></a>
 
@@ -312,6 +314,7 @@ modules:
       tlsPrivateKeyFile: /etc/kubeedge/edgemesh/server/acls/server.key
       token: "4cdfc5b7dc37b716feb0156eebaad1c00297145088c9d069a797a94d2379410b.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MzQ3MTI0Mjd9.w2l5pulUdI1IekLe-ZngvATjlhhqwsvrTjv_aNSBjF8"
       httpServer: https://119.8.211.54:10002
+    transport: tcp
 ```
 
 #### 表2: edgemesh-server
@@ -340,3 +343,4 @@ modules:
 | advertiseAddress | []string | 无 | edgemesh-server 对外暴露的服务 IP 列表 |
 | nodeName | string | 无 | edgemesh-server 被调度到的节点名称。无需手动配置，由程序自动识别 |
 | security | object | [表1-4-4-1](#t1-4-4-1) | tunnel security 配置项 |
+| transport | string | tcp | 隧道传输协议，可选项：["tcp", "ws", "quic"] |
