@@ -66,3 +66,4 @@ data:
           tlsCertFile: {{ .Values.modules.tunnel.security.tlsCertFile}}
           tlsPrivateKeyFile: {{ .Values.modules.tunnel.security.tlsPrivateKeyFile }}
         enableHolePunch: {{ .Values.modules.tunnel.enableHolePunch }}
+        transport: {{ .Values.modules.tunnel.transport }}

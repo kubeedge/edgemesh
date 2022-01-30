@@ -33,11 +33,6 @@ spec:
       {{- end }}
       containers:
       - name: {{ .Release.Name }}-server
-        livenessProbe:
-          initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
-          periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
-          tcpSocket:
-            port: {{ .Values.modules.tunnel.listenPort }}
         image: {{ .Values.image }}
         env:
           - name: MY_NODE_NAME
@@ -47,7 +42,6 @@ spec:
         ports:
         - containerPort: {{ .Values.modules.tunnel.listenPort }}
           name: relay
-          protocol: TCP
         resources:
           limits:
             cpu: 1

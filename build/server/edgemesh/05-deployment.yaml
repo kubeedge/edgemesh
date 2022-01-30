@@ -21,12 +21,6 @@ spec:
       # use label to selector node
       nodeName: <your cloud node name>
       containers:
-      - name: edgemesh-server
-        livenessProbe:
-          initialDelaySeconds: 10
-          periodSeconds: 5
-          tcpSocket:
-            port: 20004
         image: kubeedge/edgemesh-server:latest
         env:
           - name: MY_NODE_NAME
@@ -36,7 +30,6 @@ spec:
         ports:
         - containerPort: 20004
           name: relay
-          protocol: TCP
         resources:
           limits:
             cpu: 200m
