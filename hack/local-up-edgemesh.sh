@@ -72,7 +72,7 @@ get_kubeedge_pid() {
 # spin up cluster with kind command
 function kind_up_cluster {
   echo "Running kind: [kind create cluster ${CLUSTER_CONTEXT} --image kindest/node:v1.18.2]"
-  kind create cluster ${CLUSTER_CONTEXT}  --image kindest/node:v1.18.2
+  kind create cluster ${CLUSTER_CONTEXT} --image kindest/node:v1.18.2
   add_cleanup '
     echo "Running kind: [kind delete cluster ${CLUSTER_CONTEXT}]"
     kind delete cluster ${CLUSTER_CONTEXT}
@@ -89,7 +89,7 @@ function check_control_plane_ready {
 function proxy_kubeAPI {
     set -x
     echo "proxy kubeAPI master"
-    nohup kubectl proxy --address='0.0.0.0'  --port=${KUBEAPI_PROXY_PORT} --accept-hosts='^*$' >/dev/null 2>&1 &
+    nohup kubectl proxy --address='0.0.0.0' --port=${KUBEAPI_PROXY_PORT} --accept-hosts='^*$' >/dev/null 2>&1 &
     PROXY_PID=$!
     add_cleanup 'sudo kill $PROXY_PID'
     KUBEAPI_PROXY_ADDR=${HOST_IP}:${KUBEAPI_PROXY_PORT}
