@@ -21,12 +21,13 @@ spec:
       # use label to selector node
       nodeName: <your cloud node name>
       containers:
+      - name: edgemesh-server
         image: kubeedge/edgemesh-server:latest
         env:
-          - name: MY_NODE_NAME
-            valueFrom:
-              fieldRef:
-                fieldPath: spec.nodeName
+        - name: MY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
         ports:
         - containerPort: 20004
           name: relay
@@ -38,28 +39,28 @@ spec:
             cpu: 100m
             memory: 512Mi
         volumeMounts:
-          - name: conf
-            mountPath: /etc/kubeedge/config
-          - name: edgemesh
-            mountPath: /etc/kubeedge/edgemesh
-          - name: ca-server-token
-            mountPath: /etc/kubeedge/cert
-          - name: host-time
-            mountPath: /etc/localtime
-            readOnly: true
+        - name: conf
+          mountPath: /etc/kubeedge/config
+        - name: edgemesh
+          mountPath: /etc/kubeedge/edgemesh
+        - name: ca-server-token
+          mountPath: /etc/kubeedge/cert
+        - name: host-time
+          mountPath: /etc/localtime
+          readOnly: true
       restartPolicy: Always
       serviceAccountName: edgemesh-server
       volumes:
-        - name: conf
-          configMap:
-            name: edgemesh-server-cfg
-        - name: edgemesh
-          hostPath:
-            path: /etc/kubeedge/edgemesh
-            type: DirectoryOrCreate
-        - name: ca-server-token
-          secret:
-            secretName: tokensecret
-        - name: host-time
-          hostPath:
-            path: /etc/localtime
+      - name: conf
+        configMap:
+          name: edgemesh-server-cfg
+      - name: edgemesh
+        hostPath:
+          path: /etc/kubeedge/edgemesh
+          type: DirectoryOrCreate
+      - name: ca-server-token
+        secret:
+          secretName: tokensecret
+      - name: host-time
+        hostPath:
+          path: /etc/localtime

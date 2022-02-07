@@ -19,50 +19,50 @@ spec:
     spec:
       hostNetwork: true
       containers:
-        - name: edgemesh-agent
-          securityContext:
-            privileged: true
-          image: kubeedge/edgemesh-agent:latest
-          env:
-            - name: MY_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-          resources:
-            limits:
-              cpu: 200m
-              memory: 256Mi
-            requests:
-              cpu: 100m
-              memory: 128Mi
-          volumeMounts:
-            - name: conf
-              mountPath: /etc/kubeedge/config
-            - name: resolv
-              mountPath: /etc/resolv.conf
-            - name: edgemesh
-              mountPath: /etc/kubeedge/edgemesh
-            - name: ca-server-token
-              mountPath: /etc/kubeedge/cert
-            - name: host-time
-              mountPath: /etc/localtime
-              readOnly: true
+      - name: edgemesh-agent
+        securityContext:
+          privileged: true
+        image: kubeedge/edgemesh-agent:latest
+        env:
+        - name: MY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: conf
+          mountPath: /etc/kubeedge/config
+        - name: resolv
+          mountPath: /etc/resolv.conf
+        - name: edgemesh
+          mountPath: /etc/kubeedge/edgemesh
+        - name: ca-server-token
+          mountPath: /etc/kubeedge/cert
+        - name: host-time
+          mountPath: /etc/localtime
+          readOnly: true
       restartPolicy: Always
       serviceAccountName: edgemesh-agent
       volumes:
-        - name: conf
-          configMap:
-            name: edgemesh-agent-cfg
-        - name: resolv
-          hostPath:
-            path: /etc/resolv.conf
-        - name: edgemesh
-          hostPath:
-            path: /etc/kubeedge/edgemesh
-            type: DirectoryOrCreate
-        - name: ca-server-token
-          secret:
-            secretName: tokensecret
-        - name: host-time
-          hostPath:
-            path: /etc/localtime
+      - name: conf
+        configMap:
+          name: edgemesh-agent-cfg
+      - name: resolv
+        hostPath:
+          path: /etc/resolv.conf
+      - name: edgemesh
+        hostPath:
+          path: /etc/kubeedge/edgemesh
+          type: DirectoryOrCreate
+      - name: ca-server-token
+        secret:
+          secretName: tokensecret
+      - name: host-time
+        hostPath:
+          path: /etc/localtime
