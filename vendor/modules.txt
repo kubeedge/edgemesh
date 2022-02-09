@@ -404,7 +404,7 @@ github.com/libp2p/go-libp2p-pnet
 github.com/libp2p/go-libp2p-quic-transport
 # github.com/libp2p/go-libp2p-swarm v0.9.0
 github.com/libp2p/go-libp2p-swarm
-# github.com/libp2p/go-libp2p-tls v0.3.1 => github.com/Poorunga/go-libp2p-tls v0.3.2
+# github.com/libp2p/go-libp2p-tls v0.3.1 => github.com/Poorunga/go-libp2p-tls v0.3.2-beta.6
 ## explicit
 github.com/libp2p/go-libp2p-tls
 # github.com/libp2p/go-libp2p-transport-upgrader v0.6.0
@@ -1248,7 +1248,7 @@ sigs.k8s.io/structured-merge-diff/v4/value
 ## explicit
 sigs.k8s.io/yaml
 # github.com/coredns/coredns => github.com/Poorunga/coredns v1.8.7
-# github.com/libp2p/go-libp2p-tls => github.com/Poorunga/go-libp2p-tls v0.3.2
+# github.com/libp2p/go-libp2p-tls => github.com/Poorunga/go-libp2p-tls v0.3.2-beta.6
 # k8s.io/api v0.0.0 => k8s.io/api v0.21.1
 # k8s.io/apiextensions-apiserver v0.0.0 => k8s.io/apiextensions-apiserver v0.21.1
 # k8s.io/apimachinery v0.0.0 => k8s.io/apimachinery v0.21.1
