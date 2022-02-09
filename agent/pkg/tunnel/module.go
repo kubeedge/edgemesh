@@ -63,10 +63,11 @@ func newTunnelAgent(c *config.TunnelAgentConfig, ifm *informers.Manager, mode Tu
 	}
 
 	if c.Security.Enable {
-		libp2ptlsca.EnableCAEncryption(c.Security.TLSCAFile,
-			c.Security.TLSCertFile,
-			c.Security.TLSPrivateKeyFile)
-		opts = append(opts, libp2p.Security(libp2ptlsca.CAID, libp2ptlsca.New))
+		if err := libp2ptlsca.EnableCAEncryption(c.Security.TLSCAFile, c.Security.TLSCertFile,
+			c.Security.TLSPrivateKeyFile); err != nil {
+			return nil, fmt.Errorf("go-libp2p-tls: enable ca encryption err: %w", err)
+		}
+		opts = append(opts, libp2p.Security(libp2ptlsca.ID, libp2ptlsca.New))
 	} else {
 		opts = append(opts, libp2p.NoSecurity)
 	}

@@ -16,7 +16,6 @@ import (
 	"golang.org/x/sys/cpu"
 
 	ic "github.com/libp2p/go-libp2p-core/crypto"
-	libp2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -39,26 +38,9 @@ type Identity struct {
 
 // NewIdentity creates a new identity
 func NewIdentity(privKey ic.PrivKey) (*Identity, error) {
-	// use ca cert(@Poorunga)
-	if CAEnable {
-		cert, pool, err := GenerateCertAndPool()
-		if err != nil {
-			return nil, err
-		}
-		return &Identity{
-			config: tls.Config{
-				Certificates: []tls.Certificate{cert},
-				// for server
-				ClientAuth: tls.RequireAndVerifyClientCert,
-				ClientCAs:  pool,
-				// for client
-				// client need to skip hostname verify
-				RootCAs:            pool,
-				InsecureSkipVerify: true, // Not actually skipping, we check the cert in VerifyPeerCertificate
-			},
-		}, nil
+	if caEnable {
+		return &Identity{config: *caConfig.tlsConfig.Clone()}, nil
 	}
-
 	cert, err := keyToCertificate(privKey)
 	if err != nil {
 		return nil, err
@@ -105,13 +87,7 @@ func (i *Identity) ConfigForPeer(remote peer.ID) (*tls.Config, <-chan ic.PubKey)
 			chain[i] = cert
 		}
 
-		var err error
-		var pubKey libp2pcrypto.PubKey
-		if CAEnable {
-			pubKey, err = PubKeyFromCAConfig(conf, chain)
-		} else {
-			pubKey, err = PubKeyFromCertChain(chain)
-		}
+		pubKey, err := PubKeyFromCertChain(chain)
 		if err != nil {
 			return err
 		}
@@ -132,6 +108,9 @@ func (i *Identity) ConfigForPeer(remote peer.ID) (*tls.Config, <-chan ic.PubKey)
 func PubKeyFromCertChain(chain []*x509.Certificate) (ic.PubKey, error) {
 	if len(chain) != 1 {
 		return nil, errors.New("expected one certificates in the chain")
+	}
+	if caEnable {
+		return pubKeyFromCertChainAndTLSConfig(chain)
 	}
 	cert := chain[0]
 	pool := x509.NewCertPool()

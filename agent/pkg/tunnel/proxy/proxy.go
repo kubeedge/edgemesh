@@ -60,6 +60,8 @@ func (ps *ProxyService) ProxyStreamHandler(s network.Stream) {
 		klog.Errorf("Read msg from %s type should be CONNECT", s.Conn().RemotePeer().String())
 		return
 	}
+	targetProto := *msg.Protocol
+	targetAddr := fmt.Sprintf("%s:%d", *msg.Ip, *msg.Port)
 
 	proxyClient, err := ps.establishProxyConn(msg)
 	if err != nil {
@@ -85,7 +87,7 @@ func (ps *ProxyService) ProxyStreamHandler(s network.Stream) {
 	go Pipe(proxyClient, s, &closeOnce)
 	Pipe(s, proxyClient, &closeOnce)
 
-	klog.Infof("Success proxy for targetAddr: %v", msg)
+	klog.Infof("Success proxy [%s] for targetAddr %s", targetProto, targetAddr)
 }
 
 func (ps *ProxyService) establishProxyConn(msg *pb.Proxy) (net.Conn, error) {
