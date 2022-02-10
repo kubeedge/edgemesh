@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	v1 "k8s.io/api/core/v1"
+	k8slisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 
@@ -19,6 +20,8 @@ var (
 )
 
 type ProxyController struct {
+	podLister k8slisters.PodLister
+
 	svcInformer      cache.SharedIndexInformer
 	svcEventHandlers map[string]cache.ResourceEventHandlerFuncs // key: service event handler name
 
@@ -30,6 +33,7 @@ type ProxyController struct {
 func Init(ifm *informers.Manager) {
 	once.Do(func() {
 		APIConn = &ProxyController{
+			podLister:        ifm.GetKubeFactory().Core().V1().Pods().Lister(),
 			svcInformer:      ifm.GetKubeFactory().Core().V1().Services().Informer(),
 			svcEventHandlers: make(map[string]cache.ResourceEventHandlerFuncs),
 			svcPortsByIP:     make(map[string]string),
@@ -49,6 +53,10 @@ func (c *ProxyController) onCacheSynced() {
 		klog.V(4).Infof("enable service event handler funcs: %s", name)
 		c.svcInformer.AddEventHandler(funcs)
 	}
+}
+
+func (c *ProxyController) GetPodLister() k8slisters.PodLister {
+	return c.podLister
 }
 
 func (c *ProxyController) SetServiceEventHandlers(name string, handlerFuncs cache.ResourceEventHandlerFuncs) {
