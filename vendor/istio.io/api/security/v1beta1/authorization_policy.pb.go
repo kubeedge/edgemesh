@@ -3,18 +3,19 @@
 
 // Istio Authorization Policy enables access control on workloads in the mesh.
 //
-// Authorization policy supports both allow and deny policies. When allow and
-// deny policies are used for a workload at the same time, the deny policies are
-// evaluated first. The evaluation is determined by the following rules:
+// Authorization policy supports CUSTOM, DENY and ALLOW actions for access control. When CUSTOM, DENY and ALLOW actions
+// are used for a workload at the same time, the CUSTOM action is evaluated first, then the DENY action, and finally the ALLOW action.
+// The evaluation is determined by the following rules:
 //
-// 1. If there are any DENY policies that match the request, deny the request.
-// 2. If there are no ALLOW policies for the workload, allow the request.
-// 3. If any of the ALLOW policies match the request, allow the request.
-// 4. Deny the request.
+// 1. If there are any CUSTOM policies that match the request, evaluate and deny the request if the evaluation result is deny.
+// 2. If there are any DENY policies that match the request, deny the request.
+// 3. If there are no ALLOW policies for the workload, allow the request.
+// 4. If any of the ALLOW policies match the request, allow the request.
+// 5. Deny the request.
 //
 // Istio Authorization Policy also supports the AUDIT action to decide whether to log requests.
 // AUDIT policies do not affect whether requests are allowed or denied to the workload.
-// Requests will be allowed or denied based solely on ALLOW and DENY policies.
+// Requests will be allowed or denied based solely on CUSTOM, DENY and ALLOW actions.
 //
 // A request will be internally marked that it should be audited if there is an AUDIT policy on the workload that matches the request.
 // A separate plugin must be configured and enabled to actually fulfill the audit decision and complete the audit behavior.
@@ -44,26 +45,26 @@
 // apiVersion: security.istio.io/v1beta1
 // kind: AuthorizationPolicy
 // metadata:
-//  name: httpbin
-//  namespace: foo
+//   name: httpbin
+//   namespace: foo
 // spec:
-//  action: ALLOW
-//  rules:
-//  - from:
-//    - source:
-//        principals: ["cluster.local/ns/default/sa/sleep"]
-//    - source:
-//        namespaces: ["test"]
-//    to:
-//    - operation:
-//        methods: ["GET"]
-//        paths: ["/info*"]
-//    - operation:
-//        methods: ["POST"]
-//        paths: ["/data"]
-//    when:
-//    - key: request.auth.claims[iss]
-//      values: ["https://accounts.google.com"]
+//   action: ALLOW
+//   rules:
+//   - from:
+//     - source:
+//         principals: ["cluster.local/ns/default/sa/sleep"]
+//     - source:
+//         namespaces: ["test"]
+//     to:
+//     - operation:
+//         methods: ["GET"]
+//         paths: ["/info*"]
+//     - operation:
+//         methods: ["POST"]
+//         paths: ["/data"]
+//     when:
+//     - key: request.auth.claims[iss]
+//       values: ["https://accounts.google.com"]
 // ```
 //
 // The following is another example that sets `action` to "DENY" to create a deny policy.
@@ -74,17 +75,17 @@
 // apiVersion: security.istio.io/v1beta1
 // kind: AuthorizationPolicy
 // metadata:
-//  name: httpbin
-//  namespace: foo
+//   name: httpbin
+//   namespace: foo
 // spec:
-//  action: DENY
-//  rules:
-//  - from:
-//    - source:
-//        namespaces: ["dev"]
-//    to:
-//    - operation:
-//        methods: ["POST"]
+//   action: DENY
+//   rules:
+//   - from:
+//     - source:
+//         namespaces: ["dev"]
+//     to:
+//     - operation:
+//         methods: ["POST"]
 // ```
 //
 // The following authorization policy sets the `action` to "AUDIT". It will audit any GET requests to the path with the
@@ -100,7 +101,7 @@
 //   selector:
 //     matchLabels:
 //       app: myapi
-//   action: audit
+//   action: AUDIT
 //   rules:
 //   - to:
 //     - operation:
@@ -117,43 +118,56 @@
 //
 // For example,
 //
-// The following authorization policy applies to workloads containing label
-// "app: httpbin" in namespace bar.
+// The following authorization policy applies to all workloads in namespace foo. It allows nothing and effectively denies
+// all requests to workloads in namespace foo.
 //
 // ```yaml
 // apiVersion: security.istio.io/v1beta1
 // kind: AuthorizationPolicy
 // metadata:
-//  name: policy
-//  namespace: bar
-// spec:
-//  selector:
-//    matchLabels:
-//      app: httpbin
-// ```
-//
-// The following authorization policy applies to all workloads in namespace foo.
-//
-// ```yaml
-// apiVersion: security.istio.io/v1beta1
-// kind: AuthorizationPolicy
-// metadata:
-//  name: policy
+//  name: allow-nothing
 //  namespace: foo
 // spec:
 //   {}
 // ```
 //
-// The following authorization policy applies to workloads containing label
-// "version: v1" in all namespaces in the mesh. (Assuming the root namespace is
-// configured to "istio-config").
+// The following authorization policy allows all requests to workloads in namespace foo.
 //
 // ```yaml
 // apiVersion: security.istio.io/v1beta1
 // kind: AuthorizationPolicy
 // metadata:
-//  name: policy
-//  namespace: istio-config
+//  name: allow-all
+//  namespace: foo
+// spec:
+//  rules:
+//  - {}
+// ```
+//
+// The following authorization policy applies to workloads containing label "app: httpbin" in namespace bar. It allows
+// nothing and effectively denies all requests to the selected workloads.
+//
+// ```yaml
+// apiVersion: security.istio.io/v1beta1
+// kind: AuthorizationPolicy
+// metadata:
+//   name: allow-nothing
+//   namespace: bar
+// spec:
+//   selector:
+//     matchLabels:
+//       app: httpbin
+// ```
+//
+// The following authorization policy applies to workloads containing label "version: v1" in all namespaces in the mesh.
+// (Assuming the root namespace is configured to "istio-system").
+//
+// ```yaml
+// apiVersion: security.istio.io/v1beta1
+// kind: AuthorizationPolicy
+// metadata:
+//  name: allow-nothing
+//  namespace: istio-system
 // spec:
 //  selector:
 //    matchLabels:
@@ -193,7 +207,6 @@ const (
 	AuthorizationPolicy_DENY AuthorizationPolicy_Action = 1
 	// Audit a request if it matches any of the rules.
 	AuthorizationPolicy_AUDIT AuthorizationPolicy_Action = 2
-	// $hide_from_docs
 	// The CUSTOM action allows an extension to handle the user request if the matching rules evaluate to true.
 	// The extension is evaluated independently and before the native ALLOW and DENY actions. When used together, A request
 	// is allowed if and only if all the actions return allow, in other words, the extension cannot bypass the
@@ -203,7 +216,7 @@ const (
 	// One example use case of the extension is to integrate with a custom external authorization system to delegate
 	// the authorization decision to it.
 	//
-	// Note: The CUSTOM action is currently an **experimental feature** and is subject to breaking changes in later versions.
+	// Note: The CUSTOM action is currently an **alpha feature** and is subject to breaking changes in later versions.
 	//
 	// The following authorization policy applies to an ingress gateway and delegates the authorization check to a named extension
 	// "my-custom-authz" if the request path has prefix "/admin/".
@@ -253,33 +266,6 @@ func (AuthorizationPolicy_Action) EnumDescriptor() ([]byte, []int) {
 
 // AuthorizationPolicy enables access control on workloads.
 //
-// For example, the following authorization policy denies all requests to workloads
-// in namespace foo.
-//
-// ```yaml
-// apiVersion: security.istio.io/v1beta1
-// kind: AuthorizationPolicy
-// metadata:
-//  name: deny-all
-//  namespace: foo
-// spec:
-//   {}
-// ```
-//
-// The following authorization policy allows all requests to workloads in namespace
-// foo.
-//
-// ```yaml
-// apiVersion: security.istio.io/v1beta1
-// kind: AuthorizationPolicy
-// metadata:
-//  name: allow-all
-//  namespace: foo
-// spec:
-//  rules:
-//  - {}
-// ```
-//
 // <!-- crd generation tags
 // +cue-gen:AuthorizationPolicy:groupName:security.istio.io
 // +cue-gen:AuthorizationPolicy:version:v1beta1
@@ -299,20 +285,19 @@ func (AuthorizationPolicy_Action) EnumDescriptor() ([]byte, []int) {
 // +k8s:deepcopy-gen=true
 // -->
 type AuthorizationPolicy struct {
-	// Optional. Workload selector decides where to apply the authorization policy.
-	// If not set, the authorization policy will be applied to all workloads in the
-	// same namespace as the authorization policy.
+	// Optional. The selector decides where to apply the authorization policy. The selector will match with workloads
+	// in the same namespace as the authorization policy. If the authorization policy is in the root namespace, the selector
+	// will additionally match with workloads in all namespaces.
+	//
+	// If not set, the selector will match all workloads.
 	Selector *v1beta1.WorkloadSelector `protobuf:"bytes,1,opt,name=selector,proto3" json:"selector,omitempty"`
-	// Optional. A list of rules to match the request. A match occurs when at least
-	// one rule matches the request.
+	// Optional. A list of rules to match the request. A match occurs when at least one rule matches the request.
 	//
-	// If not set, the match will never occur. This is equivalent to setting a
-	// default of deny for the target workloads.
+	// If not set, the match will never occur. This is equivalent to setting a default of deny for the target workloads if
+	// the action is ALLOW.
 	Rules []*Rule `protobuf:"bytes,2,rep,name=rules,proto3" json:"rules,omitempty"`
-	// Optional. The action to take if the request is matched with the rules.
+	// Optional. The action to take if the request is matched with the rules. Default is ALLOW if not specified.
 	Action AuthorizationPolicy_Action `protobuf:"varint,3,opt,name=action,proto3,enum=istio.security.v1beta1.AuthorizationPolicy_Action" json:"action,omitempty"`
-	// $hide_from_docs
-	//
 	// Types that are valid to be assigned to ActionDetail:
 	//	*AuthorizationPolicy_Provider
 	ActionDetail         isAuthorizationPolicy_ActionDetail `protobuf_oneof:"action_detail"`
@@ -408,7 +393,6 @@ func (*AuthorizationPolicy) XXX_OneofWrappers() []interface{} {
 	}
 }
 
-// $hide_from_docs
 type AuthorizationPolicy_ExtensionProvider struct {
 	// Specifies the name of the extension provider. The list of available providers is defined in the MeshConfig.
 	// Note, currently at most 1 extension provider is allowed per workload. Different workloads can use different extension provider.
@@ -459,7 +443,7 @@ func (m *AuthorizationPolicy_ExtensionProvider) GetName() string {
 }
 
 // Rule matches requests from a list of sources that perform a list of operations subject to a
-// list of conditions. A match occurs when at least one source, operation and condition
+// list of conditions. A match occurs when at least one source, one operation and all conditions
 // matches the request. An empty rule is always matched.
 //
 // Any string field in the rule supports Exact, Prefix, Suffix and Presence match:
@@ -647,44 +631,45 @@ func (m *Rule_To) GetOperation() *Operation {
 // ```yaml
 // principals: ["admin", "dev"]
 // namespaces: ["prod", "test"]
-// not_ipblocks: ["1.2.3.4"]
+// notIpBlocks: ["1.2.3.4"]
 // ```
 type Source struct {
-	// Optional. A list of source peer identities (i.e. service account), which
-	// matches to the "source.principal" attribute. This field requires mTLS enabled.
+	// Optional. A list of peer identities derived from the peer certificate. The peer identity is in the format of
+	// `"<TRUST_DOMAIN>/ns/<NAMESPACE>/sa/<SERVICE_ACCOUNT>"`, for example, `"cluster.local/ns/default/sa/productpage"`.
+	// This field requires mTLS enabled and is the same as the `source.principal` attribute.
 	//
 	// If not set, any principal is allowed.
 	Principals []string `protobuf:"bytes,1,rep,name=principals,proto3" json:"principals,omitempty"`
-	// Optional. A list of negative match of source peer identities.
+	// Optional. A list of negative match of peer identities.
 	NotPrincipals []string `protobuf:"bytes,5,rep,name=not_principals,json=notPrincipals,proto3" json:"not_principals,omitempty"`
-	// Optional. A list of request identities (i.e. "iss/sub" claims), which
-	// matches to the "request.auth.principal" attribute.
+	// Optional. A list of request identities derived from the JWT. The request identity is in the format of
+	// `"<ISS>/<SUB>"`, for example, `"example.com/sub-1"`. This field requires request authentication enabled and is the
+	// same as the `request.auth.principal` attribute.
 	//
 	// If not set, any request principal is allowed.
 	RequestPrincipals []string `protobuf:"bytes,2,rep,name=request_principals,json=requestPrincipals,proto3" json:"request_principals,omitempty"`
 	// Optional. A list of negative match of request identities.
 	NotRequestPrincipals []string `protobuf:"bytes,6,rep,name=not_request_principals,json=notRequestPrincipals,proto3" json:"not_request_principals,omitempty"`
-	// Optional. A list of namespaces, which matches to the "source.namespace"
-	// attribute. This field requires mTLS enabled.
+	// Optional. A list of namespaces derived from the peer certificate.
+	// This field requires mTLS enabled and is the same as the `source.namespace` attribute.
 	//
 	// If not set, any namespace is allowed.
 	Namespaces []string `protobuf:"bytes,3,rep,name=namespaces,proto3" json:"namespaces,omitempty"`
 	// Optional. A list of negative match of namespaces.
 	NotNamespaces []string `protobuf:"bytes,7,rep,name=not_namespaces,json=notNamespaces,proto3" json:"not_namespaces,omitempty"`
-	// Optional. A list of IP blocks, which matches to the "source.ip" attribute.
-	// Populated from the source address of the IP packet.
-	// Single IP (e.g. "1.2.3.4") and CIDR (e.g. "1.2.3.0/24") are supported.
+	// Optional. A list of IP blocks, populated from the source address of the IP packet. Single IP (e.g. "1.2.3.4") and
+	// CIDR (e.g. "1.2.3.0/24") are supported. This is the same as the `source.ip` attribute.
 	//
 	// If not set, any IP is allowed.
 	IpBlocks []string `protobuf:"bytes,4,rep,name=ip_blocks,json=ipBlocks,proto3" json:"ip_blocks,omitempty"`
 	// Optional. A list of negative match of IP blocks.
 	NotIpBlocks []string `protobuf:"bytes,8,rep,name=not_ip_blocks,json=notIpBlocks,proto3" json:"not_ip_blocks,omitempty"`
-	// Optional. A list of IP blocks, which matches to the "remote.ip" attribute.
-	// Populated from X-Forwarded-For header or proxy protocol.
+	// Optional. A list of IP blocks, populated from X-Forwarded-For header or proxy protocol.
 	// To make use of this field, you must configure the numTrustedProxies field of the gatewayTopology under the meshConfig
 	// when you install Istio or using an annotation on the ingress gateway.  See the documentation here:
 	// [Configuring Gateway Network Topology](https://istio.io/latest/docs/ops/configuration/traffic-management/network-topologies/).
 	// Single IP (e.g. "1.2.3.4") and CIDR (e.g. "1.2.3.0/24") are supported.
+	// This is the same as the `remote.ip` attribute.
 	//
 	// If not set, any IP is allowed.
 	RemoteIpBlocks []string `protobuf:"bytes,9,rep,name=remote_ip_blocks,json=remoteIpBlocks,proto3" json:"remote_ip_blocks,omitempty"`
@@ -807,31 +792,33 @@ func (m *Source) GetNotRemoteIpBlocks() []string {
 // ```yaml
 // hosts: ["*.example.com"]
 // methods: ["GET", "HEAD"]
-// not_paths: ["/admin*"]
+// notPaths: ["/admin*"]
 // ```
 type Operation struct {
-	// Optional. A list of hosts, which matches to the "request.host" attribute.
+	// Optional. A list of hosts as specified in the HTTP request. The match is case-insensitive.
+	// See the [security best practices](https://istio.io/latest/docs/ops/best-practices/security/#writing-host-match-policies) for
+	// recommended usage of this field.
 	//
 	// If not set, any host is allowed. Must be used only with HTTP.
 	Hosts []string `protobuf:"bytes,1,rep,name=hosts,proto3" json:"hosts,omitempty"`
-	// Optional. A list of negative match of hosts.
+	// Optional. A list of negative match of hosts as specified in the HTTP request. The match is case-insensitive.
 	NotHosts []string `protobuf:"bytes,5,rep,name=not_hosts,json=notHosts,proto3" json:"not_hosts,omitempty"`
-	// Optional. A list of ports, which matches to the "destination.port" attribute.
+	// Optional. A list of ports as specified in the connection.
 	//
 	// If not set, any port is allowed.
 	Ports []string `protobuf:"bytes,2,rep,name=ports,proto3" json:"ports,omitempty"`
-	// Optional. A list of negative match of ports.
+	// Optional. A list of negative match of ports as specified in the connection.
 	NotPorts []string `protobuf:"bytes,6,rep,name=not_ports,json=notPorts,proto3" json:"not_ports,omitempty"`
-	// Optional. A list of methods, which matches to the "request.method" attribute.
+	// Optional. A list of methods as specified in the HTTP request.
 	// For gRPC service, this will always be "POST".
 	//
 	// If not set, any method is allowed. Must be used only with HTTP.
 	Methods []string `protobuf:"bytes,3,rep,name=methods,proto3" json:"methods,omitempty"`
-	// Optional. A list of negative match of methods.
+	// Optional. A list of negative match of methods as specified in the HTTP request.
 	NotMethods []string `protobuf:"bytes,7,rep,name=not_methods,json=notMethods,proto3" json:"not_methods,omitempty"`
-	// Optional. A list of paths, which matches to the "request.url_path" attribute.
-	// For gRPC service, this will be the fully-qualified name in the form of
-	// "/package.service/method".
+	// Optional. A list of paths as specified in the HTTP request. See the [Authorization Policy Normalization](https://istio.io/latest/docs/reference/config/security/normalization/)
+	// for details of the path normalization.
+	// For gRPC service, this will be the fully-qualified name in the form of "/package.service/method".
 	//
 	// If not set, any path is allowed. Must be used only with HTTP.
 	Paths []string `protobuf:"bytes,4,rep,name=paths,proto3" json:"paths,omitempty"`

@@ -19,9 +19,11 @@ package versioned
 import (
 	"fmt"
 
+	extensionsv1alpha1 "istio.io/client-go/pkg/clientset/versioned/typed/extensions/v1alpha1"
 	networkingv1alpha3 "istio.io/client-go/pkg/clientset/versioned/typed/networking/v1alpha3"
 	networkingv1beta1 "istio.io/client-go/pkg/clientset/versioned/typed/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/clientset/versioned/typed/security/v1beta1"
+	telemetryv1alpha1 "istio.io/client-go/pkg/clientset/versioned/typed/telemetry/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -29,18 +31,27 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
+	ExtensionsV1alpha1() extensionsv1alpha1.ExtensionsV1alpha1Interface
 	NetworkingV1alpha3() networkingv1alpha3.NetworkingV1alpha3Interface
 	NetworkingV1beta1() networkingv1beta1.NetworkingV1beta1Interface
 	SecurityV1beta1() securityv1beta1.SecurityV1beta1Interface
+	TelemetryV1alpha1() telemetryv1alpha1.TelemetryV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
+	extensionsV1alpha1 *extensionsv1alpha1.ExtensionsV1alpha1Client
 	networkingV1alpha3 *networkingv1alpha3.NetworkingV1alpha3Client
 	networkingV1beta1  *networkingv1beta1.NetworkingV1beta1Client
 	securityV1beta1    *securityv1beta1.SecurityV1beta1Client
+	telemetryV1alpha1  *telemetryv1alpha1.TelemetryV1alpha1Client
+}
+
+// ExtensionsV1alpha1 retrieves the ExtensionsV1alpha1Client
+func (c *Clientset) ExtensionsV1alpha1() extensionsv1alpha1.ExtensionsV1alpha1Interface {
+	return c.extensionsV1alpha1
 }
 
 // NetworkingV1alpha3 retrieves the NetworkingV1alpha3Client
@@ -56,6 +67,11 @@ func (c *Clientset) NetworkingV1beta1() networkingv1beta1.NetworkingV1beta1Inter
 // SecurityV1beta1 retrieves the SecurityV1beta1Client
 func (c *Clientset) SecurityV1beta1() securityv1beta1.SecurityV1beta1Interface {
 	return c.securityV1beta1
+}
+
+// TelemetryV1alpha1 retrieves the TelemetryV1alpha1Client
+func (c *Clientset) TelemetryV1alpha1() telemetryv1alpha1.TelemetryV1alpha1Interface {
+	return c.telemetryV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -79,6 +95,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
+	cs.extensionsV1alpha1, err = extensionsv1alpha1.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
 	cs.networkingV1alpha3, err = networkingv1alpha3.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
@@ -88,6 +108,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 		return nil, err
 	}
 	cs.securityV1beta1, err = securityv1beta1.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
+	cs.telemetryV1alpha1, err = telemetryv1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -103,9 +127,11 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
+	cs.extensionsV1alpha1 = extensionsv1alpha1.NewForConfigOrDie(c)
 	cs.networkingV1alpha3 = networkingv1alpha3.NewForConfigOrDie(c)
 	cs.networkingV1beta1 = networkingv1beta1.NewForConfigOrDie(c)
 	cs.securityV1beta1 = securityv1beta1.NewForConfigOrDie(c)
+	cs.telemetryV1alpha1 = telemetryv1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -114,9 +140,11 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
+	cs.extensionsV1alpha1 = extensionsv1alpha1.New(c)
 	cs.networkingV1alpha3 = networkingv1alpha3.New(c)
 	cs.networkingV1beta1 = networkingv1beta1.New(c)
 	cs.securityV1beta1 = securityv1beta1.New(c)
+	cs.telemetryV1alpha1 = telemetryv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

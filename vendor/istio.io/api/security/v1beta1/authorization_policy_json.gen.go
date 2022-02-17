@@ -3,18 +3,19 @@
 
 // Istio Authorization Policy enables access control on workloads in the mesh.
 //
-// Authorization policy supports both allow and deny policies. When allow and
-// deny policies are used for a workload at the same time, the deny policies are
-// evaluated first. The evaluation is determined by the following rules:
+// Authorization policy supports CUSTOM, DENY and ALLOW actions for access control. When CUSTOM, DENY and ALLOW actions
+// are used for a workload at the same time, the CUSTOM action is evaluated first, then the DENY action, and finally the ALLOW action.
+// The evaluation is determined by the following rules:
 //
-// 1. If there are any DENY policies that match the request, deny the request.
-// 2. If there are no ALLOW policies for the workload, allow the request.
-// 3. If any of the ALLOW policies match the request, allow the request.
-// 4. Deny the request.
+// 1. If there are any CUSTOM policies that match the request, evaluate and deny the request if the evaluation result is deny.
+// 2. If there are any DENY policies that match the request, deny the request.
+// 3. If there are no ALLOW policies for the workload, allow the request.
+// 4. If any of the ALLOW policies match the request, allow the request.
+// 5. Deny the request.
 //
 // Istio Authorization Policy also supports the AUDIT action to decide whether to log requests.
 // AUDIT policies do not affect whether requests are allowed or denied to the workload.
-// Requests will be allowed or denied based solely on ALLOW and DENY policies.
+// Requests will be allowed or denied based solely on CUSTOM, DENY and ALLOW actions.
 //
 // A request will be internally marked that it should be audited if there is an AUDIT policy on the workload that matches the request.
 // A separate plugin must be configured and enabled to actually fulfill the audit decision and complete the audit behavior.
@@ -44,26 +45,26 @@
 // apiVersion: security.istio.io/v1beta1
 // kind: AuthorizationPolicy
 // metadata:
-//  name: httpbin
-//  namespace: foo
+//   name: httpbin
+//   namespace: foo
 // spec:
-//  action: ALLOW
-//  rules:
-//  - from:
-//    - source:
-//        principals: ["cluster.local/ns/default/sa/sleep"]
-//    - source:
-//        namespaces: ["test"]
-//    to:
-//    - operation:
-//        methods: ["GET"]
-//        paths: ["/info*"]
-//    - operation:
-//        methods: ["POST"]
-//        paths: ["/data"]
-//    when:
-//    - key: request.auth.claims[iss]
-//      values: ["https://accounts.google.com"]
+//   action: ALLOW
+//   rules:
+//   - from:
+//     - source:
+//         principals: ["cluster.local/ns/default/sa/sleep"]
+//     - source:
+//         namespaces: ["test"]
+//     to:
+//     - operation:
+//         methods: ["GET"]
+//         paths: ["/info*"]
+//     - operation:
+//         methods: ["POST"]
+//         paths: ["/data"]
+//     when:
+//     - key: request.auth.claims[iss]
+//       values: ["https://accounts.google.com"]
 // ```
 //
 // The following is another example that sets `action` to "DENY" to create a deny policy.
@@ -74,17 +75,17 @@
 // apiVersion: security.istio.io/v1beta1
 // kind: AuthorizationPolicy
 // metadata:
-//  name: httpbin
-//  namespace: foo
+//   name: httpbin
+//   namespace: foo
 // spec:
-//  action: DENY
-//  rules:
-//  - from:
-//    - source:
-//        namespaces: ["dev"]
-//    to:
-//    - operation:
-//        methods: ["POST"]
+//   action: DENY
+//   rules:
+//   - from:
+//     - source:
+//         namespaces: ["dev"]
+//     to:
+//     - operation:
+//         methods: ["POST"]
 // ```
 //
 // The following authorization policy sets the `action` to "AUDIT". It will audit any GET requests to the path with the
@@ -100,7 +101,7 @@
 //   selector:
 //     matchLabels:
 //       app: myapi
-//   action: audit
+//   action: AUDIT
 //   rules:
 //   - to:
 //     - operation:
@@ -117,43 +118,56 @@
 //
 // For example,
 //
-// The following authorization policy applies to workloads containing label
-// "app: httpbin" in namespace bar.
+// The following authorization policy applies to all workloads in namespace foo. It allows nothing and effectively denies
+// all requests to workloads in namespace foo.
 //
 // ```yaml
 // apiVersion: security.istio.io/v1beta1
 // kind: AuthorizationPolicy
 // metadata:
-//  name: policy
-//  namespace: bar
-// spec:
-//  selector:
-//    matchLabels:
-//      app: httpbin
-// ```
-//
-// The following authorization policy applies to all workloads in namespace foo.
-//
-// ```yaml
-// apiVersion: security.istio.io/v1beta1
-// kind: AuthorizationPolicy
-// metadata:
-//  name: policy
+//  name: allow-nothing
 //  namespace: foo
 // spec:
 //   {}
 // ```
 //
-// The following authorization policy applies to workloads containing label
-// "version: v1" in all namespaces in the mesh. (Assuming the root namespace is
-// configured to "istio-config").
+// The following authorization policy allows all requests to workloads in namespace foo.
 //
 // ```yaml
 // apiVersion: security.istio.io/v1beta1
 // kind: AuthorizationPolicy
 // metadata:
-//  name: policy
-//  namespace: istio-config
+//  name: allow-all
+//  namespace: foo
+// spec:
+//  rules:
+//  - {}
+// ```
+//
+// The following authorization policy applies to workloads containing label "app: httpbin" in namespace bar. It allows
+// nothing and effectively denies all requests to the selected workloads.
+//
+// ```yaml
+// apiVersion: security.istio.io/v1beta1
+// kind: AuthorizationPolicy
+// metadata:
+//   name: allow-nothing
+//   namespace: bar
+// spec:
+//   selector:
+//     matchLabels:
+//       app: httpbin
+// ```
+//
+// The following authorization policy applies to workloads containing label "version: v1" in all namespaces in the mesh.
+// (Assuming the root namespace is configured to "istio-system").
+//
+// ```yaml
+// apiVersion: security.istio.io/v1beta1
+// kind: AuthorizationPolicy
+// metadata:
+//  name: allow-nothing
+//  namespace: istio-system
 // spec:
 //  selector:
 //    matchLabels:

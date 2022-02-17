@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2018 Burak Sezer
+Copyright (c) 2018-2021 Burak Sezer
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,4 +22,4 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-= vendor/github.com/buraksezer/consistent/LICENSE c0f966b8e6add23454c1fb19e13f4021
+= vendor/github.com/buraksezer/consistent/LICENSE a8d3746258a49b23e005cf6c88e0e13a

@@ -17,9 +17,11 @@
 package scheme
 
 import (
+	extensionsv1alpha1 "istio.io/client-go/pkg/apis/extensions/v1alpha1"
 	networkingv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
+	telemetryv1alpha1 "istio.io/client-go/pkg/apis/telemetry/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -31,9 +33,11 @@ var Scheme = runtime.NewScheme()
 var Codecs = serializer.NewCodecFactory(Scheme)
 var ParameterCodec = runtime.NewParameterCodec(Scheme)
 var localSchemeBuilder = runtime.SchemeBuilder{
+	extensionsv1alpha1.AddToScheme,
 	networkingv1alpha3.AddToScheme,
 	networkingv1beta1.AddToScheme,
 	securityv1beta1.AddToScheme,
+	telemetryv1alpha1.AddToScheme,
 }
 
 // AddToScheme adds all types of this clientset into the given scheme. This allows composition
