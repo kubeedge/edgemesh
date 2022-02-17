@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"strings"
-	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/host"
@@ -17,7 +15,7 @@ import (
 
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/controller"
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/proxy/pb"
-	"github.com/kubeedge/edgemesh/common/constants"
+	"github.com/kubeedge/edgemesh/common/util"
 )
 
 const (
@@ -44,32 +42,33 @@ type ProxyOptions struct {
 	Port     int32
 }
 
-func (ps *ProxyService) ProxyStreamHandler(s network.Stream) {
+func (ps *ProxyService) ProxyStreamHandler(stream network.Stream) {
 	// todo use peerID to get nodeName
-	klog.Infof("Get a new stream from %s", s.Conn().RemotePeer().String())
-	streamWriter := protoio.NewDelimitedWriter(s)
-	streamReader := protoio.NewDelimitedReader(s, MaxReadSize)
+	klog.Infof("Got a new stream from %s", stream.Conn().RemotePeer().String())
+	streamWriter := protoio.NewDelimitedWriter(stream)
+	streamReader := protoio.NewDelimitedReader(stream, MaxReadSize)
 
 	msg := new(pb.Proxy)
 	err := streamReader.ReadMsg(msg)
 	if err != nil {
-		klog.Errorf("Read msg from %s err: %v", s.Conn().RemotePeer().String(), err)
+		klog.Errorf("Read msg from %s err: %v", stream.Conn().RemotePeer().String(), err)
 		return
 	}
 	if msg.GetType() != pb.Proxy_CONNECT {
-		klog.Errorf("Read msg from %s type should be CONNECT", s.Conn().RemotePeer().String())
+		klog.Errorf("Read msg from %s type should be CONNECT", stream.Conn().RemotePeer().String())
 		return
 	}
-	targetProto := *msg.Protocol
-	targetAddr := fmt.Sprintf("%s:%d", *msg.Ip, *msg.Port)
+	targetProto := msg.GetProtocol()
+	targetNode := msg.GetNodeName()
+	targetAddr := fmt.Sprintf("%s:%d", msg.GetIp(), msg.GetPort())
 
-	proxyClient, err := ps.establishProxyConn(msg)
+	proxyConn, err := ps.TryConnectEndpoint(msg)
 	if err != nil {
 		klog.Errorf("l4 proxy connect to %v err: %v", msg, err)
 		msg.Reset()
 		msg.Type = pb.Proxy_FAILED.Enum()
 		if err = streamWriter.WriteMsg(msg); err != nil {
-			klog.Errorf("Write msg to %s err: %v", s.Conn().RemotePeer().String(), err)
+			klog.Errorf("Write msg to %s err: %v", stream.Conn().RemotePeer().String(), err)
 			return
 		}
 		return
@@ -78,36 +77,47 @@ func (ps *ProxyService) ProxyStreamHandler(s network.Stream) {
 	msg.Reset()
 	msg.Type = pb.Proxy_SUCCESS.Enum()
 	if err = streamWriter.WriteMsg(msg); err != nil {
-		klog.Errorf("Write msg to %s err: %v", s.Conn().RemotePeer().String(), err)
+		klog.Errorf("Write msg to %s err: %v", stream.Conn().RemotePeer().String(), err)
 		return
 	}
 	msg.Reset()
 
-	closeOnce := sync.Once{}
-	go Pipe(proxyClient, s, &closeOnce)
-	Pipe(s, proxyClient, &closeOnce)
-
-	klog.Infof("Success proxy [%s] for targetAddr %s", targetProto, targetAddr)
+	switch targetProto {
+	case "tcp":
+		go util.ProxyStream(stream, proxyConn)
+	case "udp":
+		go util.ProxyStreamUDP(stream, proxyConn.(*net.UDPConn))
+	}
+	klog.Infof("Success proxy for {%s %s %s}", targetProto, targetNode, targetAddr)
 }
 
-func (ps *ProxyService) establishProxyConn(msg *pb.Proxy) (net.Conn, error) {
+func (ps *ProxyService) TryConnectEndpoint(msg *pb.Proxy) (net.Conn, error) {
 	var err error
-	var proxyConn net.Conn
-
 	switch msg.GetProtocol() {
 	case "tcp":
-		tcpAddr := &net.TCPAddr{
-			IP:   net.ParseIP(msg.GetIp()),
-			Port: int(msg.GetPort()),
-		}
 		for i := 0; i < MaxRetryTime; i++ {
-			proxyConn, err = net.DialTimeout("tcp", tcpAddr.String(), 5*time.Second)
+			tcpConn, err := net.DialTCP("tcp", nil, &net.TCPAddr{
+				IP:   net.ParseIP(msg.GetIp()),
+				Port: int(msg.GetPort()),
+			})
 			if err == nil {
-				return proxyConn, nil
+				return tcpConn, nil
 			}
-			time.Sleep(2 * time.Second)
+			time.Sleep(time.Second)
 		}
-		klog.Errorf("max retries for tcp dial")
+		klog.Errorf("max retries for dial")
+		return nil, err
+	case "udp":
+		for i := 0; i < MaxRetryTime; i++ {
+			udpConn, err := net.DialUDP("udp", nil, &net.UDPAddr{
+				IP:   net.ParseIP(msg.GetIp()),
+				Port: int(msg.GetPort()),
+			})
+			if err == nil {
+				return udpConn, nil
+			}
+		}
+		klog.Errorf("max retries for dial")
 		return nil, err
 	default:
 		return nil, fmt.Errorf("unsupported protocol: %s", msg.GetProtocol())
@@ -174,20 +184,7 @@ func (ps *ProxyService) GetProxyStream(opts ProxyOptions) (io.ReadWriteCloser, e
 	}
 
 	msg.Reset()
-	klog.Infof("libp2p dial %v success", opts)
+	klog.V(4).Infof("libp2p dial %v success", opts)
 
 	return stream, nil
-}
-
-func Pipe(dst io.WriteCloser, src io.ReadCloser, once *sync.Once) {
-	_, err := io.Copy(dst, src)
-	if err != nil && err != io.EOF &&
-		!strings.Contains(err.Error(), constants.ConnectionClosed) &&
-		!strings.Contains(err.Error(), constants.StreamReset) {
-		klog.Errorf("io copy between dst and src error: %v", err)
-	}
-	once.Do(func() {
-		dst.Close()
-		src.Close()
-	})
 }

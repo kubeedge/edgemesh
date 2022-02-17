@@ -261,8 +261,7 @@ import "google/api/field_behavior.proto";
 //   hosts:
 //   - mongosvr.prod.svc.cluster.local # name of internal Mongo service
 //   gateways:
-//   - some-config-namespace/my-gateway # can omit the namespace if gateway is in same
-//                                        namespace as virtual service.
+//   - some-config-namespace/my-gateway # can omit the namespace if gateway is in same namespace as virtual service.
 //   tcp:
 //   - match:
 //     - port: 27017
@@ -285,8 +284,7 @@ import "google/api/field_behavior.proto";
 //   hosts:
 //   - mongosvr.prod.svc.cluster.local # name of internal Mongo service
 //   gateways:
-//   - some-config-namespace/my-gateway # can omit the namespace if gateway is in same
-//                                        namespace as virtual service.
+//   - some-config-namespace/my-gateway # can omit the namespace if gateway is in same namespace as virtual service.
 //   tcp:
 //   - match:
 //     - port: 27017
@@ -373,6 +371,9 @@ option go_package = "istio.io/api/networking/v1alpha3";
 // +kubetype-gen:groupVersion=networking.istio.io/v1alpha3
 // +genclient
 // +k8s:deepcopy-gen=true
+// -->
+// <!-- istio code generation tags
+// +istio.io/sync-start
 // -->
 message Gateway {
   // A list of server specifications.
@@ -533,11 +534,14 @@ message Server {
   // connections.
   Port port = 1 [(google.api.field_behavior) = REQUIRED];
 
-  // $hide_from_docs
   // The ip or the Unix domain socket to which the listener should be bound
   // to. Format: `x.x.x.x` or `unix:///path/to/uds` or `unix://@foobar`
   // (Linux abstract namespace). When using Unix domain sockets, the port
   // number should be 0.
+  // This can be used to restrict the reachability of this server to be gateway internal only. 
+  // This is typically used when a gateway needs to communicate to another mesh service 
+  // e.g. publishing metrics. In such case, the server created with the
+  // specified bind will not be available to external gateway clients.
   string bind = 4;
 
   // One or more hosts exposed by this gateway.
@@ -671,8 +675,8 @@ message ServerTLSSettings {
   // holds the TLS certs including the CA certificates. Applicable
   // only on Kubernetes. The secret (of type `generic`) should
   // contain the following keys and values: `key:
-  // <privateKey>` and `cert: <serverCert>`. For mutual TLS, 
-  // `cacert: <CACertificate>` can be provided in the same secret or 
+  // <privateKey>` and `cert: <serverCert>`. For mutual TLS,
+  // `cacert: <CACertificate>` can be provided in the same secret or
   // a separate secret named `<secret>-cacert`.
   // Secret of type tls for server certificates along with
   // ca.crt key for CA certificates is also supported.

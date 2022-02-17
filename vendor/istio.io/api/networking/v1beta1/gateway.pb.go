@@ -240,9 +240,7 @@
 //   hosts:
 //   - mongosvr.prod.svc.cluster.local # name of internal Mongo service
 //   gateways:
-//   - some-config-namespace/my-gateway # can omit the namespace if gateway is
-//   in same
-//                                        namespace as virtual service.
+//   - some-config-namespace/my-gateway # can omit the namespace if gateway is in same namespace as virtual service.
 //   tcp:
 //   - match:
 //     - port: 27017
@@ -265,9 +263,7 @@
 //   hosts:
 //   - mongosvr.prod.svc.cluster.local # name of internal Mongo service
 //   gateways:
-//   - some-config-namespace/my-gateway # can omit the namespace if gateway is
-//   in same
-//                                        namespace as virtual service.
+//   - some-config-namespace/my-gateway # can omit the namespace if gateway is in same namespace as virtual service.
 //   tcp:
 //   - match:
 //     - port: 27017
@@ -470,6 +466,9 @@ func (ServerTLSSettings_TLSProtocol) EnumDescriptor() ([]byte, []int) {
 // +kubetype-gen:groupVersion=networking.istio.io/v1beta1
 // +genclient
 // +k8s:deepcopy-gen=true
+// -->
+// <!-- istio code generation tags
+// +istio.io/sync-from:networking/v1alpha3/gateway.proto
 // -->
 type Gateway struct {
 	// A list of server specifications.
@@ -678,28 +677,30 @@ type Server struct {
 	// The Port on which the proxy should listen for incoming
 	// connections.
 	Port *Port `protobuf:"bytes,1,opt,name=port,proto3" json:"port,omitempty"`
-	// $hide_from_docs
 	// The ip or the Unix domain socket to which the listener should be bound
 	// to. Format: `x.x.x.x` or `unix:///path/to/uds` or `unix://@foobar`
 	// (Linux abstract namespace). When using Unix domain sockets, the port
 	// number should be 0.
+	// This can be used to restrict the reachability of this server to be gateway internal only.
+	// This is typically used when a gateway needs to communicate to another mesh service
+	// e.g. publishing metrics. In such case, the server created with the
+	// specified bind will not be available to external gateway clients.
 	Bind string `protobuf:"bytes,4,opt,name=bind,proto3" json:"bind,omitempty"`
 	// One or more hosts exposed by this gateway.
 	// While typically applicable to
 	// HTTP services, it can also be used for TCP services using TLS with SNI.
 	// A host is specified as a `dnsName` with an optional `namespace/` prefix.
 	// The `dnsName` should be specified using FQDN format, optionally including
-	// a wildcard character in the left-most component (e.g.,
-	// `prod/*.example.com`). Set the `dnsName` to `*` to select all
-	// `VirtualService` hosts from the specified namespace (e.g.,`prod/*`).
+	// a wildcard character in the left-most component (e.g., `prod/*.example.com`).
+	// Set the `dnsName` to `*` to select all `VirtualService` hosts from the
+	// specified namespace (e.g.,`prod/*`).
 	//
 	// The `namespace` can be set to `*` or `.`, representing any or the current
 	// namespace, respectively. For example, `*/foo.example.com` selects the
 	// service from any available namespace while `./foo.example.com` only selects
-	// the service from the namespace of the sidecar. The default, if no
-	// `namespace/` is specified, is `*/`, that is, select services from any
-	// namespace. Any associated `DestinationRule` in the selected namespace will
-	// also be used.
+	// the service from the namespace of the sidecar. The default, if no `namespace/`
+	// is specified, is `*/`, that is, select services from any namespace.
+	// Any associated `DestinationRule` in the selected namespace will also be used.
 	//
 	// A `VirtualService` must be bound to the gateway and must have one or
 	// more hosts that match the hosts specified in a server. The match
@@ -909,10 +910,8 @@ type ServerTLSSettings struct {
 	CaCertificates string `protobuf:"bytes,5,opt,name=ca_certificates,json=caCertificates,proto3" json:"ca_certificates,omitempty"`
 	// For gateways running on Kubernetes, the name of the secret that
 	// holds the TLS certs including the CA certificates. Applicable
-	// only on Kubernetes, and only if the dynamic credential fetching
-	// feature is enabled in the proxy by setting
-	// `ISTIO_META_USER_SDS` metadata variable.  The secret (of type
-	// `generic`) should contain the following keys and values: `key:
+	// only on Kubernetes. The secret (of type `generic`) should
+	// contain the following keys and values: `key:
 	// <privateKey>` and `cert: <serverCert>`. For mutual TLS,
 	// `cacert: <CACertificate>` can be provided in the same secret or
 	// a separate secret named `<secret>-cacert`.

@@ -51,6 +51,9 @@ import (
 // +genclient
 // +k8s:deepcopy-gen=true
 // -->
+// <!-- istio code generation tags
+// +istio.io/sync-start
+// -->
 type DestinationRule struct {
 	v1.TypeMeta `json:",inline"`
 	// +optional
@@ -88,7 +91,7 @@ type DestinationRuleList struct {
 // +cue-gen:EnvoyFilter:subresource:status
 // +cue-gen:EnvoyFilter:scope:Namespaced
 // +cue-gen:EnvoyFilter:resource:categories=istio-io,networking-istio-io
-// +cue-gen:EnvoyFilter:preserveUnknownFields:true
+// +cue-gen:EnvoyFilter:preserveUnknownFields:configPatches.[].patch.value
 // -->
 //
 // <!-- go code generation tags
@@ -142,6 +145,9 @@ type EnvoyFilterList struct {
 // +kubetype-gen:groupVersion=networking.istio.io/v1alpha3
 // +genclient
 // +k8s:deepcopy-gen=true
+// -->
+// <!-- istio code generation tags
+// +istio.io/sync-start
 // -->
 type Gateway struct {
 	v1.TypeMeta `json:",inline"`
@@ -198,6 +204,9 @@ type GatewayList struct {
 // +genclient
 // +k8s:deepcopy-gen=true
 // -->
+// <!-- istio code generation tags
+// +istio.io/sync-start
+// -->
 type ServiceEntry struct {
 	v1.TypeMeta `json:",inline"`
 	// +optional
@@ -245,6 +254,9 @@ type ServiceEntryList struct {
 // +genclient
 // +k8s:deepcopy-gen=true
 // -->
+// <!-- istio code generation tags
+// +istio.io/sync-start
+// -->
 type Sidecar struct {
 	v1.TypeMeta `json:",inline"`
 	// +optional
@@ -267,7 +279,7 @@ type SidecarList struct {
 	Items       []Sidecar `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
-// please upgrade the proto package
+//
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Configuration affecting traffic routing.
@@ -296,6 +308,9 @@ type SidecarList struct {
 // +kubetype-gen:groupVersion=networking.istio.io/v1alpha3
 // +genclient
 // +k8s:deepcopy-gen=true
+// -->
+// <!-- istio code generation tags
+// +istio.io/sync-start
 // -->
 type VirtualService struct {
 	v1.TypeMeta `json:",inline"`
@@ -346,6 +361,9 @@ type VirtualServiceList struct {
 // +kubetype-gen:groupVersion=networking.istio.io/v1alpha3
 // +genclient
 // +k8s:deepcopy-gen=true
+// -->
+// <!-- istio code generation tags
+// +istio.io/sync-start
 // -->
 type WorkloadEntry struct {
 	v1.TypeMeta `json:",inline"`

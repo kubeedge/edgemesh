@@ -5,7 +5,6 @@ import (
 	"net"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/go-chassis/go-chassis/core/handler"
@@ -15,6 +14,7 @@ import (
 	"github.com/kubeedge/edgemesh/agent/pkg/chassis/config"
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel"
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/proxy"
+	"github.com/kubeedge/edgemesh/common/util"
 )
 
 const (
@@ -87,9 +87,7 @@ func (h *L4ProxyHandler) Handle(chain *handler.Chain, i *invocation.Invocation, 
 
 		klog.Infof("l4 proxy start proxy data between tcpserver %s", addr.String())
 
-		closeOnce := &sync.Once{}
-		go proxy.Pipe(lconn, rconn, closeOnce)
-		proxy.Pipe(rconn, lconn, closeOnce)
+		go util.ProxyStream(rconn, lconn)
 
 		klog.Infof("Success proxy to %v", i.Endpoint)
 		err = cb(r)
@@ -118,9 +116,7 @@ func (h *L4ProxyHandler) Handle(chain *handler.Chain, i *invocation.Invocation, 
 			}
 		}
 
-		closeOnce := &sync.Once{}
-		go proxy.Pipe(lconn, stream, closeOnce)
-		proxy.Pipe(stream, lconn, closeOnce)
+		go util.ProxyStream(stream, lconn)
 
 		klog.Infof("Success proxy to %v", i.Endpoint)
 		err = cb(r)

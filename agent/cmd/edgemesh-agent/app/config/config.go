@@ -26,7 +26,6 @@ const (
 
 	DefaultDummyDeviceName = "edgemesh0"
 	DefaultDummyDeviceIP   = "169.254.96.16"
-	DefaultConfigMapName   = "edgemesh-agent-cfg"
 	DefaultEdgeApiServer   = "http://127.0.0.1:10550"
 
 	// EdgeMode means that edgemesh-agent detects that it is currently running on the edge
@@ -66,10 +65,6 @@ type CommonConfig struct {
 	// DummyDeviceIP indicates the IP bound to the dummy device
 	// default "169.254.96.16"
 	DummyDeviceIP string `json:"dummyDeviceIP,omitempty"`
-	// ConfigMapName indicates the configmap mounted by edgemesh-agent,
-	// which contains all the configuration information of edgemesh-agent
-	// default edgemesh-agent-cfg
-	ConfigMapName string `json:"configMapName,omitempty"`
 }
 
 // Modules indicates the modules of edgeMeshAgent will be use
@@ -95,7 +90,6 @@ func NewEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 			Mode:            DebugMode,
 			DummyDeviceName: DefaultDummyDeviceName,
 			DummyDeviceIP:   DefaultDummyDeviceIP,
-			ConfigMapName:   DefaultConfigMapName,
 		},
 		KubeAPIConfig: &v1alpha1.KubeAPIConfig{
 			Master:      "",

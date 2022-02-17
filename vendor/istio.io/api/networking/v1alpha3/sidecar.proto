@@ -17,7 +17,6 @@ syntax = "proto3";
 import "google/api/field_behavior.proto";
 import "networking/v1alpha3/gateway.proto";
 import "networking/v1alpha3/virtual_service.proto";
-import "networking/v1alpha3/destination_rule.proto";
 
 // $schema: istio.networking.v1alpha3.Sidecar
 // $title: Sidecar
@@ -428,6 +427,9 @@ option go_package = "istio.io/api/networking/v1alpha3";
 // +genclient
 // +k8s:deepcopy-gen=true
 // -->
+// <!-- istio code generation tags
+// +istio.io/sync-start
+// -->
 message Sidecar {
   // Criteria used to select the specific set of pods/VMs on which this
   // `Sidecar` configuration should be applied. If omitted, the `Sidecar`
@@ -546,15 +548,6 @@ message IstioEgressListener {
   // Private configurations (e.g., `exportTo` set to `.`) will
   // not be available. Refer to the `exportTo` setting in `VirtualService`,
   // `DestinationRule`, and `ServiceEntry` configurations for details.
-  //
-  // **WARNING:** The list of egress hosts in a `Sidecar` must also include
-  // the Mixer control plane services if they are enabled. Envoy will not
-  // be able to reach them otherwise. For example, add host
-  // `istio-system/istio-telemetry.istio-system.svc.cluster.local` if telemetry
-  // is enabled, `istio-system/istio-policy.istio-system.svc.cluster.local` if
-  // policy is enabled, or add `istio-system/*` to allow all services in the
-  // `istio-system` namespace. This requirement is temporary and will be removed
-  // in a future Istio release.
   repeated string hosts = 4 [(google.api.field_behavior) = REQUIRED];
 
   reserved "localhost_server_tls";
@@ -562,7 +555,7 @@ message IstioEgressListener {
 }
 
 // `WorkloadSelector` specifies the criteria used to determine if the
-// `Gateway`, `Sidecar`, or `EnvoyFilter` or `ServiceEntry`
+// `Gateway`, `Sidecar`, `EnvoyFilter`, or `ServiceEntry`
 // configuration can be applied to a proxy. The matching criteria
 // includes the metadata associated with a proxy, workload instance
 // info such as labels attached to the pod/VM, or any other info that
@@ -617,7 +610,7 @@ message OutboundTrafficPolicy {
   // Envoy's dynamic forward proxy can handle only HTTP and TLS
   // connections.
   // $hide_from_docs
-  istio.networking.v1alpha3.Destination egress_proxy = 2;
+  Destination egress_proxy = 2;
 }
 
 
