@@ -1,20 +1,14 @@
 package app
 
 import (
-	"context"
 	"fmt"
-	"strings"
 
 	"github.com/spf13/cobra"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/cli/globalflag"
 	"k8s.io/component-base/term"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/yaml"
 
 	"github.com/kubeedge/beehive/pkg/core"
 	"github.com/kubeedge/edgemesh/agent/cmd/edgemesh-agent/app/config"
@@ -25,7 +19,6 @@ import (
 	"github.com/kubeedge/edgemesh/agent/pkg/gateway"
 	"github.com/kubeedge/edgemesh/agent/pkg/proxy"
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel"
-	"github.com/kubeedge/edgemesh/common/constants"
 	"github.com/kubeedge/edgemesh/common/informers"
 	commonutil "github.com/kubeedge/edgemesh/common/util"
 	"github.com/kubeedge/kubeedge/pkg/util"
@@ -101,25 +94,24 @@ func Run(cfg *config.EdgeMeshAgentConfig) error {
 	trace++
 
 	klog.Infof("[%d] Prepare agent to run", trace)
-	if err = prepareRun(cfg, ifm); err != nil {
+	if err = prepareRun(cfg); err != nil {
 		return err
 	}
 	klog.Infof("edgemesh-agent running on %s", cfg.CommonConfig.Mode)
 	trace++
+
+	// NOTE: we only install go-chassis when the gateway module enabled.
+	if cfg.Modules.EdgeGatewayConfig.Enable {
+		klog.Infof("[%d] Install go-chassis plugins", trace)
+		chassis.Install(cfg.GoChassisConfig, ifm)
+		trace++
+	}
 
 	klog.Infof("[%d] Register beehive modules", trace)
 	if errs := registerModules(cfg, ifm); len(errs) > 0 {
 		return fmt.Errorf(util.SpliceErrors(errs))
 	}
 	trace++
-
-	// As long as either the proxy module or the gateway module is enabled,
-	// the go-chassis plugins must also be install.
-	if cfg.Modules.EdgeProxyConfig.Enable || cfg.Modules.EdgeGatewayConfig.Enable {
-		klog.Infof("[%d] Install go-chassis plugins", trace)
-		chassis.Install(cfg.GoChassisConfig, ifm)
-		trace++
-	}
 
 	klog.Infof("[%d] Start informers manager", trace)
 	ifm.Start(wait.NeverStop)
@@ -160,7 +152,7 @@ func registerModules(c *config.EdgeMeshAgentConfig, ifm *informers.Manager) []er
 }
 
 // prepareRun prepares edgemesh-agent to run
-func prepareRun(c *config.EdgeMeshAgentConfig, ifm *informers.Manager) error {
+func prepareRun(c *config.EdgeMeshAgentConfig) error {
 	// if the user sets KubeConfig or Master and Master is not equal to EdgeApiServer, enter the debug mode
 	if c.KubeAPIConfig.KubeConfig != "" || c.KubeAPIConfig.Master != "" &&
 		c.KubeAPIConfig.Master != config.DefaultEdgeApiServer {
@@ -176,113 +168,11 @@ func prepareRun(c *config.EdgeMeshAgentConfig, ifm *informers.Manager) error {
 		c.Modules.EdgeProxyConfig.ListenInterface = c.CommonConfig.DummyDeviceName
 	}
 
-	// set proxy module subNet, subNet equals to k8s service-cluster-ip-range
-	if c.Modules.EdgeProxyConfig.Enable && c.Modules.EdgeProxyConfig.SubNet == "" {
-		subNet, err := getClusterServiceCIDR(ifm.GetKubeClient())
-		if err != nil {
-			return fmt.Errorf("get service-cluster-ip-range err: %v", err)
-		}
-		c.Modules.EdgeProxyConfig.SubNet = subNet
-
-		if err := resetConfigMapSubNet(c.CommonConfig.ConfigMapName, subNet, ifm.GetKubeClient()); err != nil {
-			return fmt.Errorf("reset edgemesh-agent configmap subNet err: %v", err)
-		}
-	}
-
 	// create Corefile for CoreDNS
 	if c.Modules.EdgeDNSConfig.Enable {
 		if err := dns.UpdateCorefile(c); err != nil {
 			return fmt.Errorf("create or update Corefile err: %w", err)
 		}
-	}
-
-	return nil
-}
-
-// getClusterServiceCIDR creates an impossible service to cause an error,
-// and obtains service-cluster-ip-range from the error message
-func getClusterServiceCIDR(kubeClient kubernetes.Interface) (string, error) {
-	if kubeClient == nil {
-		return "", fmt.Errorf("kubeClient is nil")
-	}
-
-	badService := corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "bad-service",
-		},
-		Spec: corev1.ServiceSpec{
-			Type:      "ClusterIP",
-			ClusterIP: "0.0.0.0", // this is an impossible cluster ip
-			Ports:     []corev1.ServicePort{{Port: 443}},
-		},
-	}
-
-	svc, err := kubeClient.CoreV1().Services(constants.EdgeMeshNamespace).Create(context.Background(), &badService, metav1.CreateOptions{})
-	if err == nil {
-		return "", fmt.Errorf("impossible happened, %s was created successfully", svc.Name)
-	}
-
-	errMsg := fmt.Sprintf("%v", err)
-	errKey := "The range of valid IPs is "
-	if ok := strings.Contains(errMsg, errKey); !ok {
-		return "", fmt.Errorf("unexpected error: %v", err)
-	}
-
-	info := strings.Split(errMsg, errKey)
-	if len(info) != 2 {
-		return "", fmt.Errorf("invalid error: %v", err)
-	}
-
-	return info[1], nil
-}
-
-// resetConfigMapSubNet reset edgemesh-agent configmap subNet value
-func resetConfigMapSubNet(name, subNet string, kubeClient kubernetes.Interface) error {
-	if name == "" {
-		return fmt.Errorf("configmap name is empty")
-	}
-
-	if subNet == "" {
-		return fmt.Errorf("subNet is empty")
-	}
-
-	if kubeClient == nil {
-		return fmt.Errorf("kubeClient is nil")
-	}
-
-	cm, err := kubeClient.CoreV1().ConfigMaps(constants.EdgeMeshNamespace).Get(context.Background(), name, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	data, ok := cm.Data[constants.EdgeMeshAgentConfigFileName]
-	if !ok {
-		return fmt.Errorf("configmap data %s not found", constants.EdgeMeshAgentConfigFileName)
-	}
-
-	var config config.EdgeMeshAgentConfig
-	if err := yaml.Unmarshal([]byte(data), &config); err != nil {
-		return err
-	}
-
-	if config.Modules.EdgeProxyConfig.SubNet != "" {
-		klog.V(4).Infof("subNet has already been set up")
-		return nil
-	}
-
-	// set configmap subNet value
-	config.Modules.EdgeProxyConfig.SubNet = subNet
-	newData, err := yaml.Marshal(config)
-	if err != nil {
-		return err
-	}
-
-	klog.V(4).Infof("new configmap:\n%v", string(newData))
-
-	// overwrite old configmap data
-	cm.Data[constants.EdgeMeshAgentConfigFileName] = string(newData)
-	if _, err := kubeClient.CoreV1().ConfigMaps(constants.EdgeMeshNamespace).Update(context.Background(), cm, metav1.UpdateOptions{}); err != nil {
-		return err
 	}
 
 	return nil

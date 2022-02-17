@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"sync"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -16,6 +15,7 @@ import (
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel"
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/proxy"
 	"github.com/kubeedge/edgemesh/common/constants"
+	"github.com/kubeedge/edgemesh/common/util"
 )
 
 const (
@@ -257,9 +257,7 @@ func proxyConnectToRemote(host string, targetIP string, port int32, conn net.Con
 		klog.Errorf("return corresponding data error: %v", err)
 	}
 
-	closeOnce := &sync.Once{}
-	go proxy.Pipe(conn, stream, closeOnce)
-	proxy.Pipe(stream, conn, closeOnce)
+	go util.ProxyStream(stream, conn)
 
 	klog.Infof("Success proxy to %v", host)
 }
