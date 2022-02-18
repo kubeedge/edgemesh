@@ -6,7 +6,7 @@ require (
 	github.com/buraksezer/consistent v0.9.0
 	github.com/cespare/xxhash v1.1.0
 	github.com/cespare/xxhash/v2 v2.1.1
-	github.com/coredns/coredns v1.8.6
+	github.com/coredns/coredns v1.8.7
 	github.com/go-chassis/go-archaius v0.20.0
 	github.com/go-chassis/go-chassis v1.7.1
 	github.com/golang/protobuf v1.5.2
@@ -24,23 +24,23 @@ require (
 	github.com/opencontainers/runc v1.0.2
 	github.com/spf13/cobra v1.2.1
 	github.com/vishvananda/netlink v1.1.0
-	golang.org/x/sys v0.0.0-20211205182925-97ca703d548d
+	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e
 	istio.io/api v0.0.0-20220124163811-3adce9124ae7
 	istio.io/client-go v1.12.3
-	k8s.io/api v0.23.0
-	k8s.io/apimachinery v0.23.0
+	k8s.io/api v0.23.1
+	k8s.io/apimachinery v0.23.1
 	k8s.io/apiserver v0.23.0
-	k8s.io/client-go v0.23.0
+	k8s.io/client-go v0.23.1
 	k8s.io/cloud-provider v0.23.0
 	k8s.io/component-base v0.23.0
-	k8s.io/klog/v2 v2.30.0
+	k8s.io/klog/v2 v2.40.1
 	k8s.io/kubernetes v1.23.0
 	k8s.io/utils v0.0.0-20211116205334-6203023598ed
 	sigs.k8s.io/yaml v1.2.0
 )
 
 replace (
-	github.com/coredns/coredns => github.com/Poorunga/coredns v1.8.7
+	github.com/coredns/coredns => github.com/Poorunga/coredns v1.8.8
 	github.com/kubeedge/beehive v0.0.0 => github.com/kubeedge/beehive v0.0.0-20201125122335-cd19bca6e436
 	github.com/kubeedge/viaduct v0.0.0 => github.com/kubeedge/viaduct v0.0.0-20210601015050-d832643a3d35
 	github.com/libp2p/go-libp2p-tls => github.com/Poorunga/go-libp2p-tls v0.3.2-beta.6

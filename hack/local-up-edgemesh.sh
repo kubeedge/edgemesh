@@ -68,7 +68,6 @@ get_kubeedge_pid() {
    awk -v bin="${1:-edgecore}" 'NF=$2==bin'
 }
 
-
 # spin up cluster with kind command
 function kind_up_cluster {
   echo "Running kind: [kind create cluster ${CLUSTER_CONTEXT} --image kindest/node:v1.18.2]"
@@ -79,16 +78,15 @@ function kind_up_cluster {
   '
 }
 
-
 function check_control_plane_ready {
   echo "wait the control-plane ready..."
   kubectl wait --for=condition=Ready node/${CLUSTER_NAME}-control-plane --timeout=${TIMEOUT}
   MASTER_IP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' test-control-plane`
 }
 
-function proxy_kubeAPI {
+function proxy_kube_apiserver {
     set -x
-    echo "proxy kubeAPI master"
+    echo "proxy kube-apiserver on master"
     nohup kubectl proxy --address='0.0.0.0' --port=${KUBEAPI_PROXY_PORT} --accept-hosts='^*$' >/dev/null 2>&1 &
     PROXY_PID=$!
     add_cleanup 'sudo kill $PROXY_PID'
@@ -97,7 +95,6 @@ function proxy_kubeAPI {
     sleep 5
     curl ${KUBEAPI_PROXY_ADDR}
 }
-
 
 function check_node_ready {
   echo "wait the $1 node ready"
@@ -154,12 +151,9 @@ build_component_image() {
   # no clean up for images
 }
 
-
 load_images_to_master() {
-  local image
-  for image in $SERVER_IMAGE; do
-    kind load --name $CLUSTER_NAME docker-image $image
-  done
+  kind load --name $CLUSTER_NAME docker-image $SERVER_IMAGE
+  kind load --name $CLUSTER_NAME docker-image $AGENT_IMAGE
 }
 
 prepare_k8s_env() {
@@ -170,15 +164,15 @@ prepare_k8s_env() {
 }
 
 start_edgemesh() {
-echo "using helm to install edgemesh"
+  echo "using helm to install edgemesh"
   # we keep this for debug
-  # helm install edgemesh --set global.mode=ci \
-  #  --set agent.kubeAPIConfig.master=${KUBEAPI_PROXY_ADDR} \
+  # helm install edgemesh \
   #  --set server.nodeName=${MASTER_NODENAME} \
   #  --set server.image=${SERVER_IMAGE} \
+  #  --set agent.kubeAPIConfig.master=${KUBEAPI_PROXY_ADDR} \
   #  --set agent.image=${AGENT_IMAGE} --dry-run --debug ./build/helm/edgemesh
 
-  helm install edgemesh --set global.mode=ci \
+  helm install edgemesh \
     --set server.nodeName=${MASTER_NODENAME} \
     --set server.image=${SERVER_IMAGE} \
     --set agent.kubeAPIConfig.master=${KUBEAPI_PROXY_ADDR} \
@@ -264,10 +258,9 @@ do_up() {
 
   check_control_plane_ready
 
-  kubectl delete daemonset kindnet -n kube-system
   kubectl create ns kubeedge
 
-  proxy_kubeAPI
+  proxy_kube_apiserver
 
   # here local up kubeedge before building our images, this could avoid our
   # images be removed since edgecore image gc would be triggered when high
@@ -288,7 +281,6 @@ do_up() {
 }
 
 do_up_fg() {
-
   do_up
 
   echo "Local cluster is $(green_text running).
@@ -301,7 +293,6 @@ do_up_fg() {
 }
 
 main() {
-
   if [ "${ENABLE_DAEMON}" = false ]; then
     trap cleanup EXIT
     trap clean ERR
@@ -311,7 +302,6 @@ main() {
     trap clean INT
     do_up
   fi
-
 }
 
 main
