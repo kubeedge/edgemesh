@@ -35,6 +35,9 @@ modules:
   edgeDNS:
     enable: false
     listenPort: 53
+    autoDetect: true
+    upstreamServers:
+    cacheTTL: 30
   edgeGateway:
     enable: true
     nic: "*"

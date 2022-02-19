@@ -107,26 +107,30 @@ goChassisConfig:
     nodeName: ke-edge1
 modules:
   edgeDNS:
-    enable: true
+    enable: false
     listenPort: 53
+    autoDetect: true
+    upstreamServers:
+    - 10.96.0.10
+    cacheTTL: 30
   edgeProxy:
-    enable: true
+    enable: false
     listenPort: 40001
     socks5Proxy:
       enable: true
       listenPort: 10800
     subNet: 10.96.0.0/12
   edgeGateway:
-    enable: true
+    enable: false
     nic: *
     includeIP: *
     excludeIP: *
   tunnel:
-    enable: true
+    enable: false
     listenPort: 20006
     nodeName: ke-edge1
     security:
-      enable: true
+      enable: false
       tlsCaFile: /etc/kubeedge/edgemesh/agent/acls/rootCA.crt
       tlsCertFile: /etc/kubeedge/edgemesh/agent/acls/server.crt
       tlsPrivateKeyFile: /etc/kubeedge/edgemesh/agent/acls/server.key
@@ -228,6 +232,9 @@ modules:
 | ---- | ---- | ---- | ---- |
 | enable | bool | empty | submodule start switch. If it is not filled in, the program will automatically determine: "false" on the cloud, and "true" on the edge |
 | listenPort | int | 53 | the port that the DNS server listens on |
+| autoDetect | bool | true | Automatically detect the Cluster IP of upstream DNS |
+| upstreamServers | []string | empty | The Cluster IP list of upstream DNS |
+| cacheTTL | int | 30 | Time to live of cached data in DNS, unit: second |
 
 <a name="t1-4-2"></a>
 
@@ -304,11 +311,14 @@ kubeAPIConfig:
   burst: 200
 modules:
   tunnel:
-    enable: true
+    enable: false
     listenPort: 20004
+    advertiseAddress:
+    - 119.8.211.54
+    - 1.2.3.4
     nodeName: k8s-master
     security:
-      enable: true
+      enable: false
       tlsCaFile: /etc/kubeedge/edgemesh/server/acls/rootCA.crt
       tlsCertFile: /etc/kubeedge/edgemesh/server/acls/server.crt
       tlsPrivateKeyFile: /etc/kubeedge/edgemesh/server/acls/server.key

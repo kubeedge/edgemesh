@@ -1,7 +1,3 @@
-# default: default mode for edgemesh
-# ci: ci mode for ci, we use k8s list-watch directly in ci
-global:
-  mode: default
 server:
   image: kubeedge/edgemesh-server:latest
   nodeName: "your cloud node name"
@@ -68,6 +64,9 @@ agent:
   modules:
     edgeDNS:
       listenPort: 53
+      autoDetect: true
+      upstreamServers:
+      cacheTTL: 30
     edgeProxy:
       enable: true
       listenPort: 40001

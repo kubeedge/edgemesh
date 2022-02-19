@@ -24,7 +24,7 @@
 ```
 $ helm install edgemesh \
 --set server.nodeName=<your node name> \
---set "server.advertiseAddress=<your edgemesh server adveritise address list, such as node eip>" \
+--set server.advertiseAddress="{your edgemesh server adveritise address list, such as node eip}" \
 https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
@@ -35,7 +35,7 @@ server.nodeName 指定 edgemesh-server 部署的节点，server.advertiseAddress
 ```shell
 $ helm install edgemesh \
 --set server.nodeName=k8s-node1 \
---set "server.advertiseAddress={119.8.211.54}" \
+--set server.advertiseAddress="{119.8.211.54}" \
 https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 

@@ -17,17 +17,6 @@ spec:
         k8s-app: kubeedge
         kubeedge: edgemesh-agent
     spec:
-      {{- if eq .Values.global.mode "ci"}}
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: node-role.kubernetes.io/edge
-                    operator: Exists
-                  - key: node-role.kubernetes.io/agent
-                    operator: Exists
-      {{- end }}
       hostNetwork: true
       {{- with .Values.nodeSelector }}
       nodeSelector: {{ toYaml . | nindent 8 }}
