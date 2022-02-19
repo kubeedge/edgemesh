@@ -116,6 +116,7 @@ func (ps *ProxyService) TryConnectEndpoint(msg *pb.Proxy) (net.Conn, error) {
 			if err == nil {
 				return udpConn, nil
 			}
+			time.Sleep(time.Second)
 		}
 		klog.Errorf("max retries for dial")
 		return nil, err
