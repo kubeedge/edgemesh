@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/network"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/proxy"
@@ -146,6 +146,7 @@ func TryDialStream(protocol, endpoint string, dialTimeout time.Duration) (io.Rea
 		proxyOpts := tunnelproxy.ProxyOptions{Protocol: protocol, NodeName: targetNode, IP: targetIP, Port: int32(targetPort)}
 		stream, err := tunnel.Agent.ProxySvc.GetProxyStream(proxyOpts)
 		if err != nil {
+			time.Sleep(dialTimeout)
 			return nil, fmt.Errorf("get proxy stream from %s error: %v", targetNode, err)
 		}
 		klog.Infof("Libp2p network ready to proxy data between %v", proxyOpts)
