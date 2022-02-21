@@ -356,6 +356,10 @@ github.com/libp2p/go-libp2p-autonat
 github.com/libp2p/go-libp2p-autonat/pb
 # github.com/libp2p/go-libp2p-blankhost v0.3.0
 github.com/libp2p/go-libp2p-blankhost
+# github.com/libp2p/go-libp2p-circuit v0.4.0
+## explicit
+github.com/libp2p/go-libp2p-circuit
+github.com/libp2p/go-libp2p-circuit/pb
 # github.com/libp2p/go-libp2p-core v0.13.0
 ## explicit
 github.com/libp2p/go-libp2p-core/connmgr
