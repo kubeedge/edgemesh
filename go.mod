@@ -13,6 +13,7 @@ require (
 	github.com/kubeedge/beehive v0.0.0
 	github.com/kubeedge/kubeedge v1.6.2
 	github.com/libp2p/go-libp2p v0.17.0
+	github.com/libp2p/go-libp2p-circuit v0.4.0
 	github.com/libp2p/go-libp2p-core v0.13.0
 	github.com/libp2p/go-libp2p-quic-transport v0.15.2
 	github.com/libp2p/go-libp2p-tls v0.3.1

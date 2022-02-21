@@ -1,9 +1,11 @@
 package tunnel
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/libp2p/go-libp2p"
+	circuit "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-core/host"
 	libp2ptlsca "github.com/libp2p/go-libp2p-tls"
 	ma "github.com/multiformats/go-multiaddr"
@@ -85,6 +87,12 @@ func newTunnelServer(c *config.TunnelServerConfig, ifm *informers.Manager) (serv
 	h, err := libp2p.New(opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start tunnel server: %w", err)
+	}
+
+	_, err = circuit.NewRelay(context.Background(), h, nil, circuit.OptHop)
+	if err != nil {
+		klog.Errorf("Failed to instantiate circuit: %v", err)
+		return server, err
 	}
 
 	server.Host = h
