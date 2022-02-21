@@ -33,7 +33,7 @@ func init() {
 
 // Run is CoreDNS's main() function.
 func Run() {
-	caddy.TrapSignals()
+	// caddy.TrapSignals() // I want kubeedge/beehive to handle signals.
 	flag.Parse()
 
 	if len(flag.Args()) > 0 {

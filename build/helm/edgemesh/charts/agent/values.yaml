@@ -27,6 +27,9 @@ goChassisConfig:
 modules:
   edgeDNS:
     listenPort: 53
+    autoDetect: true
+    upstreamServers:
+    cacheTTL: 30
   edgeProxy:
     enable: true
     listenPort: 40001

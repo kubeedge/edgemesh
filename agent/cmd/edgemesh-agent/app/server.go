@@ -54,7 +54,7 @@ for the inter-communications between services at edge scenarios.`,
 
 			klog.Infof("Version: %+v", version.Get())
 			if err = Run(agentCfg); err != nil {
-				klog.Exit("run edgemesh-agent failed: %v", err)
+				klog.Exit("run edgemesh-agent failed: ", err)
 			}
 		},
 	}
@@ -127,7 +127,7 @@ func Run(cfg *config.EdgeMeshAgentConfig) error {
 // registerModules register all the modules started in edgemesh-agent
 func registerModules(c *config.EdgeMeshAgentConfig, ifm *informers.Manager) []error {
 	var errs []error
-	if err := dns.Register(c.Modules.EdgeDNSConfig); err != nil {
+	if err := dns.Register(c.Modules.EdgeDNSConfig, ifm); err != nil {
 		errs = append(errs, err)
 	}
 	if err := proxy.Register(c.Modules.EdgeProxyConfig, ifm); err != nil {
@@ -166,13 +166,6 @@ func prepareRun(c *config.EdgeMeshAgentConfig) error {
 		}
 		c.Modules.EdgeDNSConfig.ListenInterface = c.CommonConfig.DummyDeviceName
 		c.Modules.EdgeProxyConfig.ListenInterface = c.CommonConfig.DummyDeviceName
-	}
-
-	// create Corefile for CoreDNS
-	if c.Modules.EdgeDNSConfig.Enable {
-		if err := dns.UpdateCorefile(c); err != nil {
-			return fmt.Errorf("create or update Corefile err: %w", err)
-		}
 	}
 
 	return nil

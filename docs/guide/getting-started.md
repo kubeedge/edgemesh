@@ -25,7 +25,7 @@ Make sure you have installed Helm 3
 ```
 $ helm install edgemesh \
 --set server.nodeName=<your node name> \
---set "server.advertiseAddress=<your edgemesh server adveritise address list, such as node eip>" \
+--set server.advertiseAddress="{your edgemesh server adveritise address list, such as node eip}" \
 https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
@@ -38,7 +38,7 @@ The server.advertiseAddress can be omitted, because edgemesh-server will automat
 ```shell
 $ helm install edgemesh \
 --set server.nodeName=k8s-node1 \
---set "server.advertiseAddress={119.8.211.54}" \
+--set server.advertiseAddress="{119.8.211.54}" \
 https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 

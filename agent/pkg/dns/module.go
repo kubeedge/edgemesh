@@ -8,6 +8,7 @@ import (
 
 	"github.com/kubeedge/beehive/pkg/core"
 	"github.com/kubeedge/edgemesh/agent/pkg/dns/config"
+	"github.com/kubeedge/edgemesh/common/informers"
 	"github.com/kubeedge/edgemesh/common/modules"
 )
 
@@ -16,18 +17,24 @@ type EdgeDNS struct {
 	Config *config.EdgeDNSConfig
 }
 
-func newEdgeDNS(c *config.EdgeDNSConfig) (dns *EdgeDNS, err error) {
+func newEdgeDNS(c *config.EdgeDNSConfig, ifm *informers.Manager) (dns *EdgeDNS, err error) {
 	dns = &EdgeDNS{Config: c}
 	if !c.Enable {
 		return dns, nil
+	}
+
+	// update Corefile for node-local dns
+	err = UpdateCorefile(c, ifm)
+	if err != nil {
+		return dns, fmt.Errorf("failed to update corefile, err: %w", err)
 	}
 
 	return dns, nil
 }
 
 // Register register edgedns to beehive modules
-func Register(c *config.EdgeDNSConfig) error {
-	dns, err := newEdgeDNS(c)
+func Register(c *config.EdgeDNSConfig, ifm *informers.Manager) error {
+	dns, err := newEdgeDNS(c, ifm)
 	if err != nil {
 		return fmt.Errorf("register module edgedns error: %v", err)
 	}
@@ -52,6 +59,6 @@ func (dns *EdgeDNS) Enable() bool {
 
 // Start edgedns
 func (dns *EdgeDNS) Start() {
-	klog.Infof("Runs CoreDNS v%s as a node-level dns", coremain.CoreVersion)
+	klog.Infof("Runs CoreDNS v%s as a nodelocal dns cache", coremain.CoreVersion)
 	coremain.Run()
 }
