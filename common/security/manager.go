@@ -35,20 +35,15 @@ func New(tunnel Security, t Type) Manager {
 }
 
 func NewManager(security *Security) Manager {
-	var manager Manager
 	if security.Enable {
 		// fetch the cloudcore token
 		content, err := ioutil.ReadFile(meshConstants.CaServerTokenPath)
 		if err != nil {
 			klog.Fatalf("failed to read caServerToken from %s, err: %s", meshConstants.CaServerTokenPath, err)
-		} else {
-			klog.Infof("fetch token from %s success", meshConstants.CaServerTokenPath)
 		}
+		klog.Infof("fetch token from %s success", meshConstants.CaServerTokenPath)
 		security.Token = string(content)
-
-		manager = New(*security, TypeWithCA)
-	} else {
-		manager = New(*security, TypeWithNoCA)
+		return New(*security, TypeWithCA)
 	}
-	return manager
+	return New(*security, TypeWithNoCA)
 }
