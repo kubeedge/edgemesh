@@ -117,29 +117,37 @@ func TryConnectEndpoints(service proxy.ServicePortName, srcAddr net.Addr, tcpCon
 	return nil, fmt.Errorf("failed to connect to an endpoint")
 }
 
+// parseEndpoint parse an endpoint like "nodeName:podName:ip:port"
+// style strings, nodeName and podName can be empty.
+func parseEndpoint(endpoint string) (node, pod, ip, port string, ok bool) {
+	endpointInfo := strings.Split(endpoint, ":")
+	if len(endpointInfo) != 4 {
+		return "", "", "", "", false
+	}
+	// TODO check IP and port
+	return endpointInfo[0], endpointInfo[1], endpointInfo[2], endpointInfo[3], true
+}
+
 // TryDialStream If the endpoint contains nodeName, try dial to stream,
 // otherwise use traditional network to dial.
 func TryDialStream(protocol, endpoint string, dialTimeout time.Duration) (io.ReadWriteCloser, error) {
-	// endpoint like "nodeName:podName:ip:port" style strings, nodeName and podName can be empty.
-	endpointInfo := strings.Split(endpoint, ":")
-	if len(endpointInfo) != 4 {
+	targetNode, targetPod, targetIP, targetPort, ok := parseEndpoint(endpoint)
+	if !ok {
 		return nil, fmt.Errorf("invalid endpoint %s", endpoint)
 	}
 
-	targetNode := endpointInfo[0]
-	targetIP := endpointInfo[2]
-	targetPort := endpointInfo[3]
-	if targetNode == EmptyNodeName || targetNode == MyNodeName {
+	switch targetNode {
+	case EmptyNodeName, MyNodeName:
 		// TODO: This could spin up a new goroutine to make the outbound connection,
 		// and keep accepting inbound traffic.
 		outConn, err := net.DialTimeout(protocol, net.JoinHostPort(targetIP, targetPort), dialTimeout)
 		if err != nil {
 			return nil, err
 		}
-		klog.Infof("Legacy network ready to proxy data between {%s %s %s}", protocol, targetIP, targetPort)
+		klog.Infof("Dial legacy network between %s - {%s %s %s %s}", targetPod, protocol, targetNode, targetIP, targetPort)
 		return outConn, nil
-	} else {
-		targetPort, err := strconv.ParseInt(endpointInfo[3], 10, 32)
+	default:
+		targetPort, err := strconv.ParseInt(targetPort, 10, 32)
 		if err != nil {
 			return nil, fmt.Errorf("invalid endpoint %s", endpoint)
 		}
@@ -149,7 +157,7 @@ func TryDialStream(protocol, endpoint string, dialTimeout time.Duration) (io.Rea
 			time.Sleep(dialTimeout)
 			return nil, fmt.Errorf("get proxy stream from %s error: %v", targetNode, err)
 		}
-		klog.Infof("Libp2p network ready to proxy data between %v", proxyOpts)
+		klog.Infof("Dial libp2p network between %s - %v", targetPod, proxyOpts)
 		return stream, nil
 	}
 }
