@@ -127,6 +127,25 @@ recv: 2021-12-02 03:42:21.191724176 +0000 UTC m=+2.004554995
 recv: 2021-12-02 03:42:22.191725321 +0000 UTC m=+3.004556159
 ```
 
+## UDP
+
+Deploy a UDP container application and relevant service
+
+```shell
+$ kubectl apply -f examples/hostname-udp.yaml
+deployment.apps/hostname-edge created
+service/hostname-udp-svc created
+```
+
+Enter the test pod and use `nc` to access the service
+
+```shell
+$ kubectl exec -it alpine-test -- sh
+(in the container environment)
+/ # nc -u hostname-udp-svc 12345
+hostname-edge-5cd47b65d5-8zg27
+```
+
 ## Load Balance
 
 Deploy a container application and related services configured with a `random` load balancing strategy

@@ -67,7 +67,7 @@ EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge re
   </tr>
   <tr>
     <td align="center">UDP</td>
-    <td align="center">+</td>
+    <td align="center">✓</td>
   </tr>
   <tr>
     <td rowspan="3" align="center">Load Balance</td>
@@ -150,9 +150,11 @@ Example3: [TCP traffic forwarding](https://edgemesh.netlify.app/guide/test-case.
 
 Example4: [Websocket traffic forwarding](https://edgemesh.netlify.app/guide/test-case.html#websocket)
 
-Example5: [Load Balance](https://edgemesh.netlify.app/guide/test-case.html#load-balance)
+Example5: [UDP traffic forwarding](https://edgemesh.netlify.app/guide/test-case.html#udp)
 
-Example6: [Cross-edge-cloud communication](https://edgemesh.netlify.app/guide/test-case.html#cross-edge-cloud)
+Example6: [Load Balance](https://edgemesh.netlify.app/guide/test-case.html#load-balance)
+
+Example7: [Cross-edge-cloud communication](https://edgemesh.netlify.app/guide/test-case.html#cross-edge-cloud)
 
 
 ## Contact

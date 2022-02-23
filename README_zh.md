@@ -67,7 +67,7 @@ EdgeMesh 满足边缘场景下的新需求（如边缘资源有限、边云网�
   </tr>
   <tr>
     <td align="center">UDP</td>
-    <td align="center">+</td>
+    <td align="center">✓</td>
   </tr>
   <tr>
     <td rowspan="3" align="center">负载均衡</td>
@@ -150,9 +150,11 @@ EdgeMesh 的安装文档请参考[这里](https://edgemesh.netlify.app/zh/guide/
 
 样例4：[Websocket 流量转发](https://edgemesh.netlify.app/zh/guide/test-case.html#websocket)
 
-样例5：[负载均衡](https://edgemesh.netlify.app/zh/guide/test-case.html#负载均衡)
+样例5：[UDP 流量转发](https://edgemesh.netlify.app/zh/guide/test-case.html#udp)
 
-样例6：[跨边云通信](https://edgemesh.netlify.app/zh/guide/test-case.html#跨边云通信)
+样例6：[负载均衡](https://edgemesh.netlify.app/zh/guide/test-case.html#负载均衡)
+
+样例7：[跨边云通信](https://edgemesh.netlify.app/zh/guide/test-case.html#跨边云通信)
 
 
 ## 联系方式

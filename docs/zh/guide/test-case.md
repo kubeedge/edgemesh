@@ -127,6 +127,25 @@ recv: 2021-12-02 03:42:21.191724176 +0000 UTC m=+2.004554995
 recv: 2021-12-02 03:42:22.191725321 +0000 UTC m=+3.004556159
 ```
 
+## UDP
+
+部署支持 udp 协议的容器应用和相关服务
+
+```shell
+$ kubectl apply -f examples/hostname-udp.yaml
+deployment.apps/hostname-edge created
+service/hostname-udp-svc created
+```
+
+进入测试容器，并使用 `nc` 去访问相关服务
+
+```shell
+$ kubectl exec -it alpine-test -- sh
+(在容器环境内)
+/ # nc -u hostname-udp-svc 12345
+hostname-edge-5cd47b65d5-8zg27
+```
+
 ## 负载均衡
 
 部署配置了 `random` 负载均衡策略的容器应用和相关服务
