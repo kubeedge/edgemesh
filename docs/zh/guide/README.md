@@ -58,7 +58,7 @@ EdgeMesh 满足边缘场景下的新需求（如边缘资源有限、边云网�
   </tr>
   <tr>
     <td align="center">UDP</td>
-    <td align="center">+</td>
+    <td align="center">✓</td>
   </tr>
   <tr>
     <td rowspan="3" align="center">负载均衡</td>
