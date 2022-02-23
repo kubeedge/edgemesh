@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hostname-edge
+  labels:
+    app: hostname-edge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hostname-edge
+  template:
+    metadata:
+      labels:
+        app: hostname-edge
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: node-role.kubernetes.io/edge
+                  operator: Exists
+                - key: node-role.kubernetes.io/agent
+                  operator: Exists
+      containers:
+        - name: hostname
+          image: poorunga/serve_hostname:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9376
+          command:
+            - /serve_hostname
+            - --udp=true
+            - --http=false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hostname-udp-svc
+spec:
+  selector:
+    app: hostname-edge
+  ports:
+    - name: udp-0
+      port: 12345
+      protocol: UDP
+      targetPort: 9376
