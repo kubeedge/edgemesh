@@ -57,7 +57,7 @@ EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge re
   </tr>
   <tr>
     <td align="center">UDP</td>
-    <td align="center">+</td>
+    <td align="center">✓</td>
   </tr>
   <tr>
     <td rowspan="3" align="center">Load Balance</td>
