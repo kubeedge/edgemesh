@@ -148,6 +148,24 @@ clean:
 endif
 
 
+define LOADBALANCE_HELP_INFO
+# Load balance test.
+#
+# Example:
+#   make lb
+#   make lb HELP=y
+#
+endef
+.PHONY: lb
+ifeq ($(HELP),y)
+lb:
+	@echo "$$LOADBALANCE_HELP_INFO"
+else
+lb:
+	tests/loadbalance/execute.sh
+endif
+
+
 .PHONY: images agentimage serverimage
 images: agentimage serverimage
 agentimage serverimage:
