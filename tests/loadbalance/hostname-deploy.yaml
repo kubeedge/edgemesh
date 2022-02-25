@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hostname-lb-test
+  labels:
+    app: hostname-lb-test
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: hostname-lb-test
+  template:
+    metadata:
+      labels:
+        app: hostname-lb-test
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/edge
+                    operator: DoesNotExist
+                  - key: node-role.kubernetes.io/agent
+                    operator: DoesNotExist
+      containers:
+        - name: hostname
+          image: poorunga/serve_hostname:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9376
