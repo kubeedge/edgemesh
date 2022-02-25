@@ -52,21 +52,24 @@ edgemesh        default         1               2021-11-01 23:30:02.927346553 +0
 ```
 
 ```shell
-$ kubectl get all -n kubeedge
-NAME                                   READY   STATUS    RESTARTS   AGE
-pod/edgemesh-agent-4rhz4               1/1     Running   0          76s
-pod/edgemesh-agent-7wqgb               1/1     Running   0          76s
-pod/edgemesh-agent-9c697               1/1     Running   0          76s
-pod/edgemesh-server-5f6d5869ff-4568p   1/1     Running   0          5m8s
+$ kubectl get all -n kubeedge -o wide
+NAME                                   READY   STATUS    RESTARTS   AGE   IP             NODE         NOMINATED NODE   READINESS GATES
+pod/edgemesh-agent-2m9pq               1/1     Running   0          16m   192.168.22.3   k8s-node02   <none>           <none>
+pod/edgemesh-agent-479rz               1/1     Running   0          16m   192.168.22.2   k8s-node01   <none>           <none>
+pod/edgemesh-agent-8cd2j               1/1     Running   0          16m   192.168.22.5   ke-edge2     <none>           <none>
+pod/edgemesh-agent-phfln               1/1     Running   0          16m   192.168.22.4   ke-edge1     <none>           <none>
+pod/edgemesh-server-74dc5c67dc-kdf2b   1/1     Running   0          22m   192.168.22.2   k8s-node01   <none>           <none>
 
-NAME                            DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
-daemonset.apps/edgemesh-agent   3         3         3       3            3           <none>          76s
+NAME                            DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE   CONTAINERS       IMAGES                           SELECTOR
+daemonset.apps/edgemesh-agent   4         4         4       4            4           <none>          16m   edgemesh-agent   kubeedge/edgemesh-agent:latest   k8s-app=kubeedge,kubeedge=edgemesh-agent
 
-NAME                              READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/edgemesh-server   1/1     1            1           5m8s
 
-NAME                                         DESIRED   CURRENT   READY   AGE
-replicaset.apps/edgemesh-server-5f6d5869ff   1         1         1       5m8s
+NAME                              READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS        IMAGES                            SELECTOR
+deployment.apps/edgemesh-server   1/1     1            1           22m   edgemesh-server   kubeedge/edgemesh-server:latest   k8s-app=kubeedge,kubeedge=edgemesh-server
+
+
+NAME                                         DESIRED   CURRENT   READY   AGE   CONTAINERS        IMAGES                            SELECTOR
+replicaset.apps/edgemesh-server-74dc5c67dc   1         1         1       22m   edgemesh-server   kubeedge/edgemesh-server:latest   k8s-app=kubeedge,kubeedge=edgemesh-server,pod-template-hash=74dc5c67dc
 ```
 
 ## 手动安装
@@ -186,19 +189,22 @@ daemonset.apps/edgemesh-agent created
 - **步骤6**: 检验部署结果
 
 ```shell
-$ kubectl get all -n kubeedge
-NAME                                   READY   STATUS    RESTARTS   AGE
-pod/edgemesh-agent-4rhz4               1/1     Running   0          76s
-pod/edgemesh-agent-7wqgb               1/1     Running   0          76s
-pod/edgemesh-agent-9c697               1/1     Running   0          76s
-pod/edgemesh-server-5f6d5869ff-4568p   1/1     Running   0          5m8s
+$ kubectl get all -n kubeedge -o wide
+NAME                                   READY   STATUS    RESTARTS   AGE   IP             NODE         NOMINATED NODE   READINESS GATES
+pod/edgemesh-agent-2m9pq               1/1     Running   0          16m   192.168.22.3   k8s-node02   <none>           <none>
+pod/edgemesh-agent-479rz               1/1     Running   0          16m   192.168.22.2   k8s-node01   <none>           <none>
+pod/edgemesh-agent-8cd2j               1/1     Running   0          16m   192.168.22.5   ke-edge2     <none>           <none>
+pod/edgemesh-agent-phfln               1/1     Running   0          16m   192.168.22.4   ke-edge1     <none>           <none>
+pod/edgemesh-server-74dc5c67dc-kdf2b   1/1     Running   0          22m   192.168.22.2   k8s-node01   <none>           <none>
 
-NAME                            DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
-daemonset.apps/edgemesh-agent   3         3         3       3            3           <none>          76s
+NAME                            DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE   CONTAINERS       IMAGES                           SELECTOR
+daemonset.apps/edgemesh-agent   4         4         4       4            4           <none>          16m   edgemesh-agent   kubeedge/edgemesh-agent:latest   k8s-app=kubeedge,kubeedge=edgemesh-agent
 
-NAME                              READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/edgemesh-server   1/1     1            1           5m8s
 
-NAME                                         DESIRED   CURRENT   READY   AGE
-replicaset.apps/edgemesh-server-5f6d5869ff   1         1         1       5m8s
+NAME                              READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS        IMAGES                            SELECTOR
+deployment.apps/edgemesh-server   1/1     1            1           22m   edgemesh-server   kubeedge/edgemesh-server:latest   k8s-app=kubeedge,kubeedge=edgemesh-server
+
+
+NAME                                         DESIRED   CURRENT   READY   AGE   CONTAINERS        IMAGES                            SELECTOR
+replicaset.apps/edgemesh-server-74dc5c67dc   1         1         1       22m   edgemesh-server   kubeedge/edgemesh-server:latest   k8s-app=kubeedge,kubeedge=edgemesh-server,pod-template-hash=74dc5c67dc
 ```
