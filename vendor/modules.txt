@@ -1,3 +1,5 @@
+# cloud.google.com/go v0.99.0
+cloud.google.com/go/compute/metadata
 # github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1
 github.com/Azure/go-ansiterm
 github.com/Azure/go-ansiterm/winterm
@@ -38,7 +40,7 @@ github.com/cheekybits/genny/parse
 # github.com/coredns/caddy v1.1.1
 github.com/coredns/caddy
 github.com/coredns/caddy/caddyfile
-# github.com/coredns/coredns v1.8.7 => github.com/Poorunga/coredns v1.8.8
+# github.com/coredns/coredns v1.8.7 => github.com/Poorunga/coredns v1.8.8-alpha.1
 ## explicit
 github.com/coredns/coredns/core/dnsserver
 github.com/coredns/coredns/coremain
@@ -56,6 +58,8 @@ github.com/coredns/coredns/plugin/etcd/msg
 github.com/coredns/coredns/plugin/forward
 github.com/coredns/coredns/plugin/health
 github.com/coredns/coredns/plugin/hosts
+github.com/coredns/coredns/plugin/kubernetes
+github.com/coredns/coredns/plugin/kubernetes/object
 github.com/coredns/coredns/plugin/loadbalance
 github.com/coredns/coredns/plugin/log
 github.com/coredns/coredns/plugin/loop
@@ -89,6 +93,7 @@ github.com/coredns/coredns/plugin/rewrite
 github.com/coredns/coredns/plugin/template
 github.com/coredns/coredns/plugin/test
 github.com/coredns/coredns/plugin/trace
+github.com/coredns/coredns/plugin/transfer
 github.com/coredns/coredns/plugin/whoami
 github.com/coredns/coredns/request
 # github.com/davecgh/go-spew v1.1.1
@@ -677,7 +682,12 @@ golang.org/x/net/trace
 golang.org/x/net/websocket
 # golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 golang.org/x/oauth2
+golang.org/x/oauth2/authhandler
+golang.org/x/oauth2/google
+golang.org/x/oauth2/google/internal/externalaccount
 golang.org/x/oauth2/internal
+golang.org/x/oauth2/jws
+golang.org/x/oauth2/jwt
 # golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 golang.org/x/sync/errgroup
 # golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e
@@ -737,10 +747,13 @@ golang.org/x/tools/internal/typesinternal
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
 # google.golang.org/appengine v1.6.7
+google.golang.org/appengine
 google.golang.org/appengine/internal
+google.golang.org/appengine/internal/app_identity
 google.golang.org/appengine/internal/base
 google.golang.org/appengine/internal/datastore
 google.golang.org/appengine/internal/log
+google.golang.org/appengine/internal/modules
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
@@ -1193,8 +1206,12 @@ k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1
 k8s.io/client-go/pkg/apis/clientauthentication/v1beta1
 k8s.io/client-go/pkg/version
 k8s.io/client-go/plugin/pkg/client/auth/exec
+k8s.io/client-go/plugin/pkg/client/auth/gcp
+k8s.io/client-go/plugin/pkg/client/auth/oidc
+k8s.io/client-go/plugin/pkg/client/auth/openstack
 k8s.io/client-go/rest
 k8s.io/client-go/rest/watch
+k8s.io/client-go/third_party/forked/golang/template
 k8s.io/client-go/tools/auth
 k8s.io/client-go/tools/cache
 k8s.io/client-go/tools/clientcmd
@@ -1214,6 +1231,7 @@ k8s.io/client-go/util/cert
 k8s.io/client-go/util/connrotation
 k8s.io/client-go/util/flowcontrol
 k8s.io/client-go/util/homedir
+k8s.io/client-go/util/jsonpath
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/workqueue
 # k8s.io/cloud-provider v0.23.0
@@ -1282,7 +1300,7 @@ sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.2.0
 ## explicit
 sigs.k8s.io/yaml
-# github.com/coredns/coredns => github.com/Poorunga/coredns v1.8.8
+# github.com/coredns/coredns => github.com/Poorunga/coredns v1.8.8-alpha.1
 # github.com/libp2p/go-libp2p-tls => github.com/Poorunga/go-libp2p-tls v0.3.2-beta.6
 # k8s.io/api v0.0.0 => k8s.io/api v0.23.0
 # k8s.io/apiextensions-apiserver v0.0.0 => k8s.io/apiextensions-apiserver v0.23.0

@@ -1,5 +1,7 @@
 package config
 
+import "github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1"
+
 // EdgeDNSConfig indicates the edgedns config
 type EdgeDNSConfig struct {
 	// Enable indicates whether enable edgedns
@@ -11,6 +13,20 @@ type EdgeDNSConfig struct {
 	// ListenPort indicates the listen port of edgedns
 	// default 53
 	ListenPort int `json:"listenPort,omitempty"`
+	// Mode is equivalent to CommonConfig.Mode
+	// do not allow users to configure manually
+	Mode string
+	// KubeAPIConfig is equivalent to EdgeMeshAgentConfig.KubeAPIConfig
+	// do not allow users to configure manually
+	KubeAPIConfig *v1alpha1.KubeAPIConfig
+	// CacheDNS indicates the nodelocal cache dns
+	CacheDNS *CacheDNS `json:"cacheDNS,omitempty"`
+}
+
+type CacheDNS struct {
+	// Enable indicates whether enable nodelocal cache dns
+	// default false
+	Enable bool `json:"enable,omitempty"`
 	// AutoDetect indicates whether to automatically detect the
 	// address of the upstream clusterDNS
 	// default true
@@ -26,7 +42,10 @@ func NewEdgeDNSConfig() *EdgeDNSConfig {
 	return &EdgeDNSConfig{
 		Enable:     false,
 		ListenPort: 53,
-		AutoDetect: true,
-		CacheTTL:   30,
+		CacheDNS: &CacheDNS{
+			Enable:     false,
+			AutoDetect: true,
+			CacheTTL:   30,
+		},
 	}
 }

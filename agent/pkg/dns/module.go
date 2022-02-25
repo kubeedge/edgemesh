@@ -59,6 +59,10 @@ func (dns *EdgeDNS) Enable() bool {
 
 // Start edgedns
 func (dns *EdgeDNS) Start() {
-	klog.Infof("Runs CoreDNS v%s as a nodelocal dns cache", coremain.CoreVersion)
+	if dns.Config.CacheDNS.Enable {
+		klog.Infof("Runs CoreDNS v%s as a cache dns", coremain.CoreVersion)
+	} else {
+		klog.Infof("Runs CoreDNS v%s as a local dns", coremain.CoreVersion)
+	}
 	coremain.Run()
 }

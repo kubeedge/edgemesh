@@ -41,7 +41,7 @@ require (
 )
 
 replace (
-	github.com/coredns/coredns => github.com/Poorunga/coredns v1.8.8
+	github.com/coredns/coredns => github.com/Poorunga/coredns v1.8.8-alpha.1
 	github.com/kubeedge/beehive v0.0.0 => github.com/kubeedge/beehive v0.0.0-20201125122335-cd19bca6e436
 	github.com/kubeedge/viaduct v0.0.0 => github.com/kubeedge/viaduct v0.0.0-20210601015050-d832643a3d35
 	github.com/libp2p/go-libp2p-tls => github.com/Poorunga/go-libp2p-tls v0.3.2-beta.6
