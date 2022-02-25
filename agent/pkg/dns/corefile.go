@@ -19,6 +19,7 @@ import (
 	_ "github.com/coredns/coredns/plugin/forward"
 	_ "github.com/coredns/coredns/plugin/health"
 	_ "github.com/coredns/coredns/plugin/hosts"
+	_ "github.com/coredns/coredns/plugin/kubernetes"
 	_ "github.com/coredns/coredns/plugin/loadbalance"
 	_ "github.com/coredns/coredns/plugin/log"
 	_ "github.com/coredns/coredns/plugin/loop"
@@ -34,6 +35,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 
+	appconfig "github.com/kubeedge/edgemesh/agent/cmd/edgemesh-agent/app/config"
 	"github.com/kubeedge/edgemesh/agent/pkg/dns/config"
 	"github.com/kubeedge/edgemesh/common/informers"
 	"github.com/kubeedge/edgemesh/common/util"
@@ -48,23 +50,67 @@ const (
     forward . {{.UpstreamServers}} {
         force_tcp
     }
+    {{ .KubernetesPlugin }}
     log
     loop
     reload
 }
 `
-	corefilePath = "Corefile"
+	kubernetesPluginBlock = `kubernetes cluster.local in-addr.arpa ip6.arpa {
+        {{ .APIServer }}
+        pods insecure
+        fallthrough in-addr.arpa ip6.arpa
+        ttl {{ .TTL }}
+    }`
+	defaultTTL            = 30
+	defaultUpstreamServer = "/etc/resolv.conf"
+	corefilePath          = "Corefile"
 )
 
 // copy from https://github.com/kubernetes/dns/blob/1.21.0/cmd/node-cache/app/configmap.go and update
 // stubDomainInfo contains all the parameters needed to compute
 // a stubDomain block in the Corefile.
 type stubDomainInfo struct {
-	DomainName      string
-	LocalIP         string
-	Port            string
-	CacheTTL        int
-	UpstreamServers string
+	DomainName       string
+	LocalIP          string
+	Port             string
+	CacheTTL         int
+	UpstreamServers  string
+	KubernetesPlugin string
+}
+
+type KubernetesPluginInfo struct {
+	APIServer string
+	TTL       int
+}
+
+func getKubernetesPluginStr(cfg *config.EdgeDNSConfig) (string, error) {
+	var apiServer string
+	if cfg.Mode == appconfig.DebugMode {
+		if cfg.KubeAPIConfig.Master != "" {
+			apiServer = fmt.Sprintf("endpoint %s", cfg.KubeAPIConfig.Master)
+		}
+		// if kubeconfig is set, use it to overwrite the endpoint
+		if cfg.KubeAPIConfig.KubeConfig != "" {
+			apiServer = fmt.Sprintf("kubeconfig %s", cfg.KubeAPIConfig.KubeConfig)
+		}
+	} else if cfg.Mode == appconfig.EdgeMode {
+		apiServer = fmt.Sprintf("endpoint %s", appconfig.DefaultEdgeApiServer)
+	}
+
+	info := &KubernetesPluginInfo{
+		APIServer: apiServer,
+		TTL:       defaultTTL,
+	}
+	var tpl bytes.Buffer
+	tmpl, err := template.New("kubernetesPluginBlock").Parse(kubernetesPluginBlock)
+	if err != nil {
+		return "", fmt.Errorf("failed to create kubernetesPlugin template, err : %w", err)
+	}
+	if err := tmpl.Execute(&tpl, *info); err != nil {
+		return "", fmt.Errorf("failed to create kubernetesPlugin template, err : %w", err)
+	}
+	return tpl.String(), nil
 }
 
 // copy from https://github.com/kubernetes/dns/blob/1.21.0/cmd/node-cache/app/configmap.go and update
@@ -92,34 +138,48 @@ func UpdateCorefile(cfg *config.EdgeDNSConfig, ifm *informers.Manager) error {
 		return err
 	}
 
-	upstreamServers := make([]string, 0)
-	if cfg.AutoDetect {
-		upstreamServers = append(upstreamServers, detectClusterDNS(ifm.GetKubeClient())...)
+	cacheTTL := defaultTTL
+	upstreamServers := []string{defaultUpstreamServer}
+	kubernetesPlugin, err := getKubernetesPluginStr(cfg)
+	if err != nil {
+		return err
 	}
-	for _, server := range cfg.UpstreamServers {
-		server = strings.TrimSpace(server)
-		if server == "" {
-			continue
+
+	if cfg.CacheDNS.Enable {
+		// Reset upstream server
+		upstreamServers = []string{}
+		if cfg.CacheDNS.AutoDetect {
+			upstreamServers = append(upstreamServers, detectClusterDNS(ifm.GetKubeClient())...)
 		}
-		if isValidAddress(server) {
-			upstreamServers = append(upstreamServers, server)
+		for _, server := range cfg.CacheDNS.UpstreamServers {
+			server = strings.TrimSpace(server)
+			if server == "" {
+				continue
+			}
+			if isValidAddress(server) {
+				upstreamServers = append(upstreamServers, server)
+			} else {
+				klog.Errorf("Invalid address: %s", server)
+			}
+		}
+		upstreamServers = removeDuplicate(upstreamServers)
+		if len(upstreamServers) == 0 {
+			return fmt.Errorf("failed to get nodelocal dns upstream servers")
 		} else {
-			klog.Errorf("Invalid address: %s", server)
+			klog.Infof("nodelocal dns upstream servers: %v", upstreamServers)
 		}
-	}
-	upstreamServers = removeDuplicate(upstreamServers)
-	if len(upstreamServers) == 0 {
-		return fmt.Errorf("failed to get nodelocal dns upstream servers")
-	} else {
-		klog.Infof("nodelocal dns upstream servers: %v", upstreamServers)
+		cacheTTL = cfg.CacheDNS.CacheTTL
+		// Disable coredns kubernetes plugin.
+		kubernetesPlugin = ""
 	}
 
 	stubDomainMap := make(map[string][]string)
 	stubDomainMap["."] = upstreamServers
 	stubDomainStr, err := getStubDomainStr(stubDomainMap, &stubDomainInfo{
-		LocalIP:  ListenIP.String(),
-		Port:     fmt.Sprintf("%d", cfg.ListenPort),
-		CacheTTL: cfg.CacheTTL,
+		LocalIP:          ListenIP.String(),
+		Port:             fmt.Sprintf("%d", cfg.ListenPort),
+		CacheTTL:         cacheTTL,
+		KubernetesPlugin: kubernetesPlugin,
 	})
 	if err != nil {
 		return err

@@ -168,5 +168,11 @@ func prepareRun(c *config.EdgeMeshAgentConfig) error {
 		c.Modules.EdgeProxyConfig.ListenInterface = c.CommonConfig.DummyDeviceName
 	}
 
+	// set dns module mode
+	if c.Modules.EdgeDNSConfig.Enable {
+		c.Modules.EdgeDNSConfig.Mode = c.CommonConfig.Mode
+		c.Modules.EdgeDNSConfig.KubeAPIConfig = c.KubeAPIConfig
+	}
+
 	return nil
 }
