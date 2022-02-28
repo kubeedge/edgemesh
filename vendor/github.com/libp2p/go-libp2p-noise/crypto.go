@@ -23,7 +23,7 @@ func (s *secureSession) encrypt(out, plaintext []byte) ([]byte, error) {
 	if s.enc == nil {
 		return nil, errors.New("cannot encrypt, handshake incomplete")
 	}
-	return s.enc.Encrypt(out, nil, plaintext)
+	return s.enc.Encrypt(out, nil, plaintext), nil
 }
 
 // decrypt calls the cipher's decryption. It decrypts the provided ciphertext,

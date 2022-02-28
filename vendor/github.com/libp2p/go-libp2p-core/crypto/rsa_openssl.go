@@ -1,4 +1,3 @@
-//go:build openssl
 // +build openssl
 
 package crypto

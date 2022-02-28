@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/crypto"
+	ic "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -26,7 +26,7 @@ import (
 	msmux "github.com/multiformats/go-multistream"
 
 	"github.com/gogo/protobuf/proto"
-	logging "github.com/ipfs/go-log/v2"
+	logging "github.com/ipfs/go-log"
 )
 
 var log = logging.Logger("net/identify")
@@ -41,14 +41,25 @@ const ID = "/ipfs/id/1.0.0"
 // 0.4.17 which asserted an exact version match.
 const LibP2PVersion = "ipfs/0.1.0"
 
+const (
+	// UDPNATDeviceTypeKey is the key with which we will persist a peer's UDP NAT Device Type to the peerstore.
+	UDPNATDeviceTypeKey = "UDPNATDeviceType"
+	// TCPNATDeviceTypeKey is the key with which we will persist a peer's TCP NAT Device Type to the peerstore.
+	TCPNATDeviceTypeKey = "TCPNATDeviceType"
+)
+
+// ClientVersion is the default user agent.
+//
+// Deprecated: Set this with the UserAgent option.
+var ClientVersion = "github.com/libp2p/go-libp2p"
+
 // StreamReadTimeout is the read timeout on all incoming Identify family streams.
 var StreamReadTimeout = 60 * time.Second
 
 var (
-	legacyIDSize     = 2 * 1024 // 2k Bytes
-	signedIDSize     = 8 * 1024 // 8K
-	maxMessages      = 10
-	defaultUserAgent = "github.com/libp2p/go-libp2p"
+	legacyIDSize = 2 * 1024 // 2k Bytes
+	signedIDSize = 8 * 1024 // 8K
+	maxMessages  = 10
 )
 
 func init() {
@@ -58,9 +69,9 @@ func init() {
 	}
 	version := bi.Main.Version
 	if version == "(devel)" {
-		defaultUserAgent = bi.Main.Path
+		ClientVersion = bi.Main.Path
 	} else {
-		defaultUserAgent = fmt.Sprintf("%s@%s", bi.Main.Path, bi.Main.Version)
+		ClientVersion = fmt.Sprintf("%s@%s", bi.Main.Path, bi.Main.Version)
 	}
 }
 
@@ -73,38 +84,22 @@ type rmPeerHandlerReq struct {
 	p peer.ID
 }
 
-type IDService interface {
-	// IdentifyConn synchronously triggers an identify request on the connection and
-	// waits for it to complete. If the connection is being identified by another
-	// caller, this call will wait. If the connection has already been identified,
-	// it will return immediately.
-	IdentifyConn(network.Conn)
-	// IdentifyWait triggers an identify (if the connection has not already been
-	// identified) and returns a channel that is closed when the identify protocol
-	// completes.
-	IdentifyWait(network.Conn) <-chan struct{}
-	// OwnObservedAddrs returns the addresses peers have reported we've dialed from
-	OwnObservedAddrs() []ma.Multiaddr
-	// ObservedAddrsFor returns the addresses peers have reported we've dialed from,
-	// for a specific local address.
-	ObservedAddrsFor(local ma.Multiaddr) []ma.Multiaddr
-	io.Closer
-}
-
-// idService is a structure that implements ProtocolIdentify.
+// IDService is a structure that implements ProtocolIdentify.
 // It is a trivial service that gives the other peer some
 // useful information about the local peer. A sort of hello.
 //
-// The idService sends:
+// The IDService sends:
 //  * Our IPFS Protocol Version
 //  * Our IPFS Agent Version
 //  * Our public Listen Addresses
-type idService struct {
+type IDService struct {
 	Host      host.Host
 	UserAgent string
 
 	ctx       context.Context
 	ctxCancel context.CancelFunc
+	// ensure we shutdown ONLY once
+	closeSync sync.Once
 	// track resources that need to be shut down before we shut down
 	refCount sync.WaitGroup
 
@@ -129,36 +124,38 @@ type idService struct {
 	rmPeerHandlerCh  chan rmPeerHandlerReq
 }
 
-// NewIDService constructs a new *idService and activates it by
+// NewIDService constructs a new *IDService and activates it by
 // attaching its stream handler to the given host.Host.
-func NewIDService(h host.Host, opts ...Option) (*idService, error) {
+func NewIDService(h host.Host, opts ...Option) (*IDService, error) {
 	var cfg config
 	for _, opt := range opts {
 		opt(&cfg)
 	}
 
-	userAgent := defaultUserAgent
+	userAgent := ClientVersion
 	if cfg.userAgent != "" {
 		userAgent = cfg.userAgent
 	}
 
-	s := &idService{
+	hostCtx, cancel := context.WithCancel(context.Background())
+	s := &IDService{
 		Host:      h,
 		UserAgent: userAgent,
 
-		conns: make(map[network.Conn]chan struct{}),
+		ctx:       hostCtx,
+		ctxCancel: cancel,
+		conns:     make(map[network.Conn]chan struct{}),
 
 		disableSignedPeerRecord: cfg.disableSignedPeerRecord,
 
 		addPeerHandlerCh: make(chan addPeerHandlerReq),
 		rmPeerHandlerCh:  make(chan rmPeerHandlerReq),
 	}
-	s.ctx, s.ctxCancel = context.WithCancel(context.Background())
 
 	// handle local protocol handler updates, and push deltas to peers.
 	var err error
 
-	observedAddrs, err := NewObservedAddrManager(h)
+	observedAddrs, err := NewObservedAddrManager(hostCtx, h)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create observed address manager: %s", err)
 	}
@@ -189,7 +186,7 @@ func NewIDService(h host.Host, opts ...Option) (*idService, error) {
 	return s, nil
 }
 
-func (ids *idService) loop() {
+func (ids *IDService) loop() {
 	defer ids.refCount.Done()
 
 	phs := make(map[peer.ID]*peerHandler)
@@ -288,27 +285,36 @@ func (ids *idService) loop() {
 	}
 }
 
-// Close shuts down the idService
-func (ids *idService) Close() error {
-	ids.ctxCancel()
-	ids.observedAddrs.Close()
-	ids.refCount.Wait()
+// Close shuts down the IDService
+func (ids *IDService) Close() error {
+	ids.closeSync.Do(func() {
+		ids.ctxCancel()
+		ids.refCount.Wait()
+	})
 	return nil
 }
 
-func (ids *idService) OwnObservedAddrs() []ma.Multiaddr {
+// OwnObservedAddrs returns the addresses peers have reported we've dialed from
+func (ids *IDService) OwnObservedAddrs() []ma.Multiaddr {
 	return ids.observedAddrs.Addrs()
 }
 
-func (ids *idService) ObservedAddrsFor(local ma.Multiaddr) []ma.Multiaddr {
+func (ids *IDService) ObservedAddrsFor(local ma.Multiaddr) []ma.Multiaddr {
 	return ids.observedAddrs.AddrsFor(local)
 }
 
-func (ids *idService) IdentifyConn(c network.Conn) {
+// IdentifyConn synchronously triggers an identify request on the connection and
+// waits for it to complete. If the connection is being identified by another
+// caller, this call will wait. If the connection has already been identified,
+// it will return immediately.
+func (ids *IDService) IdentifyConn(c network.Conn) {
 	<-ids.IdentifyWait(c)
 }
 
-func (ids *idService) IdentifyWait(c network.Conn) <-chan struct{} {
+// IdentifyWait triggers an identify (if the connection has not already been
+// identified) and returns a channel that is closed when the identify protocol
+// completes.
+func (ids *IDService) IdentifyWait(c network.Conn) <-chan struct{} {
 	ids.connsMu.RLock()
 	wait, found := ids.conns[c]
 	ids.connsMu.RUnlock()
@@ -335,13 +341,13 @@ func (ids *idService) IdentifyWait(c network.Conn) <-chan struct{} {
 	return wait
 }
 
-func (ids *idService) removeConn(c network.Conn) {
+func (ids *IDService) removeConn(c network.Conn) {
 	ids.connsMu.Lock()
 	delete(ids.conns, c)
 	ids.connsMu.Unlock()
 }
 
-func (ids *idService) identifyConn(c network.Conn, signal chan struct{}) {
+func (ids *IDService) identifyConn(c network.Conn, signal chan struct{}) {
 	var (
 		s   network.Stream
 		err error
@@ -358,7 +364,7 @@ func (ids *idService) identifyConn(c network.Conn, signal chan struct{}) {
 		}
 	}()
 
-	s, err = c.NewStream(network.WithUseTransient(context.TODO(), "identify"))
+	s, err = c.NewStream(context.TODO())
 	if err != nil {
 		log.Debugw("error opening identify stream", "error", err)
 		// the connection is probably already closed if we hit this.
@@ -374,10 +380,7 @@ func (ids *idService) identifyConn(c network.Conn, signal chan struct{}) {
 
 	// ok give the response to our handler.
 	if err = msmux.SelectProtoOrFail(ID, s); err != nil {
-		log.Infow("failed negotiate identify protocol with peer",
-			"peer", c.RemotePeer(),
-			"error", err,
-		)
+		log.Event(context.TODO(), "IdentifyOpenFailed", c.RemotePeer(), logging.Metadata{"error": err})
 		s.Reset()
 		return
 	}
@@ -385,8 +388,15 @@ func (ids *idService) identifyConn(c network.Conn, signal chan struct{}) {
 	err = ids.handleIdentifyResponse(s)
 }
 
-func (ids *idService) sendIdentifyResp(s network.Stream) {
-	defer s.Close()
+func (ids *IDService) sendIdentifyResp(s network.Stream) {
+	var ph *peerHandler
+
+	defer func() {
+		_ = s.Close()
+		if ph != nil {
+			ph.snapshotMu.RUnlock()
+		}
+	}()
 
 	c := s.Conn()
 
@@ -397,7 +407,6 @@ func (ids *idService) sendIdentifyResp(s network.Stream) {
 		return
 	}
 
-	var ph *peerHandler
 	select {
 	case ph = <-phCh:
 	case <-ids.ctx.Done():
@@ -411,13 +420,11 @@ func (ids *idService) sendIdentifyResp(s network.Stream) {
 	}
 
 	ph.snapshotMu.RLock()
-	snapshot := ph.snapshot
-	ph.snapshotMu.RUnlock()
-	ids.writeChunkedIdentifyMsg(c, snapshot, s)
+	ids.writeChunkedIdentifyMsg(c, ph.snapshot, s)
 	log.Debugf("%s sent message to %s %s", ID, c.RemotePeer(), c.RemoteMultiaddr())
 }
 
-func (ids *idService) handleIdentifyResponse(s network.Stream) error {
+func (ids *IDService) handleIdentifyResponse(s network.Stream) error {
 	_ = s.SetReadDeadline(time.Now().Add(StreamReadTimeout))
 
 	c := s.Conn()
@@ -426,7 +433,7 @@ func (ids *idService) handleIdentifyResponse(s network.Stream) error {
 	mes := &pb.Identify{}
 
 	if err := readAllIDMessages(r, mes); err != nil {
-		log.Warn("error reading identify message: ", err)
+		log.Warning("error reading identify message: ", err)
 		s.Reset()
 		return err
 	}
@@ -456,7 +463,7 @@ func readAllIDMessages(r protoio.Reader, finalMsg proto.Message) error {
 	return fmt.Errorf("too many parts")
 }
 
-func (ids *idService) getSnapshot() *identifySnapshot {
+func (ids *IDService) getSnapshot() *identifySnapshot {
 	snapshot := new(identifySnapshot)
 	if !ids.disableSignedPeerRecord {
 		if cab, ok := peerstore.GetCertifiedAddrBook(ids.Host.Peerstore()); ok {
@@ -468,7 +475,7 @@ func (ids *idService) getSnapshot() *identifySnapshot {
 	return snapshot
 }
 
-func (ids *idService) writeChunkedIdentifyMsg(c network.Conn, snapshot *identifySnapshot, s network.Stream) error {
+func (ids *IDService) writeChunkedIdentifyMsg(c network.Conn, snapshot *identifySnapshot, s network.Stream) error {
 	mes := ids.createBaseIdentifyResponse(c, snapshot)
 	sr := ids.getSignedRecord(snapshot)
 	mes.SignedPeerRecord = sr
@@ -489,7 +496,7 @@ func (ids *idService) writeChunkedIdentifyMsg(c network.Conn, snapshot *identify
 
 }
 
-func (ids *idService) createBaseIdentifyResponse(
+func (ids *IDService) createBaseIdentifyResponse(
 	conn network.Conn,
 	snapshot *identifySnapshot,
 ) *pb.Identify {
@@ -530,7 +537,7 @@ func (ids *idService) createBaseIdentifyResponse(
 		// if neither of the key is present it is safe to assume that we are using an insecure transport.
 	} else {
 		// public key is present. Safe to proceed.
-		if kb, err := crypto.MarshalPublicKey(ownKey); err != nil {
+		if kb, err := ownKey.Bytes(); err != nil {
 			log.Errorf("failed to convert key to bytes")
 		} else {
 			mes.PublicKey = kb
@@ -542,11 +549,38 @@ func (ids *idService) createBaseIdentifyResponse(
 	av := ids.UserAgent
 	mes.ProtocolVersion = &pv
 	mes.AgentVersion = &av
+	udpNAT, tcpNAT := ids.observedAddrs.getNATDeviceTypes()
+	udpNATPb := toPbNATDeviceType(udpNAT)
+	tcpNATPb := toPbNATDeviceType(tcpNAT)
+	mes.UdpNATDeviceType = &udpNATPb
+	mes.TcpNATDeviceType = &tcpNATPb
 
 	return mes
 }
 
-func (ids *idService) getSignedRecord(snapshot *identifySnapshot) []byte {
+func toPbNATDeviceType(t network.NATDeviceType) pb.Identify_NATDeviceType {
+	switch t {
+	case network.NATDeviceTypeCone:
+		return pb.Identify_CONE
+	case network.NATDeviceTypeSymmetric:
+		return pb.Identify_SYMMETRIC
+	default:
+		return pb.Identify_UNKNOWN
+	}
+}
+
+func fromPbNATDeviceType(typ pb.Identify_NATDeviceType) network.NATDeviceType {
+	switch typ {
+	case pb.Identify_CONE:
+		return network.NATDeviceTypeCone
+	case pb.Identify_SYMMETRIC:
+		return network.NATDeviceTypeSymmetric
+	default:
+		return network.NATDeviceTypeUnknown
+	}
+}
+
+func (ids *IDService) getSignedRecord(snapshot *identifySnapshot) []byte {
 	if ids.disableSignedPeerRecord || snapshot.record == nil {
 		return nil
 	}
@@ -560,7 +594,7 @@ func (ids *idService) getSignedRecord(snapshot *identifySnapshot) []byte {
 	return recBytes
 }
 
-func (ids *idService) consumeMessage(mes *pb.Identify, c network.Conn) {
+func (ids *IDService) consumeMessage(mes *pb.Identify, c network.Conn) {
 	p := c.RemotePeer()
 
 	// mes.Protocols
@@ -634,15 +668,19 @@ func (ids *idService) consumeMessage(mes *pb.Identify, c network.Conn) {
 	// get protocol versions
 	pv := mes.GetProtocolVersion()
 	av := mes.GetAgentVersion()
+	udpNATType := mes.GetUdpNATDeviceType()
+	tcpNATType := mes.GetTcpNATDeviceType()
 
 	ids.Host.Peerstore().Put(p, "ProtocolVersion", pv)
 	ids.Host.Peerstore().Put(p, "AgentVersion", av)
+	ids.Host.Peerstore().Put(p, UDPNATDeviceTypeKey, fromPbNATDeviceType(udpNATType))
+	ids.Host.Peerstore().Put(p, TCPNATDeviceTypeKey, fromPbNATDeviceType(tcpNATType))
 
 	// get the key from the other side. we may not have it (no-auth transport)
 	ids.consumeReceivedPubKey(c, mes.PublicKey)
 }
 
-func (ids *idService) consumeReceivedPubKey(c network.Conn, kb []byte) {
+func (ids *IDService) consumeReceivedPubKey(c network.Conn, kb []byte) {
 	lp := c.LocalPeer()
 	rp := c.RemotePeer()
 
@@ -651,9 +689,9 @@ func (ids *idService) consumeReceivedPubKey(c network.Conn, kb []byte) {
 		return
 	}
 
-	newKey, err := crypto.UnmarshalPublicKey(kb)
+	newKey, err := ic.UnmarshalPublicKey(kb)
 	if err != nil {
-		log.Warnf("%s cannot unmarshal key from remote peer: %s, %s", lp, rp, err)
+		log.Warningf("%s cannot unmarshal key from remote peer: %s, %s", lp, rp, err)
 		return
 	}
 
@@ -745,7 +783,7 @@ func HasConsistentTransport(a ma.Multiaddr, green []ma.Multiaddr) bool {
 	return false
 }
 
-func (ids *idService) consumeObservedAddress(observed []byte, c network.Conn) {
+func (ids *IDService) consumeObservedAddress(observed []byte, c network.Conn) {
 	if observed == nil {
 		return
 	}
@@ -777,10 +815,10 @@ func signedPeerRecordFromMessage(msg *pb.Identify) (*record.Envelope, error) {
 }
 
 // netNotifiee defines methods to be used with the IpfsDHT
-type netNotifiee idService
+type netNotifiee IDService
 
-func (nn *netNotifiee) IDService() *idService {
-	return (*idService)(nn)
+func (nn *netNotifiee) IDService() *IDService {
+	return (*IDService)(nn)
 }
 
 func (nn *netNotifiee) Connected(n network.Network, v network.Conn) {

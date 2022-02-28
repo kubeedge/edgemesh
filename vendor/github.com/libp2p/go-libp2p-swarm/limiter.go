@@ -42,9 +42,10 @@ func (dj *dialJob) dialTimeout() time.Duration {
 type dialLimiter struct {
 	lk sync.Mutex
 
-	fdConsuming int
-	fdLimit     int
-	waitingOnFd []*dialJob
+	isFdConsumingFnc isFdConsumingFnc
+	fdConsuming      int
+	fdLimit          int
+	waitingOnFd      []*dialJob
 
 	dialFunc dialfunc
 
@@ -54,19 +55,21 @@ type dialLimiter struct {
 }
 
 type dialfunc func(context.Context, peer.ID, ma.Multiaddr) (transport.CapableConn, error)
+type isFdConsumingFnc func(ma.Multiaddr) bool
 
-func newDialLimiter(df dialfunc) *dialLimiter {
+func newDialLimiter(df dialfunc, fdFnc isFdConsumingFnc) *dialLimiter {
 	fd := ConcurrentFdDials
 	if env := os.Getenv("LIBP2P_SWARM_FD_LIMIT"); env != "" {
 		if n, err := strconv.ParseInt(env, 10, 32); err == nil {
 			fd = int(n)
 		}
 	}
-	return newDialLimiterWithParams(df, fd, DefaultPerPeerRateLimit)
+	return newDialLimiterWithParams(fdFnc, df, fd, DefaultPerPeerRateLimit)
 }
 
-func newDialLimiterWithParams(df dialfunc, fdLimit, perPeerLimit int) *dialLimiter {
+func newDialLimiterWithParams(isFdConsumingFnc isFdConsumingFnc, df dialfunc, fdLimit, perPeerLimit int) *dialLimiter {
 	return &dialLimiter{
+		isFdConsumingFnc:   isFdConsumingFnc,
 		fdLimit:            fdLimit,
 		perPeerLimit:       perPeerLimit,
 		waitingOnPeerLimit: make(map[peer.ID][]*dialJob),
@@ -154,7 +157,7 @@ func (dl *dialLimiter) shouldConsumeFd(addr ma.Multiaddr) bool {
 
 	isRelay := err == nil
 
-	return !isRelay && isFdConsumingAddr(addr)
+	return !isRelay && dl.isFdConsumingFnc(addr)
 }
 
 func (dl *dialLimiter) addCheckFdLimit(dj *dialJob) {

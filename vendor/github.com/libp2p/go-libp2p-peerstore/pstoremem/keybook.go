@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	ic "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 
 	pstore "github.com/libp2p/go-libp2p-core/peerstore"
 )
@@ -18,6 +18,7 @@ type memoryKeyBook struct {
 
 var _ pstore.KeyBook = (*memoryKeyBook)(nil)
 
+// noop new, but in the future we may want to do some init work.
 func NewKeyBook() *memoryKeyBook {
 	return &memoryKeyBook{
 		pks: map[peer.ID]ic.PubKey{},
@@ -70,8 +71,9 @@ func (mkb *memoryKeyBook) AddPubKey(p peer.ID, pk ic.PubKey) error {
 
 func (mkb *memoryKeyBook) PrivKey(p peer.ID) ic.PrivKey {
 	mkb.RLock()
-	defer mkb.RUnlock()
-	return mkb.sks[p]
+	sk := mkb.sks[p]
+	mkb.RUnlock()
+	return sk
 }
 
 func (mkb *memoryKeyBook) AddPrivKey(p peer.ID, sk ic.PrivKey) error {
@@ -88,11 +90,4 @@ func (mkb *memoryKeyBook) AddPrivKey(p peer.ID, sk ic.PrivKey) error {
 	mkb.sks[p] = sk
 	mkb.Unlock()
 	return nil
-}
-
-func (mkb *memoryKeyBook) RemovePeer(p peer.ID) {
-	mkb.Lock()
-	delete(mkb.sks, p)
-	delete(mkb.pks, p)
-	mkb.Unlock()
 }

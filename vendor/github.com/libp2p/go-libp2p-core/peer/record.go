@@ -2,7 +2,6 @@ package peer
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	pb "github.com/libp2p/go-libp2p-core/peer/pb"
@@ -126,23 +125,9 @@ func PeerRecordFromProtobuf(msg *pb.PeerRecord) (*PeerRecord, error) {
 	return record, nil
 }
 
-var (
-	lastTimestampMu sync.Mutex
-	lastTimestamp   uint64
-)
-
 // TimestampSeq is a helper to generate a timestamp-based sequence number for a PeerRecord.
 func TimestampSeq() uint64 {
-	now := uint64(time.Now().UnixNano())
-	lastTimestampMu.Lock()
-	defer lastTimestampMu.Unlock()
-	// Not all clocks are strictly increasing, but we need these sequence numbers to be strictly
-	// increasing.
-	if now <= lastTimestamp {
-		now = lastTimestamp + 1
-	}
-	lastTimestamp = now
-	return now
+	return uint64(time.Now().UnixNano())
 }
 
 // Domain is used when signing and validating PeerRecords contained in Envelopes.
@@ -205,7 +190,7 @@ func (r *PeerRecord) Equal(other *PeerRecord) bool {
 	if len(r.Addrs) != len(other.Addrs) {
 		return false
 	}
-	for i := range r.Addrs {
+	for i, _ := range r.Addrs {
 		if !r.Addrs[i].Equal(other.Addrs[i]) {
 			return false
 		}

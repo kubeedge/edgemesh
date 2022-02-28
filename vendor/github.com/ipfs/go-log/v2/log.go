@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 // StandardLogger provides API compatibility with standard printf loggers
@@ -73,12 +72,4 @@ func (logger *ZapEventLogger) Warningf(format string, args ...interface{}) {
 // FormatRFC3339 returns the given time in UTC with RFC3999Nano format.
 func FormatRFC3339(t time.Time) string {
 	return t.UTC().Format(time.RFC3339Nano)
-}
-
-func WithStacktrace(l *ZapEventLogger, level LogLevel) *ZapEventLogger {
-	copyLogger := *l
-	copyLogger.SugaredLogger = *copyLogger.SugaredLogger.Desugar().
-		WithOptions(zap.AddStacktrace(zapcore.Level(level))).Sugar()
-	copyLogger.skipLogger = *copyLogger.SugaredLogger.Desugar().WithOptions(zap.AddCallerSkip(1)).Sugar()
-	return &copyLogger
 }

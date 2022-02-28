@@ -1,57 +1,44 @@
 EXAMPLES = advertise alive bye monitor search
 
-.PHONY: build
-build:
-	go build -gcflags '-e'
+default: test
 
-.PHONY: test
 test:
-	go test ./...
+	go test -v ./...
 
-.PHONY: test-race
-test-race:
-	go test -race .
+test-full:
+	go test -v -race .
 
-.PHONY: tags
-tags:
-	gotags -f tags -R .
-
-.PHONY: cover
-cover:
-	mkdir -p tmp
-	go test -coverprofile tmp/_cover.out .
-	go tool cover -html tmp/_cover.out -o tmp/cover.html
-
-.PHONY: checkall
-checkall: vet lint staticcheck
-
-.PHONY: vet
-vet:
-	go vet ./...
-
-.PHONY: lint
 lint:
+	go vet ./...
+	@echo ""
 	golint ./...
 
-.PHONY: staticcheck
-staticcheck:
-	staticcheck ./...
+cyclo:
+	-gocyclo -top 10 -avg .
 
-.PHONY: clean
+report:
+	@echo "misspell"
+	@find . -name "*.go" | xargs misspell
+	@echo ""
+	-gocyclo -over 14 -avg .
+	@echo ""
+	go vet ./...
+	@echo ""
+	golint ./...
+
+deps:
+	go get -v -u -d -t ./...
+
+tags:
+	gotags -f tags -R .
+.PHONY: tags
+
 clean: examples-clean
-	go clean
-	rm -f tags
-	rm -f tmp/_cover.out tmp/cover.html
 
-# based on: github.com/koron-go/_skeleton/Makefile
-
-.PHONY: examples
 examples: examples-build
 
-.PHONY: examples-build
 examples-build: $(EXAMPLES)
 
-.PHONY: examples-clean
 examples-clean:
 	rm -f $(EXAMPLES)
 
@@ -69,3 +56,6 @@ monitor: examples/monitor/*.go *.go
 
 search: examples/search/*.go *.go
 	go build ./examples/search
+
+.PHONY: test test-full lint cyclo report deps clean \
+	examples examples-build examples-clean

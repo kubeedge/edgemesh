@@ -2,7 +2,6 @@ package autonat
 
 import (
 	"context"
-	"io"
 
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -17,7 +16,6 @@ type AutoNAT interface {
 	// PublicAddr returns the public dial address when NAT status is public and an
 	// error otherwise
 	PublicAddr() (ma.Multiaddr, error)
-	io.Closer
 }
 
 // Client is a stateless client interface to AutoNAT peers

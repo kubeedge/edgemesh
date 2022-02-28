@@ -83,7 +83,7 @@ func (m *connIDGenerator) Retire(seq uint64, sentWithDestConnID protocol.Connect
 	if !ok {
 		return nil
 	}
-	if connID.Equal(sentWithDestConnID) {
+	if connID.Equal(sentWithDestConnID) && !protocol.UseRetireBugBackwardsCompatibilityMode(RetireBugBackwardsCompatibilityMode, m.version) {
 		return &qerr.TransportError{
 			ErrorCode:    qerr.ProtocolViolation,
 			ErrorMessage: fmt.Sprintf("retired connection ID %d (%s), which was used as the Destination Connection ID on this packet", seq, connID),
@@ -99,6 +99,9 @@ func (m *connIDGenerator) Retire(seq uint64, sentWithDestConnID protocol.Connect
 }
 
 func (m *connIDGenerator) issueNewConnID() error {
+	if protocol.UseRetireBugBackwardsCompatibilityMode(RetireBugBackwardsCompatibilityMode, m.version) {
+		return nil
+	}
 	connID, err := protocol.GenerateConnectionID(m.connIDLen)
 	if err != nil {
 		return err

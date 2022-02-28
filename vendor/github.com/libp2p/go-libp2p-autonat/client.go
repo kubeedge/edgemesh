@@ -3,16 +3,22 @@ package autonat
 import (
 	"context"
 	"fmt"
-	"time"
 
-	pb "github.com/libp2p/go-libp2p-autonat/pb"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-msgio/protoio"
 
+	pb "github.com/libp2p/go-libp2p-autonat/pb"
+
+	protoio "github.com/libp2p/go-msgio/protoio"
 	ma "github.com/multiformats/go-multiaddr"
 )
+
+// Error wraps errors signalled by AutoNAT services
+type Error struct {
+	Status pb.Message_ResponseStatus
+	Text   string
+}
 
 // NewAutoNATClient creates a fresh instance of an AutoNATClient
 // If addrFunc is nil, h.Addrs will be used
@@ -28,14 +34,11 @@ type client struct {
 	addrFunc AddrFunc
 }
 
-// DialBack asks peer p to dial us back on all addresses returned by the addrFunc.
-// It blocks until we've received a response from the peer.
 func (c *client) DialBack(ctx context.Context, p peer.ID) (ma.Multiaddr, error) {
 	s, err := c.h.NewStream(ctx, p, AutoNATProto)
 	if err != nil {
 		return nil, err
 	}
-	s.SetDeadline(time.Now().Add(streamTimeout))
 	// Might as well just reset the stream. Once we get to this point, we
 	// don't care about being nice.
 	defer s.Close()
@@ -44,19 +47,21 @@ func (c *client) DialBack(ctx context.Context, p peer.ID) (ma.Multiaddr, error) 
 	w := protoio.NewDelimitedWriter(s)
 
 	req := newDialMessage(peer.AddrInfo{ID: c.h.ID(), Addrs: c.addrFunc()})
-	if err := w.WriteMsg(req); err != nil {
+	err = w.WriteMsg(req)
+	if err != nil {
 		s.Reset()
 		return nil, err
 	}
 
 	var res pb.Message
-	if err := r.ReadMsg(&res); err != nil {
+	err = r.ReadMsg(&res)
+	if err != nil {
 		s.Reset()
 		return nil, err
 	}
+
 	if res.GetType() != pb.Message_DIAL_RESPONSE {
-		s.Reset()
-		return nil, fmt.Errorf("unexpected response: %s", res.GetType().String())
+		return nil, fmt.Errorf("Unexpected response: %s", res.GetType().String())
 	}
 
 	status := res.GetDialResponse().GetStatus()
@@ -64,15 +69,10 @@ func (c *client) DialBack(ctx context.Context, p peer.ID) (ma.Multiaddr, error) 
 	case pb.Message_OK:
 		addr := res.GetDialResponse().GetAddr()
 		return ma.NewMultiaddrBytes(addr)
+
 	default:
 		return nil, Error{Status: status, Text: res.GetDialResponse().GetStatusText()}
 	}
-}
-
-// Error wraps errors signalled by AutoNAT services
-type Error struct {
-	Status pb.Message_ResponseStatus
-	Text   string
 }
 
 func (e Error) Error() string {

@@ -26,12 +26,12 @@ type Advertiser struct {
 	conn *multicastConn
 	ch   chan *message
 	wg   sync.WaitGroup
-	wgS  sync.WaitGroup
+	quit chan bool
 }
 
 // Advertise starts advertisement of service.
 func Advertise(st, usn, location, server string, maxAge int) (*Advertiser, error) {
-	conn, err := multicastListen(recvAddrResolver)
+	conn, err := multicastListen(recvAddrIPv4)
 	if err != nil {
 		return nil, err
 	}
@@ -44,23 +44,27 @@ func Advertise(st, usn, location, server string, maxAge int) (*Advertiser, error
 		maxAge:   maxAge,
 		conn:     conn,
 		ch:       make(chan *message),
+		quit:     make(chan bool),
 	}
 	a.wg.Add(2)
-	a.wgS.Add(1)
 	go func() {
 		a.sendMain()
-		a.wgS.Done()
 		a.wg.Done()
 	}()
 	go func() {
-		a.recvMain()
+		a.serve()
 		a.wg.Done()
 	}()
 	return a, nil
 }
 
-func (a *Advertiser) recvMain() error {
+func (a *Advertiser) serve() error {
 	err := a.conn.readPackets(0, func(addr net.Addr, data []byte) error {
+		select {
+		case _ = <-a.quit:
+			return io.EOF
+		default:
+		}
 		if err := a.handleRaw(addr, data); err != nil {
 			logf("failed to handle message: %s", err)
 		}
@@ -73,15 +77,22 @@ func (a *Advertiser) recvMain() error {
 }
 
 func (a *Advertiser) sendMain() error {
-	for msg := range a.ch {
-		_, err := a.conn.WriteTo(msg.data, msg.to)
-		if err != nil {
-			if nerr, ok := err.(net.Error); !ok || !nerr.Temporary() {
-				logf("failed to send: %s", err)
+	for {
+		select {
+		case msg, ok := <-a.ch:
+			if !ok {
+				return nil
 			}
+			_, err := a.conn.WriteTo(msg.data, msg.to)
+			if err != nil {
+				if nerr, ok := err.(net.Error); !ok || !nerr.Temporary() {
+					logf("failed to send: %s", err)
+				}
+			}
+		case _ = <-a.quit:
+			return nil
 		}
 	}
-	return nil
 }
 
 func (a *Advertiser) handleRaw(from net.Addr, raw []byte) error {
@@ -118,7 +129,6 @@ func buildOK(st, usn, location, server string, maxAge int) ([]byte, error) {
 	b := new(bytes.Buffer)
 	// FIXME: error should be checked.
 	b.WriteString("HTTP/1.1 200 OK\r\n")
-	fmt.Fprintf(b, "EXT: \r\n")
 	fmt.Fprintf(b, "ST: %s\r\n", st)
 	fmt.Fprintf(b, "USN: %s\r\n", usn)
 	if location != "" {
@@ -135,13 +145,11 @@ func buildOK(st, usn, location, server string, maxAge int) ([]byte, error) {
 // Close stops advertisement.
 func (a *Advertiser) Close() error {
 	if a.conn != nil {
-		// closing order is very important. be careful to change:
-		// stop sending loop by closing the channel and wait it.
-		close(a.ch)
-		a.wgS.Wait()
-		// stop receiving loop by closing the connection.
+		// closing order is very important. be caraful to change.
+		close(a.quit)
 		a.conn.Close()
 		a.wg.Wait()
+		close(a.ch)
 		a.conn = nil
 	}
 	return nil
@@ -149,31 +157,23 @@ func (a *Advertiser) Close() error {
 
 // Alive announces ssdp:alive message.
 func (a *Advertiser) Alive() error {
-	addr, err := multicastSendAddr()
-	if err != nil {
-		return err
-	}
-	msg, err := buildAlive(addr, a.st, a.usn, a.location, a.server,
+	msg, err := buildAlive(ssdpAddrIPv4, a.st, a.usn, a.location, a.server,
 		a.maxAge)
 	if err != nil {
 		return err
 	}
-	a.ch <- &message{to: addr, data: msg}
+	a.ch <- &message{to: ssdpAddrIPv4, data: msg}
 	logf("sent alive")
 	return nil
 }
 
 // Bye announces ssdp:byebye message.
 func (a *Advertiser) Bye() error {
-	addr, err := multicastSendAddr()
+	msg, err := buildBye(ssdpAddrIPv4, a.st, a.usn)
 	if err != nil {
 		return err
 	}
-	msg, err := buildBye(addr, a.st, a.usn)
-	if err != nil {
-		return err
-	}
-	a.ch <- &message{to: addr, data: msg}
+	a.ch <- &message{to: ssdpAddrIPv4, data: msg}
 	logf("sent bye")
 	return nil
 }

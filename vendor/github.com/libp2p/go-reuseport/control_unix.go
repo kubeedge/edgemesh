@@ -1,4 +1,3 @@
-//go:build !plan9 && !windows && !wasm
 // +build !plan9,!windows,!wasm
 
 package reuseport

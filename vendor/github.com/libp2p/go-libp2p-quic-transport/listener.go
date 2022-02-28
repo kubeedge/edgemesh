@@ -12,7 +12,7 @@ import (
 
 	p2ptls "github.com/libp2p/go-libp2p-tls"
 
-	"github.com/lucas-clemente/quic-go"
+	quic "github.com/lucas-clemente/quic-go"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -37,7 +37,7 @@ func newListener(rconn *reuseConn, t *transport, localPeer peer.ID, key ic.PrivK
 		// Note that since we have no way of associating an incoming QUIC connection with
 		// the peer ID calculated here, we don't actually receive the peer's public key
 		// from the key chan.
-		conf, _ := identity.ConfigForPeer("")
+		conf, _ := identity.ConfigForAny()
 		return conf, nil
 	}
 	ln, err := quicListen(rconn, &tlsConf, t.serverConfig)
@@ -74,21 +74,6 @@ func (l *listener) Accept() (tpt.CapableConn, error) {
 			sess.CloseWithError(errorCodeConnectionGating, "connection gated")
 			continue
 		}
-
-		// return through active hole punching if any
-		key := holePunchKey{addr: sess.RemoteAddr().String(), peer: conn.remotePeerID}
-		var wasHolePunch bool
-		l.transport.holePunchingMx.Lock()
-		holePunch, ok := l.transport.holePunching[key]
-		if ok && !holePunch.fulfilled {
-			holePunch.connCh <- conn
-			wasHolePunch = true
-			holePunch.fulfilled = true
-		}
-		l.transport.holePunchingMx.Unlock()
-		if wasHolePunch {
-			continue
-		}
 		return conn, nil
 	}
 }
@@ -107,7 +92,6 @@ func (l *listener) setupConn(sess quic.Session) (*conn, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	remoteMultiaddr, err := toQuicMultiaddr(sess.RemoteAddr())
 	if err != nil {
 		return nil, err
