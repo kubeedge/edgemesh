@@ -109,10 +109,12 @@ modules:
   edgeDNS:
     enable: false
     listenPort: 53
-    autoDetect: true
-    upstreamServers:
-    - 10.96.0.10
-    cacheTTL: 30
+    cacheDNS:
+      enable: false
+      autoDetect: true
+      upstreamServers:
+      - 10.96.0.10
+      cacheTTL: 30
   edgeProxy:
     enable: false
     listenPort: 40001
@@ -233,6 +235,15 @@ modules:
 | ---- | ---- | ---- | ---- |
 | enable | bool | 空 | 子模块启动开关。不填写则由程序自动判断：云上为"false"，边上为"true" |
 | listenPort | int | 53 | DNS 服务器监听的端口 |
+| cacheDNS | object | [表1-4-1-1](#t1-4-1-1) | 使 edgeDNS 以 node local cache dns 的模式启动 |
+
+<a name="t1-4-1-1"></a>
+
+#### 表1-4-1-1: cacheDNS
+
+| 名称 | 类型 | 默认值 | 描述 |
+| ---- | ---- | ---- | ---- |
+| enable | bool | false | 子模块启动开关 |
 | autoDetect | bool | true | 自动探测上游 DNS 的 集群 IP |
 | upstreamServers | []string | 无 | 上游 DNS 的 集群 IP 列表 |
 | cacheTTL | int | 30 | DNS 中缓存数据存活时间，单位：秒 |
