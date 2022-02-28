@@ -12,14 +12,14 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/kubeedge/beehive v0.0.0
 	github.com/kubeedge/kubeedge v1.6.2
-	github.com/libp2p/go-libp2p v0.17.0
+	github.com/libp2p/go-libp2p v0.13.1-0.20210224102305-f981b25d2738
 	github.com/libp2p/go-libp2p-circuit v0.4.0
-	github.com/libp2p/go-libp2p-core v0.13.0
-	github.com/libp2p/go-libp2p-quic-transport v0.15.2
-	github.com/libp2p/go-libp2p-tls v0.3.1
+	github.com/libp2p/go-libp2p-core v0.8.5
+	github.com/libp2p/go-libp2p-quic-transport v0.11.1
+	github.com/libp2p/go-libp2p-tls v0.1.3
 	github.com/libp2p/go-msgio v0.1.0
-	github.com/libp2p/go-ws-transport v0.5.0
-	github.com/multiformats/go-multiaddr v0.4.0
+	github.com/libp2p/go-ws-transport v0.4.0
+	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.16.0
 	github.com/opencontainers/runc v1.0.2
@@ -44,7 +44,7 @@ replace (
 	github.com/coredns/coredns => github.com/Poorunga/coredns v1.8.8-alpha.1
 	github.com/kubeedge/beehive v0.0.0 => github.com/kubeedge/beehive v0.0.0-20201125122335-cd19bca6e436
 	github.com/kubeedge/viaduct v0.0.0 => github.com/kubeedge/viaduct v0.0.0-20210601015050-d832643a3d35
-	github.com/libp2p/go-libp2p-tls => github.com/Poorunga/go-libp2p-tls v0.3.2-beta.6
+	github.com/libp2p/go-libp2p-tls => github.com/Poorunga/go-libp2p-tls v0.1.4
 	k8s.io/api v0.0.0 => k8s.io/api v0.23.0
 	k8s.io/apiextensions-apiserver v0.0.0 => k8s.io/apiextensions-apiserver v0.23.0
 	k8s.io/apimachinery v0.0.0 => k8s.io/apimachinery v0.23.0

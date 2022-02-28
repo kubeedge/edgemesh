@@ -69,7 +69,7 @@ func newTunnelServer(c *config.TunnelServerConfig, ifm *informers.Manager) (serv
 		libp2p.ListenAddrStrings(util.GenerateMultiAddr(c.Transport, "0.0.0.0", c.ListenPort)),
 		util.GenerateTransportOption(c.Transport),
 		libp2p.AddrsFactory(addressFactory),
-		libp2p.EnableRelay(),
+		libp2p.EnableRelay(circuit.OptHop),
 		libp2p.ForceReachabilityPrivate(),
 		libp2p.Identity(privateKey),
 	}
@@ -84,15 +84,9 @@ func newTunnelServer(c *config.TunnelServerConfig, ifm *informers.Manager) (serv
 		opts = append(opts, libp2p.NoSecurity)
 	}
 
-	h, err := libp2p.New(opts...)
+	h, err := libp2p.New(context.Background(), opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start tunnel server: %w", err)
-	}
-
-	_, err = circuit.NewRelay(context.Background(), h, nil, circuit.OptHop)
-	if err != nil {
-		klog.Errorf("Failed to instantiate circuit: %v", err)
-		return server, err
 	}
 
 	server.Host = h
