@@ -1,6 +1,6 @@
 image: kubeedge/edgemesh-agent:latest
 nodeName: "your node name"
-affinity: 
+affinity:
   nodeAffinity:
     requiredDuringSchedulingIgnoredDuringExecution:
       nodeSelectorTerms:
@@ -35,9 +35,11 @@ modules:
   edgeDNS:
     enable: false
     listenPort: 53
-    autoDetect: true
-    upstreamServers:
-    cacheTTL: 30
+    cacheDNS:
+      enable: false
+      autoDetect: true
+      upstreamServers:
+      cacheTTL: 30
   edgeGateway:
     enable: true
     nic: "*"
