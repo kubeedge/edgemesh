@@ -109,10 +109,12 @@ modules:
   edgeDNS:
     enable: false
     listenPort: 53
-    autoDetect: true
-    upstreamServers:
-    - 10.96.0.10
-    cacheTTL: 30
+    cacheDNS:
+      enable: false
+      autoDetect: true
+      upstreamServers:
+      - 10.96.0.10
+      cacheTTL: 30
   edgeProxy:
     enable: false
     listenPort: 40001
@@ -233,6 +235,15 @@ modules:
 | ---- | ---- | ---- | ---- |
 | enable | bool | empty | submodule start switch. If it is not filled in, the program will automatically determine: "false" on the cloud, and "true" on the edge |
 | listenPort | int | 53 | the port that the DNS server listens on |
+| cacheDNS | object | [Table 1-4-1-1](#t1-4-1-1) | edgeDNS running in node local cache dns mode |
+
+<a name="t1-4-1-1"></a>
+
+#### Table 1-4-1-1: cacheDNS
+
+| Name | Type | Default | Description |
+| ---- | ---- | ---- | ---- |
+| enable | bool | false | submodule start switch |
 | autoDetect | bool | true | Automatically detect the Cluster IP of upstream DNS |
 | upstreamServers | []string | empty | The Cluster IP list of upstream DNS |
 | cacheTTL | int | 30 | Time to live of cached data in DNS, unit: second |

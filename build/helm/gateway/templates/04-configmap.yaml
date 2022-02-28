@@ -51,14 +51,16 @@ data:
       edgeDNS:
         enable: {{ .Values.modules.edgeDNS.enable }}
         listenPort: {{ .Values.modules.edgeDNS.listenPort }}
-        autoDetect: {{ .Values.modules.edgeDNS.autoDetect }}
-        {{- if .Values.modules.edgeDNS.upstreamServers }}
-        upstreamServers:
-        {{- range .Values.modules.edgeDNS.upstreamServers }}
-        - {{ . | title }}
-        {{- end }}
-        {{- end }}
-        cacheTTL: {{ .Values.modules.edgeDNS.cacheTTL }}
+        cacheDNS:
+          enable: {{ .Values.modules.edgeDNS.cacheDNS.enable }}
+          autoDetect: {{ .Values.modules.edgeDNS.cacheDNS.autoDetect }}
+          {{- if .Values.modules.edgeDNS.cacheDNS.upstreamServers }}
+          upstreamServers:
+          {{- range .Values.modules.edgeDNS.cacheDNS.upstreamServers }}
+          - {{ . | title }}
+          {{- end }}
+          {{- end }}
+          cacheTTL: {{ .Values.modules.edgeDNS.cacheDNS.cacheTTL }}
       edgeGateway:
         enable: {{ .Values.modules.edgeGateway.enable }}
         nic: {{ .Values.modules.edgeGateway.nic | quote }}
