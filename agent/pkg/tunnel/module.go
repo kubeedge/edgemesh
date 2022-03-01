@@ -83,7 +83,7 @@ func newTunnelAgent(c *config.TunnelAgentConfig, ifm *informers.Manager, mode Tu
 		return nil, fmt.Errorf("failed to start tunnel agent: %w", err)
 	}
 	for _, addr := range h.Addrs() {
-		fmt.Println("Listening on", addr)
+		klog.Infof("Listening on %s/p2p/%s", addr, h.ID().Pretty())
 	}
 
 	Agent.Host = h

@@ -3,7 +3,6 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"io"
 	"net"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/controller"
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/proxy/pb"
+	"github.com/kubeedge/edgemesh/common/libp2p"
 	"github.com/kubeedge/edgemesh/common/util"
 )
 
@@ -82,11 +82,12 @@ func (ps *ProxyService) ProxyStreamHandler(stream network.Stream) {
 	}
 	msg.Reset()
 
+	streamConn := libp2p.NewStreamConn(stream)
 	switch targetProto {
 	case "tcp":
-		go util.ProxyStream(stream, proxyConn)
+		go util.ProxyConn(streamConn, proxyConn)
 	case "udp":
-		go util.ProxyStreamUDP(stream, proxyConn.(*net.UDPConn))
+		go util.ProxyConnUDP(streamConn, proxyConn.(*net.UDPConn))
 	}
 	klog.Infof("Success proxy for {%s %s %s}", targetProto, targetNode, targetAddr)
 }
@@ -125,7 +126,7 @@ func (ps *ProxyService) TryConnectEndpoint(msg *pb.Proxy) (net.Conn, error) {
 	}
 }
 
-func (ps *ProxyService) GetProxyStream(opts ProxyOptions) (io.ReadWriteCloser, error) {
+func (ps *ProxyService) GetProxyStream(opts ProxyOptions) (*libp2p.StreamConn, error) {
 	destInfo, err := controller.APIConn.GetPeerAddrInfo(opts.NodeName)
 	if err != nil {
 		return nil, fmt.Errorf("get %s addr err: %w", opts.NodeName, err)
@@ -187,5 +188,5 @@ func (ps *ProxyService) GetProxyStream(opts ProxyOptions) (io.ReadWriteCloser, e
 	msg.Reset()
 	klog.V(4).Infof("libp2p dial %v success", opts)
 
-	return stream, nil
+	return libp2p.NewStreamConn(stream), nil
 }
