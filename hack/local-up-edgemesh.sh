@@ -165,18 +165,13 @@ prepare_k8s_env() {
 
 start_edgemesh() {
   echo "using helm to install edgemesh"
-  # we keep this for debug
-  # helm install edgemesh \
-  #  --set server.nodeName=${MASTER_NODENAME} \
-  #  --set server.image=${SERVER_IMAGE} \
-  #  --set agent.kubeAPIConfig.master=${KUBEAPI_PROXY_ADDR} \
-  #  --set agent.image=${AGENT_IMAGE} --dry-run --debug ./build/helm/edgemesh
-
   helm install edgemesh \
-    --set server.nodeName=${MASTER_NODENAME} \
     --set server.image=${SERVER_IMAGE} \
+    --set server.nodeName=${MASTER_NODENAME} \
+    --set agent.image=${AGENT_IMAGE} \
     --set agent.kubeAPIConfig.master=${KUBEAPI_PROXY_ADDR} \
-    --set agent.image=${AGENT_IMAGE} ./build/helm/edgemesh
+    --set agent.modules.edgeDNS.cacheDNS.enable=true \
+    ./build/helm/edgemesh
 
   kubectl wait --timeout=${TIMEOUT} --for=condition=Ready pod -l kubeedge=edgemesh-server -n kubeedge
   kubectl wait --timeout=${TIMEOUT} --for=condition=Ready pod -l kubeedge=edgemesh-agent -n kubeedge
