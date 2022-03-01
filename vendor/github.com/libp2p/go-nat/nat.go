@@ -85,7 +85,10 @@ func DiscoverNATs(ctx context.Context) <-chan NAT {
 }
 
 // DiscoverGateway attempts to find a gateway device.
-func DiscoverGateway(ctx context.Context) (NAT, error) {
+func DiscoverGateway() (NAT, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	var nats []NAT
 	for nat := range DiscoverNATs(ctx) {
 		nats = append(nats, nat)

@@ -17,11 +17,13 @@ package goupnp
 import (
 	"encoding/xml"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"time"
 
+	"golang.org/x/net/html/charset"
+
+	"github.com/huin/goupnp/httpu"
 	"github.com/huin/goupnp/ssdp"
 )
 
@@ -31,30 +33,12 @@ type ContextError struct {
 	Err     error
 }
 
-func ctxError(err error, msg string) ContextError {
-	return ContextError{
-		Context: msg,
-		Err:     err,
-	}
-}
-
-func ctxErrorf(err error, msg string, args ...interface{}) ContextError {
-	return ContextError{
-		Context: fmt.Sprintf(msg, args...),
-		Err:     err,
-	}
-}
-
 func (err ContextError) Error() string {
 	return fmt.Sprintf("%s: %v", err.Context, err.Err)
 }
 
 // MaybeRootDevice contains either a RootDevice or an error.
 type MaybeRootDevice struct {
-	// Identifier of the device. Note that this in combination with Location
-	// uniquely identifies a result from DiscoverDevices.
-	USN string
-
 	// Set iff Err == nil.
 	Root *RootDevice
 
@@ -74,12 +58,12 @@ type MaybeRootDevice struct {
 // while attempting to send the query. An error or RootDevice is returned for
 // each discovered RootDevice.
 func DiscoverDevices(searchTarget string) ([]MaybeRootDevice, error) {
-	hc, hcCleanup, err := httpuClient()
+	httpu, err := httpu.NewHTTPUClient()
 	if err != nil {
 		return nil, err
 	}
-	defer hcCleanup()
-	responses, err := ssdp.SSDPRawSearch(hc, string(searchTarget), 2, 3)
+	defer httpu.Close()
+	responses, err := ssdp.SSDPRawSearch(httpu, string(searchTarget), 2, 3)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +71,6 @@ func DiscoverDevices(searchTarget string) ([]MaybeRootDevice, error) {
 	results := make([]MaybeRootDevice, len(responses))
 	for i, response := range responses {
 		maybe := &results[i]
-		maybe.USN = response.Header.Get("USN")
 		loc, err := response.Location()
 		if err != nil {
 			maybe.Err = ContextError{"unexpected bad location from search", err}
@@ -124,11 +107,6 @@ func DeviceByURL(loc *url.URL) (*RootDevice, error) {
 	return root, nil
 }
 
-// CharsetReaderDefault specifies the charset reader used while decoding the output
-// from a UPnP server. It can be modified in an init function to allow for non-utf8 encodings,
-// but should not be changed after requesting clients.
-var CharsetReaderDefault func(charset string, input io.Reader) (io.Reader, error)
-
 func requestXml(url string, defaultSpace string, doc interface{}) error {
 	timeout := time.Duration(3 * time.Second)
 	client := http.Client{
@@ -147,7 +125,7 @@ func requestXml(url string, defaultSpace string, doc interface{}) error {
 
 	decoder := xml.NewDecoder(resp.Body)
 	decoder.DefaultSpace = defaultSpace
-	decoder.CharsetReader = CharsetReaderDefault
+	decoder.CharsetReader = charset.NewReaderLabel
 
 	return decoder.Decode(doc)
 }

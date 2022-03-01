@@ -10,6 +10,7 @@ Yamux features include:
 
 * Bi-directional streams
   * Streams can be opened by either client or server
+  * Useful for NAT traversal
   * Server-side push support
 * Flow control
   * Avoid starvation
@@ -83,5 +84,3 @@ func server() {
 
 ```
 
----
-The last gx published version of this module was: 1.1.5: QmUNMbRUsVYHi1D14annF7Rr7pQAX7TNLwpRCa975ojKnw

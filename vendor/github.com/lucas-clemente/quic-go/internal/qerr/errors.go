@@ -44,16 +44,8 @@ func (e *TransportError) Error() string {
 	return str + ": " + msg
 }
 
-func (e *TransportError) Is(target error) bool {
-	return target == net.ErrClosed
-}
-
 // An ApplicationErrorCode is an application-defined error code.
 type ApplicationErrorCode uint64
-
-func (e *ApplicationError) Is(target error) bool {
-	return target == net.ErrClosed
-}
 
 // A StreamErrorCode is an error code used to cancel streams.
 type StreamErrorCode uint64
@@ -77,19 +69,17 @@ type IdleTimeoutError struct{}
 
 var _ error = &IdleTimeoutError{}
 
-func (e *IdleTimeoutError) Timeout() bool        { return true }
-func (e *IdleTimeoutError) Temporary() bool      { return false }
-func (e *IdleTimeoutError) Error() string        { return "timeout: no recent network activity" }
-func (e *IdleTimeoutError) Is(target error) bool { return target == net.ErrClosed }
+func (e *IdleTimeoutError) Timeout() bool   { return true }
+func (e *IdleTimeoutError) Temporary() bool { return false }
+func (e *IdleTimeoutError) Error() string   { return "timeout: no recent network activity" }
 
 type HandshakeTimeoutError struct{}
 
 var _ error = &HandshakeTimeoutError{}
 
-func (e *HandshakeTimeoutError) Timeout() bool        { return true }
-func (e *HandshakeTimeoutError) Temporary() bool      { return false }
-func (e *HandshakeTimeoutError) Error() string        { return "timeout: handshake did not complete in time" }
-func (e *HandshakeTimeoutError) Is(target error) bool { return target == net.ErrClosed }
+func (e *HandshakeTimeoutError) Timeout() bool   { return true }
+func (e *HandshakeTimeoutError) Temporary() bool { return false }
+func (e *HandshakeTimeoutError) Error() string   { return "timeout: handshake did not complete in time" }
 
 // A VersionNegotiationError occurs when the client and the server can't agree on a QUIC version.
 type VersionNegotiationError struct {
@@ -101,10 +91,6 @@ func (e *VersionNegotiationError) Error() string {
 	return fmt.Sprintf("no compatible QUIC version found (we support %s, server offered %s)", e.Ours, e.Theirs)
 }
 
-func (e *VersionNegotiationError) Is(target error) bool {
-	return target == net.ErrClosed
-}
-
 // A StatelessResetError occurs when we receive a stateless reset.
 type StatelessResetError struct {
 	Token protocol.StatelessResetToken
@@ -114,10 +100,6 @@ var _ net.Error = &StatelessResetError{}
 
 func (e *StatelessResetError) Error() string {
 	return fmt.Sprintf("received a stateless reset with token %x", e.Token)
-}
-
-func (e *StatelessResetError) Is(target error) bool {
-	return target == net.ErrClosed
 }
 
 func (e *StatelessResetError) Timeout() bool   { return false }

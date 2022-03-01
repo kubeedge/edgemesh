@@ -24,7 +24,6 @@ const certificatePrefix = "libp2p-tls-handshake:"
 const alpn string = "libp2p"
 
 var extensionID = getPrefixedExtensionID([]int{1, 1})
-var extensionCritical bool // so we can mark the extension critical in tests
 
 type signedKey struct {
 	PubKey    []byte
@@ -61,6 +60,11 @@ func NewIdentity(privKey ic.PrivKey) (*Identity, error) {
 	}, nil
 }
 
+// ConfigForAny is a short-hand for ConfigForPeer("").
+func (i *Identity) ConfigForAny() (*tls.Config, <-chan ic.PubKey) {
+	return i.ConfigForPeer("")
+}
+
 // ConfigForPeer creates a new single-use tls.Config that verifies the peer's
 // certificate chain and returns the peer's public key via the channel. If the
 // peer ID is empty, the returned config will accept any peer.
@@ -92,11 +96,7 @@ func (i *Identity) ConfigForPeer(remote peer.ID) (*tls.Config, <-chan ic.PubKey)
 			return err
 		}
 		if remote != "" && !remote.MatchesPublicKey(pubKey) {
-			peerID, err := peer.IDFromPublicKey(pubKey)
-			if err != nil {
-				peerID = peer.ID(fmt.Sprintf("(not determined: %s)", err.Error()))
-			}
-			return fmt.Errorf("peer IDs don't match: expected %s, got %s", remote, peerID)
+			return errors.New("peer IDs don't match")
 		}
 		keyCh <- pubKey
 		return nil
@@ -115,6 +115,12 @@ func PubKeyFromCertChain(chain []*x509.Certificate) (ic.PubKey, error) {
 	cert := chain[0]
 	pool := x509.NewCertPool()
 	pool.AddCert(cert)
+	if _, err := cert.Verify(x509.VerifyOptions{Roots: pool}); err != nil {
+		// If we return an x509 error here, it will be sent on the wire.
+		// Wrap the error to avoid that.
+		return nil, fmt.Errorf("certificate verification failed: %s", err)
+	}
+
 	var found bool
 	var keyExt pkix.Extension
 	// find the libp2p key extension, skipping all unknown extensions
@@ -122,25 +128,12 @@ func PubKeyFromCertChain(chain []*x509.Certificate) (ic.PubKey, error) {
 		if extensionIDEqual(ext.Id, extensionID) {
 			keyExt = ext
 			found = true
-			for i, oident := range cert.UnhandledCriticalExtensions {
-				if oident.Equal(ext.Id) {
-					// delete the extension from UnhandledCriticalExtensions
-					cert.UnhandledCriticalExtensions = append(cert.UnhandledCriticalExtensions[:i], cert.UnhandledCriticalExtensions[i+1:]...)
-					break
-				}
-			}
 			break
 		}
 	}
 	if !found {
 		return nil, errors.New("expected certificate to contain the key extension")
 	}
-	if _, err := cert.Verify(x509.VerifyOptions{Roots: pool}); err != nil {
-		// If we return an x509 error here, it will be sent on the wire.
-		// Wrap the error to avoid that.
-		return nil, fmt.Errorf("certificate verification failed: %s", err)
-	}
-
 	var sk signedKey
 	if _, err := asn1.Unmarshal(keyExt.Value, &sk); err != nil {
 		return nil, fmt.Errorf("unmarshalling signed certificate failed: %s", err)
@@ -189,25 +182,17 @@ func keyToCertificate(sk ic.PrivKey) (*tls.Certificate, error) {
 		return nil, err
 	}
 
-	bigNum := big.NewInt(1 << 62)
-	sn, err := rand.Int(rand.Reader, bigNum)
-	if err != nil {
-		return nil, err
-	}
-	subjectSN, err := rand.Int(rand.Reader, bigNum)
+	sn, err := rand.Int(rand.Reader, big.NewInt(1<<62))
 	if err != nil {
 		return nil, err
 	}
 	tmpl := &x509.Certificate{
 		SerialNumber: sn,
-		NotBefore:    time.Now().Add(-time.Hour),
+		NotBefore:    time.Time{},
 		NotAfter:     time.Now().Add(certValidityPeriod),
-		// According to RFC 3280, the issuer field must be set,
-		// see https://datatracker.ietf.org/doc/html/rfc3280#section-4.1.2.4.
-		Subject: pkix.Name{SerialNumber: subjectSN.String()},
 		// after calling CreateCertificate, these will end up in Certificate.Extensions
 		ExtraExtensions: []pkix.Extension{
-			{Id: extensionID, Critical: extensionCritical, Value: value},
+			{Id: extensionID, Value: value},
 		},
 	}
 	certDER, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, certKey.Public(), certKey)

@@ -7,425 +7,386 @@ import (
 	"sync"
 	"time"
 
+	logging "github.com/ipfs/go-log"
+	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	pb "github.com/libp2p/go-libp2p/p2p/protocol/holepunch/pb"
 	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
-
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-msgio/protoio"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 )
 
-// Protocol is the libp2p protocol for Hole Punching.
-const Protocol protocol.ID = "/libp2p/dcutr"
-
-// StreamTimeout is the timeout for the hole punch protocol stream.
-var StreamTimeout = 1 * time.Minute
-
 // TODO Should we have options for these ?
-const (
+var (
+	// Protocol is the libp2p protocol for Hole Punching.
+	Protocol protocol.ID = "/libp2p/holepunch/1.0.0"
+	// HolePunchTimeout is the timeout for the hole punch protocol stream.
+	HolePunchTimeout = 1 * time.Minute
+	// ErrNATHolePunchingUnsupported means hole punching is NOT supported by the NAT on either or both peers.
+	ErrNATHolePunchingUnsupported = errors.New("NAT does NOT support hole punching")
+
 	maxMsgSize  = 4 * 1024 // 4K
 	dialTimeout = 5 * time.Second
-	maxRetries  = 3
+	maxRetries  = 5
 	retryWait   = 2 * time.Second
 )
 
 var (
 	log = logging.Logger("p2p-holepunch")
-	// ErrHolePunchActive is returned from DirectConnect when another hole punching attempt is currently running
-	ErrHolePunchActive = errors.New("another hole punching attempt to this peer is active")
-	// ErrClosed is returned when the hole punching is closed
-	ErrClosed = errors.New("hole punching service closing")
 )
 
-// The Service is used to make direct connections with a peer via hole-punching.
-type Service struct {
+// TODO Find a better name for this protocol.
+// HolePunchService is used to make direct connections with a peer via hole-punching.
+type HolePunchService struct {
 	ctx       context.Context
 	ctxCancel context.CancelFunc
 
-	ids  identify.IDService
+	ids  *identify.IDService
 	host host.Host
 
-	tracer *tracer
-
-	closeMx  sync.RWMutex
-	closed   bool
-	refCount sync.WaitGroup
-
-	hasPublicAddrsChan chan struct{} // this chan is closed as soon as we have a public address
+	// ensure we shutdown ONLY once
+	closeSync sync.Once
+	refCount  sync.WaitGroup
 
 	// active hole punches for deduplicating
 	activeMx sync.Mutex
 	active   map[peer.ID]struct{}
+
+	isTest        bool
+	handlerErrsMu sync.Mutex
+	handlerErrs   []error
 }
 
-type Option func(*Service) error
-
-// NewService creates a new service that can be used for hole punching
-func NewService(h host.Host, ids identify.IDService, opts ...Option) (*Service, error) {
+// NewHolePunchService creates a new service that can be used for hole punching
+// The `isTest` should ONLY be turned ON for testing.
+func NewHolePunchService(h host.Host, ids *identify.IDService, isTest bool) (*HolePunchService, error) {
 	if ids == nil {
-		return nil, errors.New("identify service can't be nil")
+		return nil, errors.New("Identify service can't be nil")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	hs := &Service{
-		ctx:                ctx,
-		ctxCancel:          cancel,
-		host:               h,
-		ids:                ids,
-		active:             make(map[peer.ID]struct{}),
-		hasPublicAddrsChan: make(chan struct{}),
+	hs := &HolePunchService{
+		ctx:       ctx,
+		ctxCancel: cancel,
+		host:      h,
+		ids:       ids,
+		active:    make(map[peer.ID]struct{}),
+		isTest:    isTest,
 	}
 
-	for _, opt := range opts {
-		if err := opt(hs); err != nil {
-			cancel()
-			return nil, err
-		}
+	sub, err := h.EventBus().Subscribe(new(event.EvtNATDeviceTypeChanged))
+	if err != nil {
+		return nil, err
 	}
+
+	h.SetStreamHandler(Protocol, hs.handleNewStream)
+	h.Network().Notify((*netNotifiee)(hs))
 
 	hs.refCount.Add(1)
-	go hs.watchForPublicAddr()
+	go hs.loop(sub)
 
-	h.Network().Notify((*netNotifiee)(hs))
 	return hs, nil
 }
 
-func (hs *Service) watchForPublicAddr() {
+func (hs *HolePunchService) loop(sub event.Subscription) {
 	defer hs.refCount.Done()
+	defer sub.Close()
 
-	log.Debug("waiting until we have at least one public address", "peer", hs.host.ID())
-
-	// TODO: We should have an event here that fires when identify discovers a new
-	// address (and when autonat confirms that address).
-	// As we currently don't have an event like this, just check our observed addresses
-	// regularly (exponential backoff starting at 250 ms, capped at 5s).
-	duration := 250 * time.Millisecond
-	const maxDuration = 5 * time.Second
-	t := time.NewTimer(duration)
-	defer t.Stop()
 	for {
-		if containsPublicAddr(hs.ids.OwnObservedAddrs()) {
-			log.Debug("Host now has a public address. Starting holepunch protocol.")
-			hs.host.SetStreamHandler(Protocol, hs.handleNewStream)
-			close(hs.hasPublicAddrsChan)
-			return
-		}
-
 		select {
+		// Our local NAT device types are intialized in the peerstore when the Host is created
+		//	and updated in the peerstore by the Observed Address Manager.
+		case _, ok := <-sub.Out():
+			if !ok {
+				return
+			}
+
+			if hs.PeerSupportsHolePunching(hs.host.ID(), hs.host.Addrs()) {
+				hs.host.SetStreamHandler(Protocol, hs.handleNewStream)
+			} else {
+				hs.host.RemoveStreamHandler(Protocol)
+			}
+
 		case <-hs.ctx.Done():
 			return
-		case <-t.C:
-			duration *= 2
-			if duration > maxDuration {
-				duration = maxDuration
-			}
-			t.Reset(duration)
 		}
 	}
+}
+
+func hasProtoAddr(protocCode int, addrs []ma.Multiaddr) bool {
+	for _, a := range addrs {
+		if _, err := a.ValueForProtocol(protocCode); err == nil {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Close closes the Hole Punch Service.
-func (hs *Service) Close() error {
-	hs.closeMx.Lock()
-	hs.closed = true
-	hs.closeMx.Unlock()
-	hs.tracer.Close()
-	hs.host.RemoveStreamHandler(Protocol)
-	hs.ctxCancel()
-	hs.refCount.Wait()
+func (hs *HolePunchService) Close() error {
+	hs.closeSync.Do(func() {
+		hs.ctxCancel()
+		hs.refCount.Wait()
+	})
+
 	return nil
 }
 
-// initiateHolePunch opens a new hole punching coordination stream,
-// exchanges the addresses and measures the RTT.
-func (hs *Service) initiateHolePunch(rp peer.ID) ([]ma.Multiaddr, time.Duration, error) {
-	hpCtx := network.WithUseTransient(hs.ctx, "hole-punch")
-	sCtx := network.WithNoDial(hpCtx, "hole-punch")
-	str, err := hs.host.NewStream(sCtx, rp, Protocol)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to open hole-punching stream: %w", err)
-	}
-	defer str.Close()
-	str.SetDeadline(time.Now().Add(StreamTimeout))
-
-	w := protoio.NewDelimitedWriter(str)
-
-	// send a CONNECT and start RTT measurement.
-	msg := &pb.HolePunch{
-		Type:     pb.HolePunch_CONNECT.Enum(),
-		ObsAddrs: addrsToBytes(removeRelayAddrs(hs.ids.OwnObservedAddrs())),
-	}
-
-	start := time.Now()
-	if err := w.WriteMsg(msg); err != nil {
-		str.Reset()
-		return nil, 0, err
-	}
-
-	// wait for a CONNECT message from the remote peer
-	rd := protoio.NewDelimitedReader(str, maxMsgSize)
-	msg.Reset()
-	if err := rd.ReadMsg(msg); err != nil {
-		str.Reset()
-		return nil, 0, fmt.Errorf("failed to read CONNECT message from remote peer: %w", err)
-	}
-	rtt := time.Since(start)
-
-	if t := msg.GetType(); t != pb.HolePunch_CONNECT {
-		str.Reset()
-		return nil, 0, fmt.Errorf("expect CONNECT message, got %s", t)
-	}
-	addrs := removeRelayAddrs(addrsFromBytes(msg.ObsAddrs))
-	if len(addrs) == 0 {
-		str.Reset()
-	}
-
-	msg.Reset()
-	msg.Type = pb.HolePunch_SYNC.Enum()
-	if err := w.WriteMsg(msg); err != nil {
-		str.Reset()
-		return nil, 0, fmt.Errorf("failed to send SYNC message for hole punching: %w", err)
-	}
-	return addrs, rtt, nil
-}
-
-func (hs *Service) beginDirectConnect(p peer.ID) error {
-	hs.closeMx.RLock()
-	defer hs.closeMx.RUnlock()
-	if hs.closed {
-		return ErrClosed
-	}
-
-	hs.activeMx.Lock()
-	defer hs.activeMx.Unlock()
-	if _, ok := hs.active[p]; ok {
-		return ErrHolePunchActive
-	}
-
-	hs.active[p] = struct{}{}
-	return nil
-}
-
-// DirectConnect attempts to make a direct connection with a remote peer.
-// It first attempts a direct dial (if we have a public address of that peer), and then
-// coordinates a hole punch over the given relay connection.
-func (hs *Service) DirectConnect(p peer.ID) error {
-	if err := hs.beginDirectConnect(p); err != nil {
-		return err
-	}
-
-	defer func() {
-		hs.activeMx.Lock()
-		delete(hs.active, p)
-		hs.activeMx.Unlock()
-	}()
-
-	return hs.directConnect(p)
-}
-
-func (hs *Service) directConnect(rp peer.ID) error {
-	// short-circuit check to see if we already have a direct connection
-	for _, c := range hs.host.Network().ConnsToPeer(rp) {
-		if !isRelayAddress(c.RemoteMultiaddr()) {
-			return nil
-		}
-	}
-
+// attempts to make a direct connection with the remote peer of `relayConn` by co-ordinating a hole punch over
+// the given relay connection `relayConn`.
+func (hs *HolePunchService) HolePunch(rp peer.ID) error {
 	// short-circuit hole punching if a direct dial works.
 	// attempt a direct connection ONLY if we have a public address for the remote peer
 	for _, a := range hs.host.Peerstore().Addrs(rp) {
 		if manet.IsPublicAddr(a) && !isRelayAddress(a) {
 			forceDirectConnCtx := network.WithForceDirectDial(hs.ctx, "hole-punching")
 			dialCtx, cancel := context.WithTimeout(forceDirectConnCtx, dialTimeout)
-
-			tstart := time.Now()
-			// This dials *all* public addresses from the peerstore.
-			err := hs.host.Connect(dialCtx, peer.AddrInfo{ID: rp})
-			dt := time.Since(tstart)
-			cancel()
-
-			if err != nil {
-				hs.tracer.DirectDialFailed(rp, dt, err)
-				break
+			defer cancel()
+			if err := hs.host.Connect(dialCtx, peer.AddrInfo{ID: rp}); err == nil {
+				log.Debugf("direct connection to peer %s successful, no need for a hole punch", rp.Pretty())
+				return nil
 			}
-			hs.tracer.DirectDialSuccessful(rp, dt)
-			log.Debugw("direct connection to peer successful, no need for a hole punch", "peer", rp)
-			return nil
+			break
 		}
 	}
 
-	log.Debugw("got inbound proxy conn", "peer", rp)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	select {
-	case <-hs.ctx.Done():
-		return hs.ctx.Err()
-	case <-ctx.Done():
-		log.Debug("didn't find any public host address")
-		return errors.New("can't initiate hole punch, as we don't have any public addresses")
-	case <-hs.hasPublicAddrsChan:
+	// return if either peer does NOT support hole punching
+	if !hs.PeerSupportsHolePunching(rp, hs.host.Peerstore().Addrs(rp)) ||
+		!hs.PeerSupportsHolePunching(hs.host.ID(), hs.host.Addrs()) {
+		return ErrNATHolePunchingUnsupported
 	}
 
 	// hole punch
-	for i := 0; i < maxRetries; i++ {
-		addrs, rtt, err := hs.initiateHolePunch(rp)
-		if err != nil {
-			log.Debugw("hole punching failed", "peer", rp, "error", err)
-			hs.tracer.ProtocolError(rp, err)
-			return err
-		}
-		synTime := rtt / 2
-		log.Debugf("peer RTT is %s; starting hole punch in %s", rtt, synTime)
-
-		// wait for sync to reach the other peer and then punch a hole for it in our NAT
-		// by attempting a connect to it.
-		timer := time.NewTimer(synTime)
-		select {
-		case start := <-timer.C:
-			pi := peer.AddrInfo{
-				ID:    rp,
-				Addrs: addrs,
-			}
-			hs.tracer.StartHolePunch(rp, addrs, rtt)
-			err := hs.holePunchConnect(pi, true)
-			dt := time.Since(start)
-			hs.tracer.EndHolePunch(rp, dt, err)
-			if err == nil {
-				log.Debugw("hole punching with successful", "peer", rp, "time", dt)
-				return nil
-			}
-		case <-hs.ctx.Done():
-			timer.Stop()
-			return hs.ctx.Err()
-		}
+	hpCtx := network.WithUseTransient(hs.ctx, "hole-punch")
+	sCtx := network.WithNoDial(hpCtx, "hole-punch")
+	s, err := hs.host.NewStream(sCtx, rp, Protocol)
+	if err != nil {
+		msg := fmt.Sprintf("failed to open hole-punching stream with peer %s, err: %s", rp, err)
+		log.Error(msg)
+		return errors.New(msg)
 	}
-	return fmt.Errorf("all retries for hole punch with peer %s failed", rp)
+	log.Infof("will attempt hole punch with peer %s", rp.Pretty())
+	_ = s.SetDeadline(time.Now().Add(HolePunchTimeout))
+	w := protoio.NewDelimitedWriter(s)
+
+	// send a CONNECT and start RTT measurement.
+	msg := new(pb.HolePunch)
+	msg.Type = pb.HolePunch_CONNECT.Enum()
+	msg.ObsAddrs = addrsToBytes(hs.ids.OwnObservedAddrs())
+
+	tstart := time.Now()
+	if err := w.WriteMsg(msg); err != nil {
+		s.Reset()
+		msg := fmt.Sprintf("failed to send hole punch CONNECT, err: %s", err)
+
+		log.Error(msg)
+		return errors.New(msg)
+	}
+
+	// wait for a CONNECT message from the remote peer
+	rd := protoio.NewDelimitedReader(s, maxMsgSize)
+	msg.Reset()
+	if err := rd.ReadMsg(msg); err != nil {
+		s.Reset()
+
+		msg := fmt.Sprintf("failed to read HolePunch_CONNECT message from remote peer, err: %s", err)
+		log.Error(msg)
+		return errors.New(msg)
+	}
+	rtt := time.Since(tstart)
+
+	if msg.GetType() != pb.HolePunch_CONNECT {
+		s.Reset()
+		msg := fmt.Sprintf("expected HolePunch_CONNECT message, got %s", msg.GetType())
+
+		log.Debug(msg)
+		return errors.New(msg)
+	}
+
+	obsRemote := addrsFromBytes(msg.ObsAddrs)
+
+	// send a SYNC message and attempt a direct connect after half the RTT
+	msg.Reset()
+	msg.Type = pb.HolePunch_SYNC.Enum()
+	if err := w.WriteMsg(msg); err != nil {
+		s.Reset()
+		msg := fmt.Sprintf("failed to send SYNC message for hole punching, err: %s", err)
+		log.Error(msg)
+		return errors.New(msg)
+	}
+	defer s.Close()
+
+	synTime := rtt / 2
+	log.Debugf("peer RTT is %s; starting hole punch in %s", rtt, synTime)
+
+	// wait for sync to reach the other peer and then punch a hole for it in our NAT
+	// by attempting a connect to it.
+	select {
+	case <-time.After(synTime):
+		pi := peer.AddrInfo{
+			ID:    rp,
+			Addrs: obsRemote,
+		}
+		return hs.holePunchConnectWithRetry(pi)
+
+	case <-hs.ctx.Done():
+		return hs.ctx.Err()
+	}
 }
 
-func (hs *Service) incomingHolePunch(s network.Stream) (rtt time.Duration, addrs []ma.Multiaddr, err error) {
-	// sanity check: a hole punch request should only come from peers behind a relay
-	if !isRelayAddress(s.Conn().RemoteMultiaddr()) {
-		return 0, nil, fmt.Errorf("received hole punch stream: %s", s.Conn().RemoteMultiaddr())
+// HandlerErrors returns the errors accumulated by the Stream Handler.
+// This is ONLY for testing.
+func (hs *HolePunchService) HandlerErrors() []error {
+	hs.handlerErrsMu.Lock()
+	defer hs.handlerErrsMu.Unlock()
+	return hs.handlerErrs
+}
+
+func (hs *HolePunchService) appendHandlerErr(err error) {
+	hs.handlerErrsMu.Lock()
+	defer hs.handlerErrsMu.Unlock()
+
+	if hs.isTest {
+		hs.handlerErrs = append(hs.handlerErrs, err)
 	}
-	ownAddrs := removeRelayAddrs(hs.ids.OwnObservedAddrs())
-	// If we can't tell the peer where to dial us, there's no point in starting the hole punching.
-	if len(ownAddrs) == 0 {
-		return 0, nil, errors.New("rejecting hole punch request, as we don't have any public addresses")
+}
+
+// PeerSupportsHolePunching returns true if the given peer with the given addresses supports hole punching.
+// It uses the peer's NAT device type detected via Identify.
+// We can hole punch with a peer ONLY if it is NOT behind a symmetric NAT for all the transport protocol it supports.
+func (hs *HolePunchService) PeerSupportsHolePunching(p peer.ID, addrs []ma.Multiaddr) bool {
+	udpSupported := hasProtoAddr(ma.P_UDP, addrs)
+	tcpSupported := hasProtoAddr(ma.P_TCP, addrs)
+
+	if udpSupported {
+		udpNAT, err := hs.host.Peerstore().Get(p, identify.UDPNATDeviceTypeKey)
+		if err != nil {
+			return false
+		}
+		udpNatType := udpNAT.(network.NATDeviceType)
+
+		if udpNatType == network.NATDeviceTypeCone || udpNatType == network.NATDeviceTypeUnknown {
+			return true
+		}
 	}
 
-	s.SetDeadline(time.Now().Add(StreamTimeout))
+	if tcpSupported {
+		tcpNAT, err := hs.host.Peerstore().Get(p, identify.TCPNATDeviceTypeKey)
+		if err != nil {
+			return false
+		}
+
+		tcpNATType := tcpNAT.(network.NATDeviceType)
+		if tcpNATType == network.NATDeviceTypeCone || tcpNATType == network.NATDeviceTypeUnknown {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (hs *HolePunchService) handleNewStream(s network.Stream) {
+	log.Infof("got hole punch request from peer %s", s.Conn().RemotePeer().Pretty())
+	_ = s.SetDeadline(time.Now().Add(HolePunchTimeout))
+	rp := s.Conn().RemotePeer()
 	wr := protoio.NewDelimitedWriter(s)
 	rd := protoio.NewDelimitedReader(s, maxMsgSize)
 
 	// Read Connect message
 	msg := new(pb.HolePunch)
 	if err := rd.ReadMsg(msg); err != nil {
-		return 0, nil, fmt.Errorf("failed to read message from initator: %w", err)
+		s.Reset()
+		hs.appendHandlerErr(fmt.Errorf("failed to read message from initator, err: %s", err))
+		return
 	}
-	if t := msg.GetType(); t != pb.HolePunch_CONNECT {
-		return 0, nil, fmt.Errorf("expected CONNECT message from initiator but got %d", t)
+	if msg.GetType() != pb.HolePunch_CONNECT {
+		s.Reset()
+		hs.appendHandlerErr(errors.New("did not get expected HolePunch_CONNECT message from initiator"))
+		return
 	}
-	obsDial := removeRelayAddrs(addrsFromBytes(msg.ObsAddrs))
-	log.Debugw("received hole punch request", "peer", s.Conn().RemotePeer(), "addrs", obsDial)
-	if len(obsDial) == 0 {
-		return 0, nil, errors.New("expected CONNECT message to contain at least one address")
-	}
+	obsDial := addrsFromBytes(msg.ObsAddrs)
 
 	// Write CONNECT message
 	msg.Reset()
 	msg.Type = pb.HolePunch_CONNECT.Enum()
-	msg.ObsAddrs = addrsToBytes(ownAddrs)
-	tstart := time.Now()
+	msg.ObsAddrs = addrsToBytes(hs.ids.OwnObservedAddrs())
 	if err := wr.WriteMsg(msg); err != nil {
-		return 0, nil, fmt.Errorf("failed to write CONNECT message to initator: %w", err)
+		s.Reset()
+		hs.appendHandlerErr(fmt.Errorf("failed to write HolePunch_CONNECT message to initator, err: %s", err))
+		return
 	}
 
 	// Read SYNC message
 	msg.Reset()
 	if err := rd.ReadMsg(msg); err != nil {
-		return 0, nil, fmt.Errorf("failed to read message from initator: %w", err)
-	}
-	if t := msg.GetType(); t != pb.HolePunch_SYNC {
-		return 0, nil, fmt.Errorf("expected SYNC message from initiator but got %d", t)
-	}
-	return time.Since(tstart), obsDial, nil
-}
-
-func (hs *Service) handleNewStream(s network.Stream) {
-	// Check directionality of the underlying connection.
-	// Peer A receives an inbound connection from peer B.
-	// Peer A opens a new hole punch stream to peer B.
-	// Peer B receives this stream, calling this function.
-	// Peer B sees the underlying connection as an outbound connection.
-	if s.Conn().Stat().Direction == network.DirInbound {
 		s.Reset()
+		hs.appendHandlerErr(fmt.Errorf("failed to read message from initator, err: %s", err))
 		return
 	}
-	rp := s.Conn().RemotePeer()
-	rtt, addrs, err := hs.incomingHolePunch(s)
-	if err != nil {
-		hs.tracer.ProtocolError(rp, err)
-		log.Debugw("error handling holepunching stream from", rp, "error", err)
+	if msg.GetType() != pb.HolePunch_SYNC {
 		s.Reset()
+		hs.appendHandlerErr(errors.New("did not get expected HolePunch_SYNC message from initiator"))
 		return
 	}
-	s.Close()
+	defer s.Close()
 
 	// Hole punch now by forcing a connect
 	pi := peer.AddrInfo{
 		ID:    rp,
-		Addrs: addrs,
+		Addrs: obsDial,
 	}
-	hs.tracer.StartHolePunch(rp, addrs, rtt)
-	log.Debugw("starting hole punch", "peer", rp)
-	start := time.Now()
-	err = hs.holePunchConnect(pi, false)
-	dt := time.Since(start)
-	hs.tracer.EndHolePunch(rp, dt, err)
+	_ = hs.holePunchConnectWithRetry(pi)
 }
 
-func (hs *Service) holePunchConnect(pi peer.AddrInfo, isClient bool) error {
-	holePunchCtx := network.WithSimultaneousConnect(hs.ctx, isClient, "hole-punching")
+func (hs *HolePunchService) holePunchConnectWithRetry(pi peer.AddrInfo) error {
+	log.Debugf("starting hole punch with %s", pi.ID)
+	holePunchCtx := network.WithSimultaneousConnect(hs.ctx, "hole-punching")
 	forceDirectConnCtx := network.WithForceDirectDial(holePunchCtx, "hole-punching")
 	dialCtx, cancel := context.WithTimeout(forceDirectConnCtx, dialTimeout)
 	defer cancel()
-
-	hs.tracer.HolePunchAttempt(pi.ID)
-	if err := hs.host.Connect(dialCtx, pi); err != nil {
-		log.Debugw("hole punch attempt with peer failed", "peer ID", pi.ID, "error", err)
-		return err
-	}
-	log.Debugw("hole punch successful", "peer", pi.ID)
-	return nil
-}
-
-func containsPublicAddr(addrs []ma.Multiaddr) bool {
-	for _, addr := range addrs {
-		if isRelayAddress(addr) || !manet.IsPublicAddr(addr) {
-			continue
+	err := hs.host.Connect(dialCtx, pi)
+	if err == nil {
+		log.Infof("hole punch with peer %s successful, direct conns to peer are:", pi.ID.Pretty())
+		for _, c := range hs.host.Network().ConnsToPeer(pi.ID) {
+			if !isRelayAddress(c.RemoteMultiaddr()) {
+				log.Info(c)
+			}
 		}
-		return true
+		return nil
+	} else {
+		log.Infof("first hole punch attempt with peer %s failed, error: %s, will retry now...", pi.ID.Pretty(), err)
 	}
-	return false
-}
 
-func removeRelayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
-	result := make([]ma.Multiaddr, 0, len(addrs))
-	for _, addr := range addrs {
-		if !isRelayAddress(addr) {
-			result = append(result, addr)
+	for i := 1; i <= maxRetries; i++ {
+		time.Sleep(retryWait)
+
+		dialCtx, cancel := context.WithTimeout(forceDirectConnCtx, dialTimeout)
+		defer cancel()
+
+		err = hs.host.Connect(dialCtx, pi)
+		if err == nil {
+			log.Infof("hole punch with peer %s successful after %d retries, direct conns to peer are:", pi.ID.Pretty(), i)
+			for _, c := range hs.host.Network().ConnsToPeer(pi.ID) {
+				if !isRelayAddress(c.RemoteMultiaddr()) {
+					log.Info(c)
+				}
+			}
+			return nil
 		}
 	}
-	return result
+	log.Errorf("all retries for hole punch with peer %s failed, err: %s", pi.ID.Pretty(), err)
+
+	return err
 }
 
 func isRelayAddress(a ma.Multiaddr) bool {
 	_, err := a.ValueForProtocol(ma.P_CIRCUIT)
+
 	return err == nil
 }
 
@@ -434,6 +395,7 @@ func addrsToBytes(as []ma.Multiaddr) [][]byte {
 	for _, a := range as {
 		bzs = append(bzs, a.Bytes())
 	}
+
 	return bzs
 }
 
@@ -445,34 +407,66 @@ func addrsFromBytes(bzs [][]byte) []ma.Multiaddr {
 			addrs = append(addrs, a)
 		}
 	}
+
 	return addrs
 }
 
-type netNotifiee Service
+type netNotifiee HolePunchService
 
-func (nn *netNotifiee) Connected(_ network.Network, conn network.Conn) {
-	hs := (*Service)(nn)
+func (nn *netNotifiee) HolePunchService() *HolePunchService {
+	return (*HolePunchService)(nn)
+}
+
+func (nn *netNotifiee) Connected(_ network.Network, v network.Conn) {
+	hs := nn.HolePunchService()
+	dir := v.Stat().Direction
 
 	// Hole punch if it's an inbound proxy connection.
 	// If we already have a direct connection with the remote peer, this will be a no-op.
-	if conn.Stat().Direction == network.DirInbound && isRelayAddress(conn.RemoteMultiaddr()) {
+	if dir == network.DirInbound && isRelayAddress(v.RemoteMultiaddr()) {
+		// short-circuit check to see if we already have a direct connection
+		for _, c := range hs.host.Network().ConnsToPeer(v.RemotePeer()) {
+			if !isRelayAddress(c.RemoteMultiaddr()) {
+				return
+			}
+		}
+
+		p := v.RemotePeer()
+		hs.activeMx.Lock()
+		_, active := hs.active[p]
+		if !active {
+			hs.active[p] = struct{}{}
+		}
+		hs.activeMx.Unlock()
+
+		if active {
+			return
+		}
+
+		log.Debugf("got inbound proxy conn from peer %s, connectionID is %s", v.RemotePeer().String(), v.ID())
 		hs.refCount.Add(1)
 		go func() {
 			defer hs.refCount.Done()
-
+			defer func() {
+				hs.activeMx.Lock()
+				delete(hs.active, p)
+				hs.activeMx.Unlock()
+			}()
 			select {
 			// waiting for Identify here will allow us to access the peer's public and observed addresses
 			// that we can dial to for a hole punch.
-			case <-hs.ids.IdentifyWait(conn):
+			case <-hs.ids.IdentifyWait(v):
 			case <-hs.ctx.Done():
 				return
 			}
 
-			_ = hs.DirectConnect(conn.RemotePeer())
+			hs.HolePunch(v.RemotePeer())
 		}()
+		return
 	}
 }
 
+// NO-OPS
 func (nn *netNotifiee) Disconnected(_ network.Network, v network.Conn)   {}
 func (nn *netNotifiee) OpenedStream(n network.Network, v network.Stream) {}
 func (nn *netNotifiee) ClosedStream(n network.Network, v network.Stream) {}

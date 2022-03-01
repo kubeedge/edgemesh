@@ -5,99 +5,61 @@ import (
 	"net"
 	"strings"
 
-	"github.com/miekg/dns"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
 var ResolvableProtocols = []ma.Protocol{DnsaddrProtocol, Dns4Protocol, Dns6Protocol, DnsProtocol}
-var DefaultResolver = &Resolver{def: net.DefaultResolver}
+var DefaultResolver = &Resolver{Backend: net.DefaultResolver}
 
 const dnsaddrTXTPrefix = "dnsaddr="
 
-// BasicResolver is a low level interface for DNS resolution
-type BasicResolver interface {
+type backend interface {
 	LookupIPAddr(context.Context, string) ([]net.IPAddr, error)
 	LookupTXT(context.Context, string) ([]string, error)
 }
 
-// Resolver is an object capable of resolving dns multiaddrs by using one or more BasicResolvers;
-// it supports custom per domain/TLD resolvers.
-// It also implements the BasicResolver interface so that it can act as a custom per domain/TLD
-// resolver.
 type Resolver struct {
-	def    BasicResolver
-	custom map[string]BasicResolver
+	Backend backend
 }
 
-var _ BasicResolver = (*Resolver)(nil)
-
-// NewResolver creates a new Resolver instance with the specified options
-func NewResolver(opts ...Option) (*Resolver, error) {
-	r := &Resolver{def: net.DefaultResolver}
-	for _, opt := range opts {
-		err := opt(r)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return r, nil
+type MockBackend struct {
+	IP  map[string][]net.IPAddr
+	TXT map[string][]string
 }
 
-type Option func(*Resolver) error
-
-// WithDefaultResolver is an option that specifies the default basic resolver,
-// which resolves any TLD that doesn't have a custom resolver.
-// Defaults to net.DefaultResolver
-func WithDefaultResolver(def BasicResolver) Option {
-	return func(r *Resolver) error {
-		r.def = def
-		return nil
-	}
-}
-
-// WithDomainResolver specifies a custom resolver for a domain/TLD.
-// Custom resolver selection matches domains left to right, with more specific resolvers
-// superseding generic ones.
-func WithDomainResolver(domain string, rslv BasicResolver) Option {
-	return func(r *Resolver) error {
-		if r.custom == nil {
-			r.custom = make(map[string]BasicResolver)
-		}
-		fqdn := dns.Fqdn(domain)
-		r.custom[fqdn] = rslv
-		return nil
-	}
-}
-
-func (r *Resolver) getResolver(domain string) BasicResolver {
-	fqdn := dns.Fqdn(domain)
-
-	// we match left-to-right, with more specific resolvers superseding generic ones.
-	// So for a domain a.b.c, we will try a.b,c, b.c, c, and fallback to the default if
-	// there is no match
-	rslv, ok := r.custom[fqdn]
+func (r *MockBackend) LookupIPAddr(ctx context.Context, name string) ([]net.IPAddr, error) {
+	results, ok := r.IP[name]
 	if ok {
-		return rslv
+		return results, nil
+	} else {
+		return []net.IPAddr{}, nil
 	}
-
-	for i := strings.Index(fqdn, "."); i != -1; i = strings.Index(fqdn, ".") {
-		fqdn = fqdn[i+1:]
-		if fqdn == "" {
-			// the . is the default resolver
-			break
-		}
-
-		rslv, ok = r.custom[fqdn]
-		if ok {
-			return rslv
-		}
-	}
-
-	return r.def
 }
 
-// Resolve resolves a DNS multiaddr.
+func (r *MockBackend) LookupTXT(ctx context.Context, name string) ([]string, error) {
+	results, ok := r.TXT[name]
+	if ok {
+		return results, nil
+	} else {
+		return []string{}, nil
+	}
+}
+
+func Matches(maddr ma.Multiaddr) (matches bool) {
+	ma.ForEach(maddr, func(c ma.Component) bool {
+		switch c.Protocol().Code {
+		case DnsProtocol.Code, Dns4Protocol.Code, Dns6Protocol.Code, DnsaddrProtocol.Code:
+			matches = true
+		}
+		return !matches
+	})
+	return matches
+}
+
+func Resolve(ctx context.Context, maddr ma.Multiaddr) ([]ma.Multiaddr, error) {
+	return DefaultResolver.Resolve(ctx, maddr)
+}
+
 func (r *Resolver) Resolve(ctx context.Context, maddr ma.Multiaddr) ([]ma.Multiaddr, error) {
 	var results []ma.Multiaddr
 	for i := 0; maddr != nil; i++ {
@@ -135,7 +97,6 @@ func (r *Resolver) Resolve(ctx context.Context, maddr ma.Multiaddr) ([]ma.Multia
 
 		proto := resolve.Protocol()
 		value := resolve.Value()
-		rslv := r.getResolver(value)
 
 		// resolve the dns component
 		var resolved []ma.Multiaddr
@@ -151,7 +112,7 @@ func (r *Resolver) Resolve(ctx context.Context, maddr ma.Multiaddr) ([]ma.Multia
 			// differentiating between IPv6 and IPv4. A v4-in-v6
 			// AAAA record will _look_ like an A record to us and
 			// there's nothing we can do about that.
-			records, err := rslv.LookupIPAddr(ctx, value)
+			records, err := r.Backend.LookupIPAddr(ctx, value)
 			if err != nil {
 				return nil, err
 			}
@@ -192,7 +153,7 @@ func (r *Resolver) Resolve(ctx context.Context, maddr ma.Multiaddr) ([]ma.Multia
 			//    matching the result of step 2.
 
 			// First, lookup the TXT record
-			records, err := rslv.LookupTXT(ctx, "_dnsaddr."+value)
+			records, err := r.Backend.LookupTXT(ctx, "_dnsaddr."+value)
 			if err != nil {
 				return nil, err
 			}
@@ -272,10 +233,37 @@ func (r *Resolver) Resolve(ctx context.Context, maddr ma.Multiaddr) ([]ma.Multia
 	return results, nil
 }
 
-func (r *Resolver) LookupIPAddr(ctx context.Context, domain string) ([]net.IPAddr, error) {
-	return r.getResolver(domain).LookupIPAddr(ctx, domain)
+// counts the number of components in the multiaddr
+func addrLen(maddr ma.Multiaddr) int {
+	length := 0
+	ma.ForEach(maddr, func(_ ma.Component) bool {
+		length++
+		return true
+	})
+	return length
 }
 
-func (r *Resolver) LookupTXT(ctx context.Context, txt string) ([]string, error) {
-	return r.getResolver(txt).LookupTXT(ctx, txt)
+// trims `offset` components from the beginning of the multiaddr.
+func offset(maddr ma.Multiaddr, offset int) ma.Multiaddr {
+	_, after := ma.SplitFunc(maddr, func(c ma.Component) bool {
+		if offset == 0 {
+			return true
+		}
+		offset--
+		return false
+	})
+	return after
+}
+
+// takes the cross product of two sets of multiaddrs
+//
+// assumes `a` is non-empty.
+func cross(a, b []ma.Multiaddr) []ma.Multiaddr {
+	res := make([]ma.Multiaddr, 0, len(a)*len(b))
+	for _, x := range a {
+		for _, y := range b {
+			res = append(res, x.Encapsulate(y))
+		}
+	}
+	return res
 }

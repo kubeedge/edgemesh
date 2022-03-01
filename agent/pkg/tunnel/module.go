@@ -1,9 +1,11 @@
 package tunnel
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/libp2p/go-libp2p"
+	circuit "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-core/host"
 	libp2ptlsca "github.com/libp2p/go-libp2p-tls"
 	"k8s.io/klog/v2"
@@ -57,7 +59,7 @@ func newTunnelAgent(c *config.TunnelAgentConfig, ifm *informers.Manager, mode Tu
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(util.GenerateMultiAddr(c.Transport, "0.0.0.0", c.ListenPort)),
 		util.GenerateTransportOption(c.Transport),
-		libp2p.EnableRelay(),
+		libp2p.EnableRelay(circuit.OptActive),
 		libp2p.ForceReachabilityPrivate(),
 		libp2p.Identity(privateKey),
 	}
@@ -76,7 +78,7 @@ func newTunnelAgent(c *config.TunnelAgentConfig, ifm *informers.Manager, mode Tu
 		opts = append(opts, libp2p.EnableHolePunching())
 	}
 
-	h, err := libp2p.New(opts...)
+	h, err := libp2p.New(context.Background(), opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start tunnel agent: %w", err)
 	}

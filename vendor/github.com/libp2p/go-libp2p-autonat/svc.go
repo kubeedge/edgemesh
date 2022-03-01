@@ -4,47 +4,52 @@ import (
 	"context"
 	"errors"
 	"math/rand"
+	"net"
 	"sync"
 	"time"
 
-	pb "github.com/libp2p/go-libp2p-autonat/pb"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 
+	pb "github.com/libp2p/go-libp2p-autonat/pb"
+
 	"github.com/libp2p/go-msgio/protoio"
 	ma "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr/net"
 )
-
-var streamTimeout = 60 * time.Second
 
 // AutoNATService provides NAT autodetection services to other peers
 type autoNATService struct {
-	instanceLock      sync.Mutex
-	instance          context.CancelFunc
-	backgroundRunning chan struct{} // closed when background exits
+	ctx          context.Context
+	instance     context.CancelFunc
+	instanceLock sync.Mutex
 
 	config *config
 
 	// rate limiter
+	running    uint32
 	mx         sync.Mutex
 	reqs       map[peer.ID]int
 	globalReqs int
 }
 
 // NewAutoNATService creates a new AutoNATService instance attached to a host
-func newAutoNATService(c *config) (*autoNATService, error) {
+func newAutoNATService(ctx context.Context, c *config) (*autoNATService, error) {
 	if c.dialer == nil {
-		return nil, errors.New("cannot create NAT service without a network")
+		return nil, errors.New("Cannot create NAT service without a network")
 	}
-	return &autoNATService{
+
+	as := &autoNATService{
+		ctx:    ctx,
 		config: c,
 		reqs:   make(map[peer.ID]int),
-	}, nil
+	}
+
+	return as, nil
 }
 
 func (as *autoNATService) handleStream(s network.Stream) {
-	s.SetDeadline(time.Now().Add(streamTimeout))
 	defer s.Close()
 
 	pid := s.Conn().RemotePeer()
@@ -102,26 +107,13 @@ func (as *autoNATService) handleDial(p peer.ID, obsaddr ma.Multiaddr, mpi *pb.Me
 	addrs := make([]ma.Multiaddr, 0, as.config.maxPeerAddresses)
 	seen := make(map[string]struct{})
 
-	// Don't even try to dial peers with blocked remote addresses. In order to dial a peer, we
-	// need to know their public IP address, and it needs to be different from our public IP
-	// address.
-	if as.config.dialPolicy.skipDial(obsaddr) {
-		return newDialResponseError(pb.Message_E_DIAL_ERROR, "refusing to dial peer with blocked observed address")
-	}
-
-	// Determine the peer's IP address.
-	hostIP, _ := ma.SplitFirst(obsaddr)
-	switch hostIP.Protocol().Code {
-	case ma.P_IP4, ma.P_IP6:
-	default:
-		// This shouldn't be possible as we should skip all addresses that don't include
-		// public IP addresses.
-		return newDialResponseError(pb.Message_E_INTERNAL_ERROR, "expected an IP address")
-	}
-
 	// add observed addr to the list of addresses to dial
-	addrs = append(addrs, obsaddr)
-	seen[obsaddr.String()] = struct{}{}
+	var obsHost net.IP
+	if !as.config.dialPolicy.skipDial(obsaddr) {
+		addrs = append(addrs, obsaddr)
+		seen[obsaddr.String()] = struct{}{}
+		obsHost, _ = manet.ToIP(obsaddr)
+	}
 
 	for _, maddr := range mpi.GetAddrs() {
 		addr, err := ma.NewMultiaddrBytes(maddr)
@@ -130,25 +122,11 @@ func (as *autoNATService) handleDial(p peer.ID, obsaddr ma.Multiaddr, mpi *pb.Me
 			continue
 		}
 
-		// For security reasons, we _only_ dial the observed IP address.
-		// Replace other IP addresses with the observed one so we can still try the
-		// requested ports/transports.
-		if ip, rest := ma.SplitFirst(addr); !ip.Equal(hostIP) {
-			// Make sure it's an IP address
-			switch ip.Protocol().Code {
-			case ma.P_IP4, ma.P_IP6:
-			default:
-				continue
-			}
-			addr = hostIP
-			if rest != nil {
-				addr = addr.Encapsulate(rest)
-			}
+		if as.config.dialPolicy.skipDial(addr) {
+			continue
 		}
 
-		// Make sure we're willing to dial the rest of the address (e.g., not a circuit
-		// address).
-		if as.config.dialPolicy.skipDial(addr) {
+		if ip, err := manet.ToIP(addr); err != nil || !obsHost.Equal(ip) {
 			continue
 		}
 
@@ -186,18 +164,12 @@ func (as *autoNATService) doDial(pi peer.AddrInfo) *pb.Message_DialResponse {
 	as.globalReqs++
 	as.mx.Unlock()
 
-	ctx, cancel := context.WithTimeout(context.Background(), as.config.dialTimeout)
+	ctx, cancel := context.WithTimeout(as.ctx, as.config.dialTimeout)
 	defer cancel()
 
 	as.config.dialer.Peerstore().ClearAddrs(pi.ID)
 
 	as.config.dialer.Peerstore().AddAddrs(pi.ID, pi.Addrs, peerstore.TempAddrTTL)
-
-	defer func() {
-		as.config.dialer.Peerstore().ClearAddrs(pi.ID)
-		as.config.dialer.Peerstore().RemovePeer(pi.ID)
-	}()
-
 	conn, err := as.config.dialer.DialPeer(ctx, pi.ID)
 	if err != nil {
 		log.Debugf("error dialing %s: %s", pi.ID.Pretty(), err.Error())
@@ -219,11 +191,10 @@ func (as *autoNATService) Enable() {
 	if as.instance != nil {
 		return
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	as.instance = cancel
-	as.backgroundRunning = make(chan struct{})
+	inst, cncl := context.WithCancel(as.ctx)
+	as.instance = cncl
 
-	go as.background(ctx)
+	go as.background(inst)
 }
 
 // Disable the autoNAT service if it is running.
@@ -233,12 +204,10 @@ func (as *autoNATService) Disable() {
 	if as.instance != nil {
 		as.instance()
 		as.instance = nil
-		<-as.backgroundRunning
 	}
 }
 
 func (as *autoNATService) background(ctx context.Context) {
-	defer close(as.backgroundRunning)
 	as.config.host.SetStreamHandler(AutoNATProto, as.handleStream)
 
 	timer := time.NewTimer(as.config.throttleResetPeriod)

@@ -98,19 +98,13 @@ type newObservation struct {
 type ObservedAddrManager struct {
 	host host.Host
 
-	closeOnce sync.Once
-	refCount  sync.WaitGroup
-	ctx       context.Context // the context is canceled when Close is called
-	ctxCancel context.CancelFunc
-
 	// latest observation from active connections
 	// we'll "re-observe" these when we gc
 	activeConnsMu sync.Mutex
 	// active connection -> most recent observation
 	activeConns map[network.Conn]ma.Multiaddr
 
-	mu     sync.RWMutex
-	closed bool
+	mu sync.RWMutex
 	// local(internal) address -> list of observed(external) addresses
 	addrs        map[string][]*observedAddr
 	ttl          time.Duration
@@ -129,7 +123,7 @@ type ObservedAddrManager struct {
 
 // NewObservedAddrManager returns a new address manager using
 // peerstore.OwnObservedAddressTTL as the TTL.
-func NewObservedAddrManager(host host.Host) (*ObservedAddrManager, error) {
+func NewObservedAddrManager(ctx context.Context, host host.Host) (*ObservedAddrManager, error) {
 	oas := &ObservedAddrManager{
 		addrs:       make(map[string][]*observedAddr),
 		ttl:         peerstore.OwnObservedAddrTTL,
@@ -139,7 +133,6 @@ func NewObservedAddrManager(host host.Host) (*ObservedAddrManager, error) {
 		// refresh every ttl/2 so we don't forget observations from connected peers
 		refreshTimer: time.NewTimer(peerstore.OwnObservedAddrTTL / 2),
 	}
-	oas.ctx, oas.ctxCancel = context.WithCancel(context.Background())
 
 	reachabilitySub, err := host.EventBus().Subscribe(new(event.EvtLocalReachabilityChanged))
 	if err != nil {
@@ -154,9 +147,15 @@ func NewObservedAddrManager(host host.Host) (*ObservedAddrManager, error) {
 	oas.emitNATDeviceTypeChanged = emitter
 
 	oas.host.Network().Notify((*obsAddrNotifiee)(oas))
-	oas.refCount.Add(1)
-	go oas.worker()
+	go oas.worker(ctx)
 	return oas, nil
+}
+
+func (oas *ObservedAddrManager) getNATDeviceTypes() (udp, tcp network.NATDeviceType) {
+	oas.mu.RLock()
+	defer oas.mu.RUnlock()
+
+	return oas.currentUDPNATDeviceType, oas.currentTCPNATDeviceType
 }
 
 // AddrsFor return all activated observed addresses associated with the given
@@ -169,7 +168,8 @@ func (oas *ObservedAddrManager) AddrsFor(addr ma.Multiaddr) (addrs []ma.Multiadd
 		return nil
 	}
 
-	observedAddrs, ok := oas.addrs[string(addr.Bytes())]
+	key := string(addr.Bytes())
+	observedAddrs, ok := oas.addrs[key]
 	if !ok {
 		return
 	}
@@ -204,6 +204,21 @@ func (oas *ObservedAddrManager) filter(observedAddrs []*observedAddr) []ma.Multi
 			pat := a.groupKey()
 			pmap[pat] = append(pmap[pat], a)
 
+		}
+	}
+
+	// For certain use cases such as hole punching, it's better to advertise even unactivated observed addresses rather than none at all
+	// because we don't want to wait for a hole-punch till we make enough connections with other peers to discover our activated addresses.
+	// If we have activated addresses, we will use them, otherwise, let's use whatever observed addresses we do have.
+	if len(pmap) == 0 {
+		for i := range observedAddrs {
+			a := observedAddrs[i]
+			if now.Sub(a.lastSeen) <= oas.ttl {
+				// group addresses by their IPX/Transport Protocol(TCP or UDP) pattern.
+				pat := a.groupKey()
+				pmap[pat] = append(pmap[pat], a)
+
+			}
 		}
 	}
 
@@ -247,12 +262,22 @@ func (oas *ObservedAddrManager) Record(conn network.Conn, observed ma.Multiaddr)
 	}
 }
 
-func (oas *ObservedAddrManager) worker() {
-	defer oas.refCount.Done()
+func (oas *ObservedAddrManager) teardown() {
+	oas.host.Network().StopNotify((*obsAddrNotifiee)(oas))
+	oas.reachabilitySub.Close()
+
+	oas.mu.Lock()
+	oas.refreshTimer.Stop()
+	oas.mu.Unlock()
+}
+
+func (oas *ObservedAddrManager) worker(ctx context.Context) {
+	defer oas.teardown()
 
 	ticker := time.NewTicker(GCInterval)
 	defer ticker.Stop()
 
+	hostClosing := oas.host.Network().Process().Closing()
 	subChan := oas.reachabilitySub.Out()
 	for {
 		select {
@@ -263,13 +288,16 @@ func (oas *ObservedAddrManager) worker() {
 			}
 			ev := evt.(event.EvtLocalReachabilityChanged)
 			oas.reachability = ev.Reachability
+
 		case obs := <-oas.wch:
 			oas.maybeRecordObservation(obs.conn, obs.observed)
 		case <-ticker.C:
 			oas.gc()
 		case <-oas.refreshTimer.C:
 			oas.refresh()
-		case <-oas.ctx.Done():
+		case <-hostClosing:
+			return
+		case <-ctx.Done():
 			return
 		}
 	}
@@ -383,8 +411,7 @@ func (oas *ObservedAddrManager) maybeRecordObservation(conn network.Conn, observ
 
 	// We should reject the connection if the observation doesn't match the
 	// transports of one of our advertised addresses.
-	if !HasConsistentTransport(observed, oas.host.Addrs()) &&
-		!HasConsistentTransport(observed, oas.host.Network().ListenAddresses()) {
+	if !HasConsistentTransport(observed, oas.host.Addrs()) {
 		log.Debugw(
 			"observed multiaddr doesn't match the transports of any announced addresses",
 			"from", conn.RemoteMultiaddr(),
@@ -466,12 +493,14 @@ func (oas *ObservedAddrManager) emitAllNATTypes() {
 		allObserved = append(allObserved, addrs...)
 	}
 
-	hasChanged, natType := oas.emitSpecificNATType(allObserved, ma.P_TCP, network.NATTransportTCP, oas.currentTCPNATDeviceType)
+	hasChanged, natType := oas.emitSpecificNATType(allObserved, ma.P_TCP, network.NATTransportTCP, oas.currentTCPNATDeviceType,
+		TCPNATDeviceTypeKey)
 	if hasChanged {
 		oas.currentTCPNATDeviceType = natType
 	}
 
-	hasChanged, natType = oas.emitSpecificNATType(allObserved, ma.P_UDP, network.NATTransportUDP, oas.currentUDPNATDeviceType)
+	hasChanged, natType = oas.emitSpecificNATType(allObserved, ma.P_UDP, network.NATTransportUDP, oas.currentUDPNATDeviceType,
+		UDPNATDeviceTypeKey)
 	if hasChanged {
 		oas.currentUDPNATDeviceType = natType
 	}
@@ -480,7 +509,7 @@ func (oas *ObservedAddrManager) emitAllNATTypes() {
 // returns true along with the new NAT device type if the NAT device type for the given protocol has changed.
 // returns false otherwise.
 func (oas *ObservedAddrManager) emitSpecificNATType(addrs []*observedAddr, protoCode int, transportProto network.NATTransportProtocol,
-	currentNATType network.NATDeviceType) (bool, network.NATDeviceType) {
+	currentNATType network.NATDeviceType, key string) (bool, network.NATDeviceType) {
 	now := time.Now()
 	seenBy := make(map[string]struct{})
 	cnt := 0
@@ -494,6 +523,9 @@ func (oas *ObservedAddrManager) emitSpecificNATType(addrs []*observedAddr, proto
 		// if we have an activated addresses, it's a Cone NAT.
 		if now.Sub(oa.lastSeen) <= oas.ttl && oa.activated() {
 			if currentNATType != network.NATDeviceTypeCone {
+
+				oas.host.Peerstore().Put(oas.host.ID(), key, network.NATDeviceTypeCone)
+
 				oas.emitNATDeviceTypeChanged.Emit(event.EvtNATDeviceTypeChanged{
 					TransportProtocol: transportProto,
 					NatDeviceType:     network.NATDeviceTypeCone,
@@ -518,6 +550,9 @@ func (oas *ObservedAddrManager) emitSpecificNATType(addrs []*observedAddr, proto
 	// are MOST probably behind a Symmetric NAT.
 	if cnt >= ActivationThresh && len(seenBy) >= ActivationThresh {
 		if currentNATType != network.NATDeviceTypeSymmetric {
+
+			oas.host.Peerstore().Put(oas.host.ID(), key, network.NATDeviceTypeSymmetric)
+
 			oas.emitNATDeviceTypeChanged.Emit(event.EvtNATDeviceTypeChanged{
 				TransportProtocol: transportProto,
 				NatDeviceType:     network.NATDeviceTypeSymmetric,
@@ -527,22 +562,6 @@ func (oas *ObservedAddrManager) emitSpecificNATType(addrs []*observedAddr, proto
 	}
 
 	return false, 0
-}
-
-func (oas *ObservedAddrManager) Close() error {
-	oas.closeOnce.Do(func() {
-		oas.ctxCancel()
-
-		oas.mu.Lock()
-		oas.closed = true
-		oas.refreshTimer.Stop()
-		oas.mu.Unlock()
-
-		oas.refCount.Wait()
-		oas.reachabilitySub.Close()
-		oas.host.Network().StopNotify((*obsAddrNotifiee)(oas))
-	})
-	return nil
 }
 
 // observerGroup is a function that determines what part of
@@ -556,7 +575,7 @@ func (oas *ObservedAddrManager) Close() error {
 // Here, we use the root multiaddr address. This is mostly
 // IP addresses. In practice, this is what we want.
 func observerGroup(m ma.Multiaddr) string {
-	// TODO: If IPv6 rolls out we should mark /64 routing zones as one group
+	//TODO: If IPv6 rolls out we should mark /64 routing zones as one group
 	first, _ := ma.SplitFirst(m)
 	return string(first.Bytes())
 }
@@ -565,9 +584,6 @@ func observerGroup(m ma.Multiaddr) string {
 func (oas *ObservedAddrManager) SetTTL(ttl time.Duration) {
 	oas.mu.Lock()
 	defer oas.mu.Unlock()
-	if oas.closed {
-		return
-	}
 	oas.ttl = ttl
 	// refresh every ttl/2 so we don't forget observations from connected peers
 	oas.refreshTimer.Reset(ttl / 2)

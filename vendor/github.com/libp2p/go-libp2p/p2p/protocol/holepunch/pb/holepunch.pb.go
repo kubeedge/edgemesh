@@ -5,7 +5,6 @@ package holepunch_pb
 
 import (
 	fmt "fmt"
-	github_com_gogo_protobuf_proto "github.com/gogo/protobuf/proto"
 	proto "github.com/gogo/protobuf/proto"
 	io "io"
 	math "math"
@@ -63,13 +62,17 @@ func (HolePunch_Type) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor_290ddea0f23ef64a, []int{0, 0}
 }
 
-// spec: https://github.com/libp2p/specs/blob/master/relay/DCUtR.md
 type HolePunch struct {
-	Type                 *HolePunch_Type `protobuf:"varint,1,req,name=type,enum=holepunch.pb.HolePunch_Type" json:"type,omitempty"`
-	ObsAddrs             [][]byte        `protobuf:"bytes,2,rep,name=ObsAddrs" json:"ObsAddrs,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
-	XXX_unrecognized     []byte          `json:"-"`
-	XXX_sizecache        int32           `json:"-"`
+	Type *HolePunch_Type `protobuf:"varint,1,opt,name=type,enum=holepunch.pb.HolePunch_Type" json:"type,omitempty"`
+	// For hole punching, we'll send some additional observed addresses to the remote peer
+	// that could have been filtered by the Host address factory (for example: AutoRelay removes all public addresses if peer has private reachability).
+	// This is a hack!
+	// We plan to have a better address discovery and advertisement mechanism in the future.
+	// See https://github.com/libp2p/go-libp2p-autonat/pull/98
+	ObsAddrs             [][]byte `protobuf:"bytes,2,rep,name=ObsAddrs" json:"ObsAddrs,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
 func (m *HolePunch) Reset()         { *m = HolePunch{} }
@@ -131,13 +134,13 @@ var fileDescriptor_290ddea0f23ef64a = []byte{
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0xcf, 0xc8, 0xcf, 0x49,
 	0x2d, 0x28, 0xcd, 0x4b, 0xce, 0xd0, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0xe2, 0x41, 0x12, 0x48,
 	0x52, 0xaa, 0xe4, 0xe2, 0xf4, 0xc8, 0xcf, 0x49, 0x0d, 0x00, 0xf1, 0x85, 0x0c, 0xb8, 0x58, 0x4a,
-	0x2a, 0x0b, 0x52, 0x25, 0x18, 0x15, 0x98, 0x34, 0xf8, 0x8c, 0x64, 0xf4, 0x90, 0x55, 0xea, 0xc1,
+	0x2a, 0x0b, 0x52, 0x25, 0x18, 0x15, 0x18, 0x35, 0xf8, 0x8c, 0x64, 0xf4, 0x90, 0x55, 0xea, 0xc1,
 	0x95, 0xe9, 0x85, 0x54, 0x16, 0xa4, 0x06, 0x81, 0x55, 0x0a, 0x49, 0x71, 0x71, 0xf8, 0x27, 0x15,
 	0x3b, 0xa6, 0xa4, 0x14, 0x15, 0x4b, 0x30, 0x29, 0x30, 0x6b, 0xf0, 0x04, 0xc1, 0xf9, 0x4a, 0x72,
 	0x5c, 0x2c, 0x20, 0x95, 0x42, 0xdc, 0x5c, 0xec, 0xce, 0xfe, 0x7e, 0x7e, 0xae, 0xce, 0x21, 0x02,
 	0x29, 0x42, 0x9c, 0x5c, 0x2c, 0xc1, 0x91, 0x7e, 0xce, 0x02, 0x6b, 0x98, 0x9c, 0x78, 0x4e, 0x3c,
 	0x92, 0x63, 0xbc, 0xf0, 0x48, 0x8e, 0xf1, 0xc1, 0x23, 0x39, 0x46, 0x40, 0x00, 0x00, 0x00, 0xff,
-	0xff, 0x34, 0x8d, 0x41, 0x7d, 0xa8, 0x00, 0x00, 0x00,
+	0xff, 0x62, 0xf4, 0xc8, 0x7c, 0xa8, 0x00, 0x00, 0x00,
 }
 
 func (m *HolePunch) Marshal() (dAtA []byte, err error) {
@@ -173,9 +176,7 @@ func (m *HolePunch) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			dAtA[i] = 0x12
 		}
 	}
-	if m.Type == nil {
-		return 0, github_com_gogo_protobuf_proto.NewRequiredNotSetError("type")
-	} else {
+	if m.Type != nil {
 		i = encodeVarintHolepunch(dAtA, i, uint64(*m.Type))
 		i--
 		dAtA[i] = 0x8
@@ -222,7 +223,6 @@ func sozHolepunch(x uint64) (n int) {
 	return sovHolepunch(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
 func (m *HolePunch) Unmarshal(dAtA []byte) error {
-	var hasFields [1]uint64
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -271,7 +271,6 @@ func (m *HolePunch) Unmarshal(dAtA []byte) error {
 				}
 			}
 			m.Type = &v
-			hasFields[0] |= uint64(0x00000001)
 		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ObsAddrs", wireType)
@@ -310,7 +309,10 @@ func (m *HolePunch) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
+			if skippy < 0 {
+				return ErrInvalidLengthHolepunch
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthHolepunch
 			}
 			if (iNdEx + skippy) > l {
@@ -319,9 +321,6 @@ func (m *HolePunch) Unmarshal(dAtA []byte) error {
 			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
 			iNdEx += skippy
 		}
-	}
-	if hasFields[0]&uint64(0x00000001) == 0 {
-		return github_com_gogo_protobuf_proto.NewRequiredNotSetError("type")
 	}
 
 	if iNdEx > l {

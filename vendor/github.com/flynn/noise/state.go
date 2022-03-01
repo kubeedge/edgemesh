@@ -25,48 +25,30 @@ type CipherState struct {
 	invalid bool
 }
 
-// MaxNonce is the maximum value of n that is allowed. ErrMaxNonce is returned
-// by Encrypt and Decrypt after this has been reached. 2^64-1 is reserved for rekeys.
-const MaxNonce = uint64(math.MaxUint64) - 1
-
-var ErrMaxNonce = errors.New("noise: cipherstate has reached maximum n, a new handshake must be performed")
-var ErrCipherSuiteCopied = errors.New("noise: CipherSuite has been copied, state is invalid")
-
 // Encrypt encrypts the plaintext and then appends the ciphertext and an
 // authentication tag across the ciphertext and optional authenticated data to
 // out. This method automatically increments the nonce after every call, so
-// messages must be decrypted in the same order. ErrMaxNonce is returned after
-// the maximum nonce of 2^64-2 is reached.
-func (s *CipherState) Encrypt(out, ad, plaintext []byte) ([]byte, error) {
+// messages must be decrypted in the same order.
+func (s *CipherState) Encrypt(out, ad, plaintext []byte) []byte {
 	if s.invalid {
-		return nil, ErrCipherSuiteCopied
-	}
-	if s.n > MaxNonce {
-		return nil, ErrMaxNonce
+		panic("noise: CipherSuite has been copied, state is invalid")
 	}
 	out = s.c.Encrypt(out, s.n, ad, plaintext)
 	s.n++
-	return out, nil
+	return out
 }
 
 // Decrypt checks the authenticity of the ciphertext and authenticated data and
 // then decrypts and appends the plaintext to out. This method automatically
 // increments the nonce after every call, messages must be provided in the same
-// order that they were encrypted with no missing messages. ErrMaxNonce is
-// returned after the maximum nonce of 2^64-2 is reached.
+// order that they were encrypted with no missing messages.
 func (s *CipherState) Decrypt(out, ad, ciphertext []byte) ([]byte, error) {
 	if s.invalid {
-		return nil, ErrCipherSuiteCopied
-	}
-	if s.n > MaxNonce {
-		return nil, ErrMaxNonce
+		panic("noise: CipherSuite has been copied, state is invalid")
 	}
 	out, err := s.c.Decrypt(out, s.n, ad, ciphertext)
-	if err != nil {
-		return nil, err
-	}
 	s.n++
-	return out, nil
+	return out, err
 }
 
 // Cipher returns the low-level symmetric encryption primitive. It should only
@@ -78,12 +60,6 @@ func (s *CipherState) Decrypt(out, ad, ciphertext []byte) ([]byte, error) {
 func (s *CipherState) Cipher() Cipher {
 	s.invalid = true
 	return s.c
-}
-
-// Nonce returns the current value of n. This can be used to determine if a
-// new handshake should be performed due to approaching MaxNonce.
-func (s *CipherState) Nonce() uint64 {
-	return s.n
 }
 
 func (s *CipherState) Rekey() {
@@ -144,17 +120,14 @@ func (s *symmetricState) MixKeyAndHash(data []byte) {
 	s.hasK = true
 }
 
-func (s *symmetricState) EncryptAndHash(out, plaintext []byte) ([]byte, error) {
+func (s *symmetricState) EncryptAndHash(out, plaintext []byte) []byte {
 	if !s.hasK {
 		s.MixHash(plaintext)
-		return append(out, plaintext...), nil
+		return append(out, plaintext...)
 	}
-	ciphertext, err := s.Encrypt(out, s.h, plaintext)
-	if err != nil {
-		return nil, err
-	}
+	ciphertext := s.Encrypt(out, s.h, plaintext)
 	s.MixHash(ciphertext[len(out):])
-	return ciphertext, nil
+	return ciphertext
 }
 
 func (s *symmetricState) DecryptAndHash(out, data []byte) ([]byte, error) {
@@ -367,7 +340,6 @@ func (s *HandshakeState) WriteMessage(out, payload []byte) ([]byte, *CipherState
 		return nil, nil, nil, errors.New("noise: message is too long")
 	}
 
-	var err error
 	for _, msg := range s.messagePatterns[s.msgIdx] {
 		switch msg {
 		case MessagePatternE:
@@ -385,60 +357,30 @@ func (s *HandshakeState) WriteMessage(out, payload []byte) ([]byte, *CipherState
 			if len(s.s.Public) == 0 {
 				return nil, nil, nil, errors.New("noise: invalid state, s.Public is nil")
 			}
-			out, err = s.ss.EncryptAndHash(out, s.s.Public)
-			if err != nil {
-				return nil, nil, nil, err
-			}
+			out = s.ss.EncryptAndHash(out, s.s.Public)
 		case MessagePatternDHEE:
-			dh, err := s.ss.cs.DH(s.e.Private, s.re)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-			s.ss.MixKey(dh)
+			s.ss.MixKey(s.ss.cs.DH(s.e.Private, s.re))
 		case MessagePatternDHES:
 			if s.initiator {
-				dh, err := s.ss.cs.DH(s.e.Private, s.rs)
-				if err != nil {
-					return nil, nil, nil, err
-				}
-				s.ss.MixKey(dh)
+				s.ss.MixKey(s.ss.cs.DH(s.e.Private, s.rs))
 			} else {
-				dh, err := s.ss.cs.DH(s.s.Private, s.re)
-				if err != nil {
-					return nil, nil, nil, err
-				}
-				s.ss.MixKey(dh)
+				s.ss.MixKey(s.ss.cs.DH(s.s.Private, s.re))
 			}
 		case MessagePatternDHSE:
 			if s.initiator {
-				dh, err := s.ss.cs.DH(s.s.Private, s.re)
-				if err != nil {
-					return nil, nil, nil, err
-				}
-				s.ss.MixKey(dh)
+				s.ss.MixKey(s.ss.cs.DH(s.s.Private, s.re))
 			} else {
-				dh, err := s.ss.cs.DH(s.e.Private, s.rs)
-				if err != nil {
-					return nil, nil, nil, err
-				}
-				s.ss.MixKey(dh)
+				s.ss.MixKey(s.ss.cs.DH(s.e.Private, s.rs))
 			}
 		case MessagePatternDHSS:
-			dh, err := s.ss.cs.DH(s.s.Private, s.rs)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-			s.ss.MixKey(dh)
+			s.ss.MixKey(s.ss.cs.DH(s.s.Private, s.rs))
 		case MessagePatternPSK:
 			s.ss.MixKeyAndHash(s.psk)
 		}
 	}
 	s.shouldWrite = false
 	s.msgIdx++
-	out, err = s.ss.EncryptAndHash(out, payload)
-	if err != nil {
-		return nil, nil, nil, err
-	}
+	out = s.ss.EncryptAndHash(out, payload)
 
 	if s.msgIdx >= len(s.messagePatterns) {
 		cs1, cs2 := s.ss.Split()
@@ -464,7 +406,6 @@ func (s *HandshakeState) ReadMessage(out, message []byte) ([]byte, *CipherState,
 		return nil, nil, nil, errors.New("noise: no handshake messages left")
 	}
 
-	rsSet := false
 	s.ss.Checkpoint()
 
 	var err error
@@ -494,56 +435,28 @@ func (s *HandshakeState) ReadMessage(out, message []byte) ([]byte, *CipherState,
 					return nil, nil, nil, errors.New("noise: invalid state, rs is not nil")
 				}
 				s.rs, err = s.ss.DecryptAndHash(s.rs[:0], message[:expected])
-				rsSet = true
 			}
 			if err != nil {
 				s.ss.Rollback()
-				if rsSet {
-					s.rs = nil
-				}
 				return nil, nil, nil, err
 			}
 			message = message[expected:]
 		case MessagePatternDHEE:
-			dh, err := s.ss.cs.DH(s.e.Private, s.re)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-			s.ss.MixKey(dh)
+			s.ss.MixKey(s.ss.cs.DH(s.e.Private, s.re))
 		case MessagePatternDHES:
 			if s.initiator {
-				dh, err := s.ss.cs.DH(s.e.Private, s.rs)
-				if err != nil {
-					return nil, nil, nil, err
-				}
-				s.ss.MixKey(dh)
+				s.ss.MixKey(s.ss.cs.DH(s.e.Private, s.rs))
 			} else {
-				dh, err := s.ss.cs.DH(s.s.Private, s.re)
-				if err != nil {
-					return nil, nil, nil, err
-				}
-				s.ss.MixKey(dh)
+				s.ss.MixKey(s.ss.cs.DH(s.s.Private, s.re))
 			}
 		case MessagePatternDHSE:
 			if s.initiator {
-				dh, err := s.ss.cs.DH(s.s.Private, s.re)
-				if err != nil {
-					return nil, nil, nil, err
-				}
-				s.ss.MixKey(dh)
+				s.ss.MixKey(s.ss.cs.DH(s.s.Private, s.re))
 			} else {
-				dh, err := s.ss.cs.DH(s.e.Private, s.rs)
-				if err != nil {
-					return nil, nil, nil, err
-				}
-				s.ss.MixKey(dh)
+				s.ss.MixKey(s.ss.cs.DH(s.e.Private, s.rs))
 			}
 		case MessagePatternDHSS:
-			dh, err := s.ss.cs.DH(s.s.Private, s.rs)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-			s.ss.MixKey(dh)
+			s.ss.MixKey(s.ss.cs.DH(s.s.Private, s.rs))
 		case MessagePatternPSK:
 			s.ss.MixKeyAndHash(s.psk)
 		}
@@ -551,9 +464,6 @@ func (s *HandshakeState) ReadMessage(out, message []byte) ([]byte, *CipherState,
 	out, err = s.ss.DecryptAndHash(out, message)
 	if err != nil {
 		s.ss.Rollback()
-		if rsSet {
-			s.rs = nil
-		}
 		return nil, nil, nil, err
 	}
 	s.shouldWrite = true

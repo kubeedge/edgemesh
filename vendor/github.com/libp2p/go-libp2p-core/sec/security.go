@@ -19,8 +19,7 @@ type SecureConn interface {
 // plain-text, native connections into authenticated, encrypted connections.
 type SecureTransport interface {
 	// SecureInbound secures an inbound connection.
-	// If p is empty, connections from any peer are accepted.
-	SecureInbound(ctx context.Context, insecure net.Conn, p peer.ID) (SecureConn, error)
+	SecureInbound(ctx context.Context, insecure net.Conn) (SecureConn, error)
 
 	// SecureOutbound secures an outbound connection.
 	SecureOutbound(ctx context.Context, insecure net.Conn, p peer.ID) (SecureConn, error)
@@ -30,10 +29,9 @@ type SecureTransport interface {
 // and open outbound connections with simultaneous open.
 type SecureMuxer interface {
 	// SecureInbound secures an inbound connection.
-	// The returned boolean indicates whether the connection should be treated as a server
+	// The returned boolean indicates whether the connection should be trated as a server
 	// connection; in the case of SecureInbound it should always be true.
-	// If p is empty, connections from any peer are accepted.
-	SecureInbound(ctx context.Context, insecure net.Conn, p peer.ID) (SecureConn, bool, error)
+	SecureInbound(ctx context.Context, insecure net.Conn) (SecureConn, bool, error)
 
 	// SecureOutbound secures an outbound connection.
 	// The returned boolean indicates whether the connection should be treated as a server

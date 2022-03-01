@@ -3,7 +3,6 @@ package csms
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -39,12 +38,12 @@ func (sm *SSMuxer) AddTransport(path string, transport sec.SecureTransport) {
 
 // SecureInbound secures an inbound connection using this multistream
 // multiplexed stream security transport.
-func (sm *SSMuxer) SecureInbound(ctx context.Context, insecure net.Conn, p peer.ID) (sec.SecureConn, bool, error) {
+func (sm *SSMuxer) SecureInbound(ctx context.Context, insecure net.Conn) (sec.SecureConn, bool, error) {
 	tpt, _, err := sm.selectProto(ctx, insecure, true)
 	if err != nil {
 		return nil, false, err
 	}
-	sconn, err := tpt.SecureInbound(ctx, insecure, p)
+	sconn, err := tpt.SecureInbound(ctx, insecure)
 	return sconn, true, err
 }
 
@@ -58,15 +57,14 @@ func (sm *SSMuxer) SecureOutbound(ctx context.Context, insecure net.Conn, p peer
 
 	var sconn sec.SecureConn
 	if server {
-		sconn, err = tpt.SecureInbound(ctx, insecure, p)
+		sconn, err = tpt.SecureInbound(ctx, insecure)
 		if err != nil {
 			return nil, false, fmt.Errorf("failed to secure inbound connection: %s", err)
 		}
 		// ensure the correct peer connected to us
 		if sconn.RemotePeer() != p {
 			sconn.Close()
-			log.Printf("Handshake failed to properly authenticate peer. Authenticated %s, expected %s.", sconn.RemotePeer(), p)
-			return nil, false, fmt.Errorf("unexpected peer")
+			return nil, false, fmt.Errorf("Unexpected peer")
 		}
 	} else {
 		sconn, err = tpt.SecureOutbound(ctx, insecure, p)

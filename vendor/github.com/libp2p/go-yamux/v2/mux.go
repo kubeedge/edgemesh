@@ -1,7 +1,6 @@
 package yamux
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -31,15 +30,6 @@ type Config struct {
 	// an expectation that things will move along quickly.
 	ConnectionWriteTimeout time.Duration
 
-	// MaxIncomingStreams is maximum number of concurrent incoming streams
-	// that we accept. If the peer tries to open more streams, those will be
-	// reset immediately.
-	MaxIncomingStreams uint32
-
-	// InitialStreamWindowSize is used to control the initial
-	// window size that we allow for a stream.
-	InitialStreamWindowSize uint32
-
 	// MaxStreamWindowSize is used to control the maximum
 	// window size that we allow for a stream.
 	MaxStreamWindowSize uint32
@@ -65,18 +55,16 @@ type Config struct {
 // DefaultConfig is used to return a default configuration
 func DefaultConfig() *Config {
 	return &Config{
-		AcceptBacklog:           256,
-		PingBacklog:             32,
-		EnableKeepAlive:         true,
-		KeepAliveInterval:       30 * time.Second,
-		ConnectionWriteTimeout:  10 * time.Second,
-		MaxIncomingStreams:      1000,
-		InitialStreamWindowSize: initialStreamWindow,
-		MaxStreamWindowSize:     maxStreamWindow,
-		LogOutput:               os.Stderr,
-		ReadBufSize:             4096,
-		MaxMessageSize:          64 * 1024,
-		WriteCoalesceDelay:      100 * time.Microsecond,
+		AcceptBacklog:          256,
+		PingBacklog:            32,
+		EnableKeepAlive:        true,
+		KeepAliveInterval:      30 * time.Second,
+		ConnectionWriteTimeout: 10 * time.Second,
+		MaxStreamWindowSize:    initialStreamWindow,
+		LogOutput:              os.Stderr,
+		ReadBufSize:            4096,
+		MaxMessageSize:         64 * 1024, // Means 64KiB/10s = 52kbps minimum speed.
+		WriteCoalesceDelay:     100 * time.Microsecond,
 	}
 }
 
@@ -88,11 +76,8 @@ func VerifyConfig(config *Config) error {
 	if config.KeepAliveInterval == 0 {
 		return fmt.Errorf("keep-alive interval must be positive")
 	}
-	if config.InitialStreamWindowSize < initialStreamWindow {
-		return errors.New("InitialStreamWindowSize must be larger or equal 256 kB")
-	}
-	if config.MaxStreamWindowSize < config.InitialStreamWindowSize {
-		return errors.New("MaxStreamWindowSize must be larger than the InitialStreamWindowSize")
+	if config.MaxStreamWindowSize < initialStreamWindow {
+		return fmt.Errorf("MaxStreamWindowSize must be larger than %d", initialStreamWindow)
 	}
 	if config.MaxMessageSize < 1024 {
 		return fmt.Errorf("MaxMessageSize must be greater than a kilobyte")

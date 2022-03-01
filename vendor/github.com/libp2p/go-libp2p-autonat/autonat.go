@@ -13,7 +13,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 
-	logging "github.com/ipfs/go-log/v2"
+	logging "github.com/ipfs/go-log"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 )
@@ -22,13 +22,10 @@ var log = logging.Logger("autonat")
 
 // AmbientAutoNAT is the implementation of ambient NAT autodiscovery
 type AmbientAutoNAT struct {
+	ctx  context.Context
 	host host.Host
 
 	*config
-
-	ctx               context.Context
-	ctxCancel         context.CancelFunc // is closed when Close is called
-	backgroundRunning chan struct{}      // is closed when the background go routine exits
 
 	inboundConn  chan network.Conn
 	observations chan autoNATResult
@@ -53,6 +50,7 @@ type AmbientAutoNAT struct {
 
 // StaticAutoNAT is a simple AutoNAT implementation when a single NAT status is desired.
 type StaticAutoNAT struct {
+	ctx          context.Context
 	host         host.Host
 	reachability network.Reachability
 	service      *autoNATService
@@ -64,7 +62,7 @@ type autoNATResult struct {
 }
 
 // New creates a new NAT autodiscovery system attached to a host
-func New(h host.Host, options ...Option) (AutoNAT, error) {
+func New(ctx context.Context, h host.Host, options ...Option) (AutoNAT, error) {
 	var err error
 	conf := new(config)
 	conf.host = h
@@ -86,7 +84,7 @@ func New(h host.Host, options ...Option) (AutoNAT, error) {
 
 	var service *autoNATService
 	if (!conf.forceReachability || conf.reachability == network.ReachabilityPublic) && conf.dialer != nil {
-		service, err = newAutoNATService(conf)
+		service, err = newAutoNATService(ctx, conf)
 		if err != nil {
 			return nil, err
 		}
@@ -97,21 +95,19 @@ func New(h host.Host, options ...Option) (AutoNAT, error) {
 		emitReachabilityChanged.Emit(event.EvtLocalReachabilityChanged{Reachability: conf.reachability})
 
 		return &StaticAutoNAT{
+			ctx:          ctx,
 			host:         h,
 			reachability: conf.reachability,
 			service:      service,
 		}, nil
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
 	as := &AmbientAutoNAT{
-		ctx:               ctx,
-		ctxCancel:         cancel,
-		backgroundRunning: make(chan struct{}),
-		host:              h,
-		config:            conf,
-		inboundConn:       make(chan network.Conn, 5),
-		observations:      make(chan autoNATResult, 1),
+		ctx:          ctx,
+		host:         h,
+		config:       conf,
+		inboundConn:  make(chan network.Conn, 5),
+		observations: make(chan autoNATResult, 1),
 
 		emitReachabilityChanged: emitReachabilityChanged,
 		service:                 service,
@@ -163,7 +159,6 @@ func ipInList(candidate ma.Multiaddr, list []ma.Multiaddr) bool {
 }
 
 func (as *AmbientAutoNAT) background() {
-	defer close(as.backgroundRunning)
 	// wait a bit for the node to come online and establish some connections
 	// before starting autodetection
 	delay := as.config.bootDelay
@@ -431,15 +426,6 @@ func (as *AmbientAutoNAT) getPeerToProbe() peer.ID {
 	return candidates[0]
 }
 
-func (as *AmbientAutoNAT) Close() error {
-	as.ctxCancel()
-	if as.service != nil {
-		as.service.Disable()
-	}
-	<-as.backgroundRunning
-	return nil
-}
-
 func shufflePeers(peers []peer.ID) {
 	for i := range peers {
 		j := rand.Intn(i + 1)
@@ -457,12 +443,5 @@ func (s *StaticAutoNAT) PublicAddr() (ma.Multiaddr, error) {
 	if s.reachability != network.ReachabilityPublic {
 		return nil, errors.New("NAT status is not public")
 	}
-	return nil, errors.New("no available address")
-}
-
-func (s *StaticAutoNAT) Close() error {
-	if s.service != nil {
-		s.service.Disable()
-	}
-	return nil
+	return nil, errors.New("No available address")
 }

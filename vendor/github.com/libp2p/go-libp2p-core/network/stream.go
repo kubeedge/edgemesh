@@ -21,7 +21,7 @@ type Stream interface {
 	SetProtocol(id protocol.ID)
 
 	// Stat returns metadata pertaining to this stream.
-	Stat() Stats
+	Stat() Stat
 
 	// Conn returns the connection this stream is part of.
 	Conn() Conn

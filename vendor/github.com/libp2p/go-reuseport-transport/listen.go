@@ -3,9 +3,9 @@ package tcpreuse
 import (
 	"net"
 
-	"github.com/libp2p/go-reuseport"
+	reuseport "github.com/libp2p/go-reuseport"
 	ma "github.com/multiformats/go-multiaddr"
-	manet "github.com/multiformats/go-multiaddr/net"
+	manet "github.com/multiformats/go-multiaddr-net"
 )
 
 type listener struct {

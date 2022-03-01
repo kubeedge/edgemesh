@@ -1,4 +1,3 @@
-//go:build openssl
 // +build openssl
 
 package crypto
@@ -8,7 +7,7 @@ import (
 
 	pb "github.com/libp2p/go-libp2p-core/crypto/pb"
 
-	"github.com/libp2p/go-openssl"
+	openssl "github.com/libp2p/go-openssl"
 )
 
 // define these as separate types so we can add more key types later and reuse
@@ -56,6 +55,17 @@ func (pk *opensslPublicKey) Type() pb.KeyType {
 	}
 }
 
+// Bytes returns protobuf bytes of a public key
+func (pk *opensslPublicKey) Bytes() ([]byte, error) {
+	pk.cacheLk.Lock()
+	var err error
+	if pk.cached == nil {
+		pk.cached, err = MarshalPublicKey(pk)
+	}
+	pk.cacheLk.Unlock()
+	return pk.cached, err
+}
+
 func (pk *opensslPublicKey) Raw() ([]byte, error) {
 	return pk.key.MarshalPKIXPublicKeyDER()
 }
@@ -87,6 +97,11 @@ func (sk *opensslPrivateKey) Type() pb.KeyType {
 	default:
 		return -1
 	}
+}
+
+// Bytes returns protobuf bytes from a private key
+func (sk *opensslPrivateKey) Bytes() ([]byte, error) {
+	return MarshalPrivateKey(sk)
 }
 
 func (sk *opensslPrivateKey) Raw() ([]byte, error) {

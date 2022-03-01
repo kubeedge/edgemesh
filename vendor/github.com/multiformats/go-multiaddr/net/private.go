@@ -72,6 +72,8 @@ func IsPublicAddr(a ma.Multiaddr) bool {
 		switch c.Protocol().Code {
 		case ma.P_IP6ZONE:
 			return true
+		default:
+			return false
 		case ma.P_IP4:
 			ip := net.IP(c.RawValue())
 			isPublic = !inAddrRange(ip, Private4) && !inAddrRange(ip, Unroutable4)
@@ -91,6 +93,8 @@ func IsPrivateAddr(a ma.Multiaddr) bool {
 		switch c.Protocol().Code {
 		case ma.P_IP6ZONE:
 			return true
+		default:
+			return false
 		case ma.P_IP4:
 			isPrivate = inAddrRange(net.IP(c.RawValue()), Private4)
 		case ma.P_IP6:

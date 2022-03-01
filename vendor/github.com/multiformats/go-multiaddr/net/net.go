@@ -248,22 +248,14 @@ func (l *maListener) Accept() (Conn, error) {
 	var raddr ma.Multiaddr
 	// This block protects us in transports (i.e. unix sockets) that don't have
 	// remote addresses for inbound connections.
-	if addr := nconn.RemoteAddr(); addr != nil && addr.String() != "" {
-		raddr, err = FromNetAddr(addr)
+	if nconn.RemoteAddr().String() != "" {
+		raddr, err = FromNetAddr(nconn.RemoteAddr())
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert conn.RemoteAddr: %s", err)
 		}
 	}
 
-	var laddr ma.Multiaddr
-	if addr := nconn.LocalAddr(); addr != nil && addr.String() != "" {
-		laddr, err = FromNetAddr(addr)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert conn.LocalAddr: %s", err)
-		}
-	}
-
-	return wrap(nconn, laddr, raddr), nil
+	return wrap(nconn, l.laddr, raddr), nil
 }
 
 // Multiaddr returns the listener's (local) Multiaddr.

@@ -86,11 +86,7 @@ func (ka rsaKeyAgreement) generateClientKeyExchange(config *config, clientHello 
 		return nil, nil, err
 	}
 
-	rsaKey, ok := cert.PublicKey.(*rsa.PublicKey)
-	if !ok {
-		return nil, nil, errors.New("tls: server certificate contains incorrect key type for selected ciphersuite")
-	}
-	encrypted, err := rsa.EncryptPKCS1v15(config.rand(), rsaKey, preMasterSecret)
+	encrypted, err := rsa.EncryptPKCS1v15(config.rand(), cert.PublicKey.(*rsa.PublicKey), preMasterSecret)
 	if err != nil {
 		return nil, nil, err
 	}
