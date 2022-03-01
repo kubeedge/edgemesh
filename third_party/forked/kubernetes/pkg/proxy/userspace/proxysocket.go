@@ -5,14 +5,12 @@ package userspace
 
 import (
 	"fmt"
-	"io"
 	"net"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/network"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog/v2"
@@ -23,10 +21,10 @@ import (
 	"github.com/kubeedge/edgemesh/common/util"
 )
 
-var MyNodeName string
+var myNodeName string
 
 func init() {
-	MyNodeName = util.FetchNodeName()
+	myNodeName = util.FetchNodeName()
 }
 
 // Abstraction over TCP/UDP sockets which are proxied.
@@ -88,7 +86,7 @@ func (tcp *tcpProxySocket) ListenPort() int {
 
 // TryConnectEndpoints attempts to connect to the next available endpoint for the given service, cycling
 // through until it is able to successfully connect, or it has tried with all timeouts in EndpointDialTimeouts.
-func TryConnectEndpoints(service proxy.ServicePortName, srcAddr net.Addr, tcpConn *net.TCPConn, protocol string, loadBalancer LoadBalancer) (out io.ReadWriteCloser, err error) {
+func TryConnectEndpoints(service proxy.ServicePortName, srcAddr net.Addr, tcpConn *net.TCPConn, protocol string, loadBalancer LoadBalancer) (out net.Conn, err error) {
 	sessionAffinityReset := false
 	for _, dialTimeout := range EndpointDialTimeouts {
 		endpoint, req, err := loadBalancer.NextEndpoint(service, srcAddr, tcpConn, sessionAffinityReset)
@@ -97,7 +95,8 @@ func TryConnectEndpoints(service proxy.ServicePortName, srcAddr net.Addr, tcpCon
 			return nil, err
 		}
 		klog.V(3).InfoS("Mapped service to endpoint", "service", service, "endpoint", endpoint)
-		outConn, err := TryDialStream(protocol, endpoint, dialTimeout)
+		// NOTE: outConn can be a net.Conn(golang) or network.Stream(libp2p)
+		outConn, err := dialEndpoint(protocol, endpoint, dialTimeout)
 		if err != nil {
 			if util.IsTooManyFDsError(err) {
 				panic("Dial failed: " + err.Error())
@@ -128,37 +127,39 @@ func parseEndpoint(endpoint string) (node, pod, ip, port string, ok bool) {
 	return endpointInfo[0], endpointInfo[1], endpointInfo[2], endpointInfo[3], true
 }
 
-// TryDialStream If the endpoint contains nodeName, try dial to stream,
-// otherwise use traditional network to dial.
-func TryDialStream(protocol, endpoint string, dialTimeout time.Duration) (io.ReadWriteCloser, error) {
+// dialEndpoint If the endpoint contains node name then try to dial stream conn
+// or try to dial net conn.
+func dialEndpoint(protocol, endpoint string, dialTimeout time.Duration) (net.Conn, error) {
 	targetNode, targetPod, targetIP, targetPort, ok := parseEndpoint(endpoint)
 	if !ok {
+		time.Sleep(dialTimeout)
 		return nil, fmt.Errorf("invalid endpoint %s", endpoint)
 	}
 
 	switch targetNode {
-	case EmptyNodeName, MyNodeName:
+	case EmptyNodeName, myNodeName:
 		// TODO: This could spin up a new goroutine to make the outbound connection,
 		// and keep accepting inbound traffic.
 		outConn, err := net.DialTimeout(protocol, net.JoinHostPort(targetIP, targetPort), dialTimeout)
 		if err != nil {
 			return nil, err
 		}
-		klog.Infof("Dial legacy network between %s - {%s %s %s %s}", targetPod, protocol, targetNode, targetIP, targetPort)
+		klog.Infof("Dial legacy network between %s - {%s %s %s:%s}", targetPod, protocol, targetNode, targetIP, targetPort)
 		return outConn, nil
 	default:
 		targetPort, err := strconv.ParseInt(targetPort, 10, 32)
 		if err != nil {
+			time.Sleep(dialTimeout)
 			return nil, fmt.Errorf("invalid endpoint %s", endpoint)
 		}
 		proxyOpts := tunnelproxy.ProxyOptions{Protocol: protocol, NodeName: targetNode, IP: targetIP, Port: int32(targetPort)}
-		stream, err := tunnel.Agent.ProxySvc.GetProxyStream(proxyOpts)
+		streamConn, err := tunnel.Agent.ProxySvc.GetProxyStream(proxyOpts)
 		if err != nil {
 			time.Sleep(dialTimeout)
 			return nil, fmt.Errorf("get proxy stream from %s error: %v", targetNode, err)
 		}
-		klog.Infof("Dial libp2p network between %s - %v", targetPod, proxyOpts)
-		return stream, nil
+		klog.Infof("Dial libp2p network between %s - {%s %s %s:%d}", targetPod, protocol, targetNode, targetIP, targetPort)
+		return streamConn, nil
 	}
 }
 
@@ -186,7 +187,6 @@ func (tcp *tcpProxySocket) ProxyLoop(service proxy.ServicePortName, myInfo *Serv
 			continue
 		}
 		klog.V(3).InfoS("Accepted TCP connection from remote", "remoteAddress", inConn.RemoteAddr(), "localAddress", inConn.LocalAddr())
-		// NOTE: outConn can be a net conn or p2p stream
 		outConn, err := TryConnectEndpoints(service, inConn.(*net.TCPConn).RemoteAddr(), inConn.(*net.TCPConn), "tcp", loadBalancer)
 		if err != nil {
 			klog.ErrorS(err, "Failed to connect to balancer")
@@ -194,12 +194,7 @@ func (tcp *tcpProxySocket) ProxyLoop(service proxy.ServicePortName, myInfo *Serv
 			continue
 		}
 		// Spin up an async copy loop.
-		switch outConn.(type) {
-		case net.Conn:
-			go util.ProxyTCP(inConn.(*net.TCPConn), outConn.(*net.TCPConn))
-		case network.Stream:
-			go util.ProxyStream(inConn, outConn)
-		}
+		go util.ProxyConn(inConn, outConn)
 	}
 }
 
@@ -222,11 +217,11 @@ func (udp *udpProxySocket) Addr() net.Addr {
 // Holds all the known UDP clients that have not timed out.
 type ClientCache struct {
 	Mu      sync.Mutex
-	Clients map[string]io.ReadWriteCloser // addr string -> connection/stream
+	Clients map[string]net.Conn // addr string -> connection
 }
 
 func newClientCache() *ClientCache {
-	return &ClientCache{Clients: map[string]io.ReadWriteCloser{}}
+	return &ClientCache{Clients: map[string]net.Conn{}}
 }
 
 func (udp *udpProxySocket) ProxyLoop(service proxy.ServicePortName, myInfo *ServiceInfo, loadBalancer LoadBalancer) {
@@ -253,7 +248,6 @@ func (udp *udpProxySocket) ProxyLoop(service proxy.ServicePortName, myInfo *Serv
 			break
 		}
 		// If this is a client we know already, reuse the connection and goroutine.
-		// NOTE: svrConn can be a net conn or p2p stream
 		svrConn, err := udp.getBackendConn(myInfo.ActiveClients, cliAddr, loadBalancer, service, myInfo.Timeout)
 		if err != nil {
 			continue
@@ -268,17 +262,15 @@ func (udp *udpProxySocket) ProxyLoop(service proxy.ServicePortName, myInfo *Serv
 			}
 			continue
 		}
-		if netConn, ok := svrConn.(net.Conn); ok {
-			err = netConn.SetDeadline(time.Now().Add(myInfo.Timeout))
-			if err != nil {
-				klog.ErrorS(err, "SetDeadline failed")
-				continue
-			}
+		err = svrConn.SetDeadline(time.Now().Add(myInfo.Timeout))
+		if err != nil {
+			klog.ErrorS(err, "SetDeadline failed")
+			continue
 		}
 	}
 }
 
-func (udp *udpProxySocket) getBackendConn(activeClients *ClientCache, cliAddr net.Addr, loadBalancer LoadBalancer, service proxy.ServicePortName, timeout time.Duration) (io.ReadWriteCloser, error) {
+func (udp *udpProxySocket) getBackendConn(activeClients *ClientCache, cliAddr net.Addr, loadBalancer LoadBalancer, service proxy.ServicePortName, timeout time.Duration) (net.Conn, error) {
 	activeClients.Mu.Lock()
 	defer activeClients.Mu.Unlock()
 
@@ -292,14 +284,12 @@ func (udp *udpProxySocket) getBackendConn(activeClients *ClientCache, cliAddr ne
 		if err != nil {
 			return nil, err
 		}
-		if netConn, ok := svrConn.(net.Conn); ok {
-			if err = netConn.SetDeadline(time.Now().Add(timeout)); err != nil {
-				klog.ErrorS(err, "SetDeadline failed")
-				return nil, err
-			}
+		if err = svrConn.SetDeadline(time.Now().Add(timeout)); err != nil {
+			klog.ErrorS(err, "SetDeadline failed")
+			return nil, err
 		}
 		activeClients.Clients[cliAddr.String()] = svrConn
-		go func(cliAddr net.Addr, svrConn io.ReadWriteCloser, activeClients *ClientCache, timeout time.Duration) {
+		go func(cliAddr net.Addr, svrConn net.Conn, activeClients *ClientCache, timeout time.Duration) {
 			defer runtime.HandleCrash()
 			udp.proxyClient(cliAddr, svrConn, activeClients, timeout)
 		}(cliAddr, svrConn, activeClients, timeout)
@@ -309,7 +299,7 @@ func (udp *udpProxySocket) getBackendConn(activeClients *ClientCache, cliAddr ne
 
 // This function is expected to be called as a goroutine.
 // TODO: Track and log bytes copied, like TCP
-func (udp *udpProxySocket) proxyClient(cliAddr net.Addr, svrConn io.ReadWriteCloser, activeClients *ClientCache, timeout time.Duration) {
+func (udp *udpProxySocket) proxyClient(cliAddr net.Addr, svrConn net.Conn, activeClients *ClientCache, timeout time.Duration) {
 	defer svrConn.Close()
 	var buffer [4096]byte
 	for {
@@ -320,12 +310,10 @@ func (udp *udpProxySocket) proxyClient(cliAddr net.Addr, svrConn io.ReadWriteClo
 			}
 			break
 		}
-		if netConn, ok := svrConn.(net.Conn); ok {
-			err = netConn.SetDeadline(time.Now().Add(timeout))
-			if err != nil {
-				klog.ErrorS(err, "SetDeadline failed")
-				break
-			}
+		err = svrConn.SetDeadline(time.Now().Add(timeout))
+		if err != nil {
+			klog.ErrorS(err, "SetDeadline failed")
+			break
 		}
 		_, err = udp.WriteTo(buffer[0:n], cliAddr)
 		if err != nil {

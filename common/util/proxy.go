@@ -26,9 +26,9 @@ func HttpRequestToBytes(req *http.Request) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// Copy and paste from https://github.com/kubernetes/kubernetes/blob/v1.23.0/pkg/proxy/userspace/proxysocket.go#L154
-// ProxyTCP proxies data bi-directionally between in and out.
-func ProxyTCP(in, out *net.TCPConn) {
+// Copy and update from https://github.com/kubernetes/kubernetes/blob/v1.23.0/pkg/proxy/userspace/proxysocket.go#L154
+// ProxyConn proxies data bi-directionally between in and out.
+func ProxyConn(in, out net.Conn) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 	klog.V(4).InfoS("Creating proxy between remote and local addresses",
@@ -38,13 +38,13 @@ func ProxyTCP(in, out *net.TCPConn) {
 	wg.Wait()
 }
 
-// Copy and paste from https://github.com/kubernetes/kubernetes/blob/v1.23.0/pkg/proxy/userspace/proxysocket.go#L164
-func copyBytes(direction string, dest, src *net.TCPConn, wg *sync.WaitGroup) {
+// Copy and update from https://github.com/kubernetes/kubernetes/blob/v1.23.0/pkg/proxy/userspace/proxysocket.go#L164
+func copyBytes(direction string, dest, src net.Conn, wg *sync.WaitGroup) {
 	defer wg.Done()
 	klog.V(4).InfoS("Copying remote address bytes", "direction", direction, "sourceRemoteAddress", src.RemoteAddr(), "destinationRemoteAddress", dest.RemoteAddr())
 	n, err := io.Copy(dest, src)
 	if err != nil {
-		if !IsClosedError(err) {
+		if !IsClosedError(err) && !IsStreamResetError(err) {
 			klog.ErrorS(err, "I/O error occurred")
 		}
 	}
@@ -53,31 +53,10 @@ func copyBytes(direction string, dest, src *net.TCPConn, wg *sync.WaitGroup) {
 	src.Close()
 }
 
-// ProxyStream proxies data bi-directionally between in(tcp/udp/stream) and out(tcp/udp/stream).
-func ProxyStream(in io.ReadWriteCloser, out io.ReadWriteCloser) {
-	var wg sync.WaitGroup
-	wg.Add(2)
-	go pipeBytes(in, out, &wg)
-	go pipeBytes(out, in, &wg)
-	wg.Wait()
-}
-
-func pipeBytes(dest io.WriteCloser, src io.ReadCloser, wg *sync.WaitGroup) {
-	defer wg.Done()
-	_, err := io.Copy(dest, src)
-	if err != nil {
-		if !IsClosedError(err) && !IsStreamResetError(err) {
-			klog.ErrorS(err, "I/O error occurred")
-		}
-	}
-	dest.Close()
-	src.Close()
-}
-
-func ProxyStreamUDP(stream io.ReadWriteCloser, udpConn *net.UDPConn) {
+func ProxyConnUDP(inConn net.Conn, udpConn *net.UDPConn) {
 	var buffer [4096]byte
 	for {
-		n, err := stream.Read(buffer[0:])
+		n, err := inConn.Read(buffer[0:])
 		if err != nil {
 			if e, ok := err.(net.Error); ok {
 				if e.Temporary() {
@@ -90,7 +69,7 @@ func ProxyStreamUDP(stream io.ReadWriteCloser, udpConn *net.UDPConn) {
 			}
 			break
 		}
-		go pipeDatagrams(udpConn, stream)
+		go copyDatagram(udpConn, inConn)
 		_, err = udpConn.Write(buffer[0:n])
 		if err != nil {
 			if !LogTimeout(err) {
@@ -106,8 +85,8 @@ func ProxyStreamUDP(stream io.ReadWriteCloser, udpConn *net.UDPConn) {
 	}
 }
 
-func pipeDatagrams(udpConn *net.UDPConn, stream io.ReadWriteCloser) {
-	defer stream.Close()
+func copyDatagram(udpConn *net.UDPConn, outConn net.Conn) {
+	defer udpConn.Close()
 	var buffer [4096]byte
 	for {
 		n, _, err := udpConn.ReadFromUDP(buffer[0:])
@@ -117,9 +96,16 @@ func pipeDatagrams(udpConn *net.UDPConn, stream io.ReadWriteCloser) {
 			}
 			break
 		}
-		_, err = stream.Write(buffer[0:n])
+		err = udpConn.SetDeadline(time.Now().Add(time.Second))
 		if err != nil {
-			klog.ErrorS(err, "WriteTo failed")
+			klog.ErrorS(err, "SetDeadline failed")
+			break
+		}
+		_, err = outConn.Write(buffer[0:n])
+		if err != nil {
+			if !LogTimeout(err) {
+				klog.ErrorS(err, "WriteTo failed")
+			}
 			break
 		}
 	}

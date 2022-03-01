@@ -87,7 +87,7 @@ func (h *L4ProxyHandler) Handle(chain *handler.Chain, i *invocation.Invocation, 
 
 		klog.Infof("l4 proxy start proxy data between tcpserver %s", addr.String())
 
-		go util.ProxyStream(rconn, lconn)
+		go util.ProxyConn(rconn, lconn)
 
 		klog.Infof("Success proxy to %v", i.Endpoint)
 		err = cb(r)
@@ -116,7 +116,7 @@ func (h *L4ProxyHandler) Handle(chain *handler.Chain, i *invocation.Invocation, 
 			}
 		}
 
-		go util.ProxyStream(stream, lconn)
+		go util.ProxyConn(stream, lconn)
 
 		klog.Infof("Success proxy to %v", i.Endpoint)
 		err = cb(r)
