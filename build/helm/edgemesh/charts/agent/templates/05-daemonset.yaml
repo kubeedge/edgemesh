@@ -39,11 +39,11 @@ spec:
                   fieldPath: spec.nodeName
           resources:
             limits:
-              cpu: 1
-              memory: 256Mi
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
             requests:
-              cpu: 0.5
-              memory: 128Mi
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
           volumeMounts:
             - name: conf
               mountPath: /etc/kubeedge/config

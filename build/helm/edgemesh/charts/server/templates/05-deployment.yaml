@@ -44,11 +44,11 @@ spec:
           name: relay
         resources:
           limits:
-            cpu: 1
-            memory: 1Gi
+            cpu: {{ .Values.resources.limits.cpu }}
+            memory: {{ .Values.resources.limits.memory }}
           requests:
-            cpu: 0.5
-            memory: 512Mi
+            cpu: {{ .Values.resources.requests.cpu }}
+            memory: {{ .Values.resources.requests.memory }}
         volumeMounts:
           - name: conf
             mountPath: /etc/kubeedge/config
