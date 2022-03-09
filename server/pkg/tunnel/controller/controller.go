@@ -41,7 +41,6 @@ func Init(ifm *informers.Manager) *TunnelServerController {
 			secretLister:   kubeFactor.Core().V1().Secrets().Lister(),
 			secretOperator: ifm.GetKubeClient().CoreV1().Secrets(constants.SecretNamespace),
 		}
-		ifm.RegisterInformer(APIConn.secretInformer)
 	})
 	return APIConn
 }
