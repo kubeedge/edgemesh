@@ -11,6 +11,7 @@ tolerations: {}
 nodeSelector: {}
 # advertiseAddress overwrites the value of modules.tunnel.advertiseAddress
 advertiseAddress:
+- ""
 resources:
   limits:
     cpu: 1

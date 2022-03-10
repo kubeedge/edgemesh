@@ -28,4 +28,3 @@ dependencies:
     version: latest
   - name: agent
     version: latest
-  
