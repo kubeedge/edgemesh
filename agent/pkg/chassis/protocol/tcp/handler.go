@@ -75,7 +75,6 @@ func (h *L4ProxyHandler) Handle(chain *handler.Chain, i *invocation.Invocation, 
 			r.Err = fmt.Errorf("l4 proxy dial error: %v", err)
 			return
 		}
-		defer rconn.Close()
 
 		if tcpProtocol.UpgradeReq != nil {
 			_, err = rconn.Write(tcpProtocol.UpgradeReq)
