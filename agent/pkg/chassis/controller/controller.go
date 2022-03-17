@@ -44,8 +44,6 @@ func Init(ifm *informers.Manager) {
 			epInformer: ifm.GetKubeFactory().Core().V1().Endpoints().Informer(),
 			drInformer: ifm.GetIstioFactory().Networking().V1alpha3().DestinationRules().Informer(),
 		}
-		ifm.RegisterInformer(APIConn.epInformer)
-		ifm.RegisterInformer(APIConn.drInformer)
 		ifm.RegisterSyncedFunc(APIConn.onCacheSynced)
 	})
 }

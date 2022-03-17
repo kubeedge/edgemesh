@@ -34,7 +34,6 @@ func Init(ifm *informers.Manager, cfg *config.EdgeGatewayConfig) {
 			gwInformer:      ifm.GetIstioFactory().Networking().V1alpha3().Gateways().Informer(),
 			gwEventHandlers: make(map[string]cache.ResourceEventHandlerFuncs),
 		}
-		ifm.RegisterInformer(APIConn.gwInformer)
 		ifm.RegisterSyncedFunc(APIConn.onCacheSynced)
 	})
 }
