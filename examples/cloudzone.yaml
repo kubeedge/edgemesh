@@ -82,16 +82,16 @@ metadata:
   name: busybox-sleep-cloud
   namespace: cloudzone
   labels:
-    app: tcp-echo-cloud
+    app: busybox-sleep-cloud
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: tcp-echo-cloud
+      app: busybox-sleep-cloud
   template:
     metadata:
       labels:
-        app: tcp-echo-cloud
+        app: busybox-sleep-cloud
     spec:
       containers:
         - name: busybox
