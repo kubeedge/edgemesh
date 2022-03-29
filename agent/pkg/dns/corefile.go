@@ -65,6 +65,9 @@ const (
 	defaultTTL            = 30
 	defaultUpstreamServer = "/etc/resolv.conf"
 	corefilePath          = "Corefile"
+	kubeSystem            = "kube-system"
+	coreDNS               = "coredns"
+	kubeDNS               = "kube-dns"
 )
 
 // copy from https://github.com/kubernetes/dns/blob/1.21.0/cmd/node-cache/app/configmap.go and update
@@ -195,15 +198,15 @@ func UpdateCorefile(cfg *config.EdgeDNSConfig, ifm *informers.Manager) error {
 }
 
 func detectClusterDNS(kubeClient kubernetes.Interface) (servers []string) {
-	coredns, err := kubeClient.CoreV1().Services("kube-system").Get(context.Background(), "coredns", metav1.GetOptions{})
+	coredns, err := kubeClient.CoreV1().Services(kubeSystem).Get(context.Background(), coreDNS, metav1.GetOptions{})
 	if err == nil && coredns.Spec.ClusterIP != v1.ClusterIPNone {
 		servers = append(servers, coredns.Spec.ClusterIP)
 	}
-	kubedns, err := kubeClient.CoreV1().Services("kube-system").Get(context.Background(), "kube-dns", metav1.GetOptions{})
+	kubedns, err := kubeClient.CoreV1().Services(kubeSystem).Get(context.Background(), kubeDNS, metav1.GetOptions{})
 	if err == nil && kubedns.Spec.ClusterIP != v1.ClusterIPNone {
 		servers = append(servers, kubedns.Spec.ClusterIP)
 	}
-	kubeDNSList, err := kubeClient.CoreV1().Services("kube-system").List(context.Background(), metav1.ListOptions{LabelSelector: "k8s-app=kube-dns"})
+	kubeDNSList, err := kubeClient.CoreV1().Services(kubeSystem).List(context.Background(), metav1.ListOptions{LabelSelector: "k8s-app=kube-dns"})
 	if err == nil {
 		for _, item := range kubeDNSList.Items {
 			if item.Spec.ClusterIP != v1.ClusterIPNone {
