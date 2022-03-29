@@ -92,38 +92,35 @@ func (ps *ProxyService) ProxyStreamHandler(stream network.Stream) {
 	klog.Infof("Success proxy for {%s %s %s}", targetProto, targetNode, targetAddr)
 }
 
-func (ps *ProxyService) TryConnectEndpoint(msg *pb.Proxy) (net.Conn, error) {
-	var err error
+func (ps *ProxyService) TryConnectEndpoint(msg *pb.Proxy) (conn net.Conn, err error) {
 	switch msg.GetProtocol() {
 	case "tcp":
 		for i := 0; i < MaxRetryTime; i++ {
-			tcpConn, err := net.DialTCP("tcp", nil, &net.TCPAddr{
+			conn, err = net.DialTCP("tcp", nil, &net.TCPAddr{
 				IP:   net.ParseIP(msg.GetIp()),
 				Port: int(msg.GetPort()),
 			})
 			if err == nil {
-				return tcpConn, nil
+				return conn, nil
 			}
 			time.Sleep(time.Second)
 		}
-		klog.Errorf("max retries for dial")
-		return nil, err
 	case "udp":
 		for i := 0; i < MaxRetryTime; i++ {
-			udpConn, err := net.DialUDP("udp", nil, &net.UDPAddr{
+			conn, err = net.DialUDP("udp", nil, &net.UDPAddr{
 				IP:   net.ParseIP(msg.GetIp()),
 				Port: int(msg.GetPort()),
 			})
 			if err == nil {
-				return udpConn, nil
+				return conn, nil
 			}
 			time.Sleep(time.Second)
 		}
-		klog.Errorf("max retries for dial")
-		return nil, err
 	default:
 		return nil, fmt.Errorf("unsupported protocol: %s", msg.GetProtocol())
 	}
+	klog.Errorf("max retries for dial")
+	return nil, err
 }
 
 func (ps *ProxyService) GetProxyStream(opts ProxyOptions) (*libp2p.StreamConn, error) {
