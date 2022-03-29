@@ -82,16 +82,16 @@ metadata:
   name: busybox-sleep-edge
   namespace: edgezone
   labels:
-    app: tcp-echo-edge
+    app: busybox-sleep-edge
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: tcp-echo-edge
+      app: busybox-sleep-edge
   template:
     metadata:
       labels:
-        app: tcp-echo-edge
+        app: busybox-sleep-edge
     spec:
       affinity:
         nodeAffinity:
