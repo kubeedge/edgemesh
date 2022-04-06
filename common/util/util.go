@@ -77,9 +77,9 @@ func FetchNodeName() string {
 	}
 
 	var isExist bool
-	nodeName, isExist = os.LookupEnv(meshConstants.MY_NODE_NAME)
+	nodeName, isExist = os.LookupEnv(meshConstants.MyNodeName)
 	if !isExist {
-		klog.Exitf("env %s not exist", meshConstants.MY_NODE_NAME)
+		klog.Exitf("env %s not exist", meshConstants.MyNodeName)
 	}
 	return nodeName
 }

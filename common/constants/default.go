@@ -24,6 +24,6 @@ const (
 	StreamReset      = "stream reset"
 
 	// env
-	MY_NODE_NAME      = "MY_NODE_NAME"
+	MyNodeName        = "MY_NODE_NAME"
 	CaServerTokenPath = "/etc/kubeedge/cert/tokendata"
 )
