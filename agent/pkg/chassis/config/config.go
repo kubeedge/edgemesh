@@ -1,6 +1,8 @@
 package config
 
 import (
+	"github.com/go-chassis/go-chassis/core/loadbalancer"
+	"github.com/kubeedge/edgemesh/agent/pkg/chassis/loadbalancer/consistenthash"
 	"sync"
 )
 
@@ -62,8 +64,8 @@ func NewGoChassisConfig() *GoChassisConfig {
 			TCPReconnectTimes: 3,
 		},
 		LoadBalancer: &LoadBalancer{
-			DefaultLBStrategy:     "RoundRobin",
-			SupportedLBStrategies: []string{"RoundRobin", "Random", "ConsistentHash"},
+			DefaultLBStrategy:     loadbalancer.StrategyRoundRobin,
+			SupportedLBStrategies: []string{loadbalancer.StrategyRoundRobin, loadbalancer.StrategyRandom, consistenthash.StrategyConsistentHash},
 			ConsistentHash: &ConsistentHash{
 				PartitionCount:    100,
 				ReplicationFactor: 10,
