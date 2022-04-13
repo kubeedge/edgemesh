@@ -28,7 +28,7 @@ spec:
       containers:
         - name: tcp-echo-container
           image: poorunga/go-echo:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           env:
             - name: TCP_PORT
               value: "2701"
