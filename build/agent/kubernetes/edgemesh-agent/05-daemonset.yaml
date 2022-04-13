@@ -23,6 +23,7 @@ spec:
         securityContext:
           privileged: true
         image: kubeedge/edgemesh-agent:latest
+        imagePullPolicy: IfNotPresent
         env:
         - name: MY_NODE_NAME
           valueFrom:
