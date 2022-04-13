@@ -257,7 +257,7 @@ func proxyConnectToRemote(host string, targetIP string, port int32, conn net.Con
 		klog.Errorf("return corresponding data error: %v", err)
 	}
 
-	go util.ProxyConn(stream, conn)
+	util.ProxyConn(stream, conn)
 
 	klog.Infof("Success proxy to %v", host)
 }
