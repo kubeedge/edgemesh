@@ -27,7 +27,7 @@ const (
 type LoadBalancerStrategy interface {
 	Name() string
 	Update(oldDr, dr *istioapi.DestinationRule)
-	Pick(endpoints []string, tcpConn *net.TCPConn) (string, *http.Request, error)
+	Pick(endpoints []string, srcAddr net.Addr, tcpConn *net.TCPConn) (string, *http.Request, error)
 	Sync(endpoints []string)
 	Release()
 }
@@ -75,7 +75,7 @@ func (*RoundRobinStrategy) Name() string {
 
 func (*RoundRobinStrategy) Update(oldDr, dr *istioapi.DestinationRule) {}
 
-func (*RoundRobinStrategy) Pick(endpoints []string, tcpConn *net.TCPConn) (string, *http.Request, error) {
+func (*RoundRobinStrategy) Pick(endpoints []string, srcAddr net.Addr, tcpConn *net.TCPConn) (string, *http.Request, error) {
 	// RoundRobinStrategy is an empty implementation and we won't use it,
 	// the outer round-robin strategy will be used next.
 	return "", nil, fmt.Errorf("call RoundRobinStrategy is forbidden")
@@ -99,7 +99,7 @@ func (rd *RandomStrategy) Name() string {
 
 func (rd *RandomStrategy) Update(oldDr, dr *istioapi.DestinationRule) {}
 
-func (rd *RandomStrategy) Pick(endpoints []string, tcpConn *net.TCPConn) (string, *http.Request, error) {
+func (rd *RandomStrategy) Pick(endpoints []string, srcAddr net.Addr, tcpConn *net.TCPConn) (string, *http.Request, error) {
 	rd.lock.Lock()
 	k := rand.Int() % len(endpoints)
 	rd.lock.Unlock()
@@ -294,22 +294,24 @@ func (ch *ConsistentHashStrategy) Update(oldDr, dr *istioapi.DestinationRule) {
 	ch.lock.Unlock()
 }
 
-func (ch *ConsistentHashStrategy) Pick(endpoints []string, tcpConn *net.TCPConn) (string, *http.Request, error) {
+func (ch *ConsistentHashStrategy) Pick(endpoints []string, srcAddr net.Addr, tcpConn *net.TCPConn) (endpoint string, req *http.Request, err error) {
 	ch.lock.Lock()
 	defer ch.lock.Unlock()
-
-	req, err := http.ReadRequest(bufio.NewReader(tcpConn))
-	if err != nil {
-		klog.Errorf("read http request err: %v", err)
-		return "", nil, err
-	}
 
 	var keyValue string
 	switch ch.hashKey.Type {
 	case HttpHeader:
+		req, err = http.ReadRequest(bufio.NewReader(tcpConn))
+		if err != nil {
+			klog.Errorf("read http request err: %v", err)
+			return "", nil, err
+		}
 		keyValue = req.Header.Get(ch.hashKey.Key)
 	case UserSourceIP:
-		keyValue = req.Host
+		if srcAddr == nil && tcpConn != nil {
+			srcAddr = tcpConn.RemoteAddr()
+		}
+		keyValue = srcAddr.String()
 	default:
 		klog.Errorf("Failed to get hash key value")
 		keyValue = ""

@@ -158,7 +158,7 @@ func (lb *LoadBalancerEX) ServiceHasEndpoints(svcPort proxy.ServicePortName) boo
 }
 
 // TryPickEndpoint try to pick a service endpoint from load-balance strategy.
-func (lb *LoadBalancerEX) TryPickEndpoint(svcName types.NamespacedName, sessionAffinityEnabled bool, endpoints []string, tcpConn *net.TCPConn) (string, *http.Request, bool) {
+func (lb *LoadBalancerEX) TryPickEndpoint(svcName types.NamespacedName, sessionAffinityEnabled bool, endpoints []string, srcAddr net.Addr, tcpConn *net.TCPConn) (string, *http.Request, bool) {
 	strategy, exists := lb.strategyMap[svcName]
 	if !exists {
 		return "", nil, false
@@ -167,7 +167,7 @@ func (lb *LoadBalancerEX) TryPickEndpoint(svcName types.NamespacedName, sessionA
 		klog.Warningf("LoadBalancer strategy conflicted with sessionAffinity: ClientIP")
 		return "", nil, false
 	}
-	endpoint, req, err := strategy.Pick(endpoints, tcpConn)
+	endpoint, req, err := strategy.Pick(endpoints, srcAddr, tcpConn)
 	if err != nil {
 		return "", req, false
 	}
@@ -194,7 +194,7 @@ func (lb *LoadBalancerEX) NextEndpoint(svcPort proxy.ServicePortName, srcAddr ne
 
 	// Note: because load-balance strategy may have read http.Request from inConn,
 	// so here we need to return it to outConn!
-	endpoint, req, picked := lb.TryPickEndpoint(svcPort.NamespacedName, sessionAffinityEnabled, state.endpoints, tcpConn)
+	endpoint, req, picked := lb.TryPickEndpoint(svcPort.NamespacedName, sessionAffinityEnabled, state.endpoints, srcAddr, tcpConn)
 	if picked {
 		return endpoint, req, nil
 	}
