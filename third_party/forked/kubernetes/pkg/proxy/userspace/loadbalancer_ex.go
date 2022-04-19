@@ -47,7 +47,7 @@ type affinityPolicy struct {
 type LoadBalancerEX struct {
 	lock        sync.RWMutex
 	services    map[proxy.ServicePortName]*balancerState
-	strategyMap map[types.NamespacedName]LoadBalancerStrategy
+	strategyMap map[proxy.ServicePortName]LoadBalancerStrategy
 }
 
 // Ensure this implements LoadBalancer.
@@ -104,7 +104,7 @@ func newAffinityPolicy(affinityType v1.ServiceAffinity, ttlSeconds int) *affinit
 func NewLoadBalancerEX() *LoadBalancerEX {
 	return &LoadBalancerEX{
 		services:    map[proxy.ServicePortName]*balancerState{},
-		strategyMap: map[types.NamespacedName]LoadBalancerStrategy{},
+		strategyMap: map[proxy.ServicePortName]LoadBalancerStrategy{},
 	}
 }
 
@@ -158,8 +158,8 @@ func (lb *LoadBalancerEX) ServiceHasEndpoints(svcPort proxy.ServicePortName) boo
 }
 
 // TryPickEndpoint try to pick a service endpoint from load-balance strategy.
-func (lb *LoadBalancerEX) TryPickEndpoint(svcName types.NamespacedName, sessionAffinityEnabled bool, endpoints []string, srcAddr net.Addr, tcpConn *net.TCPConn) (string, *http.Request, bool) {
-	strategy, exists := lb.strategyMap[svcName]
+func (lb *LoadBalancerEX) TryPickEndpoint(svcPort proxy.ServicePortName, sessionAffinityEnabled bool, endpoints []string, srcAddr net.Addr, netConn net.Conn) (string, *http.Request, bool) {
+	strategy, exists := lb.strategyMap[svcPort]
 	if !exists {
 		return "", nil, false
 	}
@@ -167,7 +167,7 @@ func (lb *LoadBalancerEX) TryPickEndpoint(svcName types.NamespacedName, sessionA
 		klog.Warningf("LoadBalancer strategy conflicted with sessionAffinity: ClientIP")
 		return "", nil, false
 	}
-	endpoint, req, err := strategy.Pick(endpoints, srcAddr, tcpConn)
+	endpoint, req, err := strategy.Pick(endpoints, srcAddr, netConn)
 	if err != nil {
 		return "", req, false
 	}
@@ -175,7 +175,7 @@ func (lb *LoadBalancerEX) TryPickEndpoint(svcName types.NamespacedName, sessionA
 }
 
 // NextEndpoint returns a service endpoint.
-func (lb *LoadBalancerEX) NextEndpoint(svcPort proxy.ServicePortName, srcAddr net.Addr, tcpConn *net.TCPConn, sessionAffinityReset bool) (string, *http.Request, error) {
+func (lb *LoadBalancerEX) NextEndpoint(svcPort proxy.ServicePortName, srcAddr net.Addr, netConn net.Conn, sessionAffinityReset bool) (string, *http.Request, error) {
 	// Coarse locking is simple.  We can get more fine-grained if/when we
 	// can prove it matters.
 	lb.lock.Lock()
@@ -194,7 +194,7 @@ func (lb *LoadBalancerEX) NextEndpoint(svcPort proxy.ServicePortName, srcAddr ne
 
 	// Note: because load-balance strategy may have read http.Request from inConn,
 	// so here we need to return it to outConn!
-	endpoint, req, picked := lb.TryPickEndpoint(svcPort.NamespacedName, sessionAffinityEnabled, state.endpoints, srcAddr, tcpConn)
+	endpoint, req, picked := lb.TryPickEndpoint(svcPort, sessionAffinityEnabled, state.endpoints, srcAddr, netConn)
 	if picked {
 		return endpoint, req, nil
 	}
@@ -275,8 +275,9 @@ func (lb *LoadBalancerEX) OnEndpointsAdd(endpoints *v1.Endpoints) {
 	lb.lock.Lock()
 	defer lb.lock.Unlock()
 
+	svcName := types.NamespacedName{Namespace: endpoints.Namespace, Name: endpoints.Name}
 	for portname := range portsToEndpoints {
-		svcPort := proxy.ServicePortName{NamespacedName: types.NamespacedName{Namespace: endpoints.Namespace, Name: endpoints.Name}, Port: portname}
+		svcPort := proxy.ServicePortName{NamespacedName: svcName, Port: portname}
 		newEndpoints := portsToEndpoints[portname]
 		state, exists := lb.services[svcPort]
 
@@ -290,13 +291,12 @@ func (lb *LoadBalancerEX) OnEndpointsAdd(endpoints *v1.Endpoints) {
 
 			// Reset the round-robin index.
 			state.index = 0
-		}
-	}
 
-	// Sync the load-balance strategy.
-	svcName := types.NamespacedName{Namespace: endpoints.Namespace, Name: endpoints.Name}
-	if _, exists := lb.strategyMap[svcName]; exists {
-		lb.strategyMap[svcName].Sync(lb.getServiceEndpoints(svcName))
+			// Sync the load-balance strategy.
+			if _, exists := lb.strategyMap[svcPort]; exists {
+				lb.strategyMap[svcPort].Sync(newEndpoints)
+			}
+		}
 	}
 }
 
@@ -308,8 +308,9 @@ func (lb *LoadBalancerEX) OnEndpointsUpdate(oldEndpoints, endpoints *v1.Endpoint
 	lb.lock.Lock()
 	defer lb.lock.Unlock()
 
+	svcName := types.NamespacedName{Namespace: endpoints.Namespace, Name: endpoints.Name}
 	for portname := range portsToEndpoints {
-		svcPort := proxy.ServicePortName{NamespacedName: types.NamespacedName{Namespace: endpoints.Namespace, Name: endpoints.Name}, Port: portname}
+		svcPort := proxy.ServicePortName{NamespacedName: svcName, Port: portname}
 		newEndpoints := portsToEndpoints[portname]
 		state, exists := lb.services[svcPort]
 
@@ -330,22 +331,26 @@ func (lb *LoadBalancerEX) OnEndpointsUpdate(oldEndpoints, endpoints *v1.Endpoint
 
 			// Reset the round-robin index.
 			state.index = 0
+
+			// Sync the load-balance strategy.
+			if _, exists := lb.strategyMap[svcPort]; exists {
+				lb.strategyMap[svcPort].Sync(newEndpoints)
+			}
 		}
 		registeredEndpoints[svcPort] = true
 	}
 
 	// Now remove all endpoints missing from the update.
 	for portname := range oldPortsToEndpoints {
-		svcPort := proxy.ServicePortName{NamespacedName: types.NamespacedName{Namespace: oldEndpoints.Namespace, Name: oldEndpoints.Name}, Port: portname}
+		svcPort := proxy.ServicePortName{NamespacedName: svcName, Port: portname}
 		if _, exists := registeredEndpoints[svcPort]; !exists {
 			lb.resetService(svcPort)
-		}
-	}
 
-	// Sync the load-balance strategy.
-	svcName := types.NamespacedName{Namespace: endpoints.Namespace, Name: endpoints.Name}
-	if _, exists := lb.strategyMap[svcName]; exists {
-		lb.strategyMap[svcName].Sync(lb.getServiceEndpoints(svcName))
+			// Sync the load-balance strategy.
+			if _, exists := lb.strategyMap[svcPort]; exists {
+				lb.strategyMap[svcPort].Sync(nil)
+			}
+		}
 	}
 }
 
@@ -370,12 +375,11 @@ func (lb *LoadBalancerEX) OnEndpointsDelete(endpoints *v1.Endpoints) {
 	for portname := range portsToEndpoints {
 		svcPort := proxy.ServicePortName{NamespacedName: types.NamespacedName{Namespace: endpoints.Namespace, Name: endpoints.Name}, Port: portname}
 		lb.resetService(svcPort)
-	}
 
-	// If the endpoints is still around, sync but don't delete.
-	svcName := types.NamespacedName{Namespace: endpoints.Namespace, Name: endpoints.Name}
-	if _, exists := lb.strategyMap[svcName]; exists {
-		lb.strategyMap[svcName].Sync(lb.getServiceEndpoints(svcName))
+		// Sync the load-balance strategy.
+		if _, exists := lb.strategyMap[svcPort]; exists {
+			lb.strategyMap[svcPort].Sync(nil)
+		}
 	}
 }
 
@@ -412,37 +416,44 @@ func (lb *LoadBalancerEX) OnDestinationRuleAdd(dr *istioapi.DestinationRule) {
 	lb.lock.Lock()
 	defer lb.lock.Unlock()
 
-	svcName := types.NamespacedName{Namespace: dr.Namespace, Name: dr.Name}
-	if _, exists := lb.strategyMap[svcName]; !exists {
-		lb.setLoadBalancerStrategy(dr, getStrategyName(dr))
+	strategyName := getStrategyName(dr)
+	for svcPort, state := range lb.services {
+		if !isNamespacedNameEqual(dr, &svcPort.NamespacedName) {
+			continue
+		}
+		lb.setLoadBalancerStrategy(dr, strategyName, svcPort, state.endpoints)
 	}
 }
 
 func (lb *LoadBalancerEX) OnDestinationRuleUpdate(oldDr, dr *istioapi.DestinationRule) {
 	lb.lock.Lock()
 	defer lb.lock.Unlock()
-
-	newStrategy := getStrategyName(dr)
-	svcName := types.NamespacedName{Namespace: dr.Namespace, Name: dr.Name}
-	if _, exists := lb.strategyMap[svcName]; !exists {
-		lb.setLoadBalancerStrategy(dr, newStrategy)
-	} else {
-		if newStrategy != "" && lb.strategyMap[svcName].Name() != newStrategy {
-			lb.strategyMap[svcName].Release()           // release old
-			lb.setLoadBalancerStrategy(dr, newStrategy) // set new
+	strategyName := getStrategyName(dr)
+	for svcPort, state := range lb.services {
+		if !isNamespacedNameEqual(dr, &svcPort.NamespacedName) {
+			continue
+		}
+		if _, exists := lb.strategyMap[svcPort]; !exists {
+			lb.setLoadBalancerStrategy(dr, strategyName, svcPort, state.endpoints)
+			lb.strategyMap[svcPort].Update(oldDr, dr)
+		} else if strategyName != "" && lb.strategyMap[svcPort].Name() != strategyName {
+			lb.strategyMap[svcPort].Release()                                      // release old
+			lb.setLoadBalancerStrategy(dr, strategyName, svcPort, state.endpoints) // set new
+			lb.strategyMap[svcPort].Update(oldDr, dr)
 		}
 	}
-	lb.strategyMap[svcName].Update(oldDr, dr)
 }
 
 func (lb *LoadBalancerEX) OnDestinationRuleDelete(dr *istioapi.DestinationRule) {
 	lb.lock.Lock()
 	defer lb.lock.Unlock()
 
-	svcName := types.NamespacedName{Namespace: dr.Namespace, Name: dr.Name}
-	if _, exists := lb.strategyMap[svcName]; exists {
-		lb.strategyMap[svcName].Release()
-		delete(lb.strategyMap, svcName)
+	for svcPort := range lb.services {
+		if !isNamespacedNameEqual(dr, &svcPort.NamespacedName) {
+			continue
+		}
+		lb.strategyMap[svcPort].Release()
+		delete(lb.strategyMap, svcPort)
 	}
 }
 
@@ -451,28 +462,22 @@ func (lb *LoadBalancerEX) OnDestinationRuleSynced() {
 
 // setLoadBalancerStrategy new load-balance strategy by strategy name,
 // this assumes that lb.lock is already held.
-func (lb *LoadBalancerEX) setLoadBalancerStrategy(dr *istioapi.DestinationRule, strategyName string) {
-	svcName := types.NamespacedName{Namespace: dr.Namespace, Name: dr.Name}
-	switch strategyName {
-	case RoundRobin:
-		lb.strategyMap[svcName] = NewRoundRobinStrategy()
-	case Random:
-		lb.strategyMap[svcName] = NewRandomStrategy()
-	case ConsistentHash:
-		lb.strategyMap[svcName] = NewConsistentHashStrategy(dr, lb.getServiceEndpoints(svcName))
-	default:
-		klog.Errorf("unsupported or empty load-balance strategy %s", strategyName)
-		return
+func (lb *LoadBalancerEX) setLoadBalancerStrategy(dr *istioapi.DestinationRule, strategyName string, svcPort proxy.ServicePortName, endpoints []string) {
+	if _, exists := lb.strategyMap[svcPort]; !exists {
+		switch strategyName {
+		case RoundRobin:
+			lb.strategyMap[svcPort] = NewRoundRobinStrategy()
+		case Random:
+			lb.strategyMap[svcPort] = NewRandomStrategy()
+		case ConsistentHash:
+			lb.strategyMap[svcPort] = NewConsistentHashStrategy(dr, endpoints)
+		default:
+			klog.Errorf("unsupported or empty load-balance strategy %s", strategyName)
+			return
+		}
 	}
 }
 
-// getServiceEndpoints get a service backend endpoints,
-// this assumes that each portname of the service has the same endpoints.
-func (lb *LoadBalancerEX) getServiceEndpoints(svcName types.NamespacedName) []string {
-	for svcPort, state := range lb.services {
-		if svcPort.NamespacedName == svcName {
-			return state.endpoints
-		}
-	}
-	return []string{}
+func isNamespacedNameEqual(dr *istioapi.DestinationRule, namespacedName *types.NamespacedName) bool {
+	return dr.Namespace == namespacedName.Namespace && dr.Name == namespacedName.Name
 }
