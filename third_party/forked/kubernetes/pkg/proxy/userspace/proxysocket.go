@@ -86,10 +86,10 @@ func (tcp *tcpProxySocket) ListenPort() int {
 
 // TryConnectEndpoints attempts to connect to the next available endpoint for the given service, cycling
 // through until it is able to successfully connect, or it has tried with all timeouts in EndpointDialTimeouts.
-func TryConnectEndpoints(service proxy.ServicePortName, srcAddr net.Addr, tcpConn *net.TCPConn, protocol string, loadBalancer LoadBalancer) (out net.Conn, err error) {
+func TryConnectEndpoints(service proxy.ServicePortName, srcAddr net.Addr, netConn net.Conn, protocol string, loadBalancer LoadBalancer) (out net.Conn, err error) {
 	sessionAffinityReset := false
 	for _, dialTimeout := range EndpointDialTimeouts {
-		endpoint, req, err := loadBalancer.NextEndpoint(service, srcAddr, tcpConn, sessionAffinityReset)
+		endpoint, req, err := loadBalancer.NextEndpoint(service, srcAddr, netConn, sessionAffinityReset)
 		if err != nil {
 			klog.ErrorS(err, "Couldn't find an endpoint for service", "service", service)
 			return nil, err
@@ -187,7 +187,7 @@ func (tcp *tcpProxySocket) ProxyLoop(service proxy.ServicePortName, myInfo *Serv
 			continue
 		}
 		klog.V(3).InfoS("Accepted TCP connection from remote", "remoteAddress", inConn.RemoteAddr(), "localAddress", inConn.LocalAddr())
-		outConn, err := TryConnectEndpoints(service, inConn.(*net.TCPConn).RemoteAddr(), inConn.(*net.TCPConn), "tcp", loadBalancer)
+		outConn, err := TryConnectEndpoints(service, inConn.RemoteAddr(), inConn, "tcp", loadBalancer)
 		if err != nil {
 			klog.ErrorS(err, "Failed to connect to balancer")
 			inConn.Close()

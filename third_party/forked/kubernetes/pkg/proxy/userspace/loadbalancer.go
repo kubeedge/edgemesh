@@ -17,7 +17,7 @@ import (
 type LoadBalancer interface {
 	// NextEndpoint returns the endpoint to handle a request for the given
 	// service-port and source address.
-	NextEndpoint(service proxy.ServicePortName, srcAddr net.Addr, netConn *net.TCPConn, sessionAffinityReset bool) (string, *http.Request, error)
+	NextEndpoint(service proxy.ServicePortName, srcAddr net.Addr, netConn net.Conn, sessionAffinityReset bool) (string, *http.Request, error)
 	NewService(service proxy.ServicePortName, sessionAffinityType v1.ServiceAffinity, stickyMaxAgeSeconds int) error
 	DeleteService(service proxy.ServicePortName)
 	CleanupStaleStickySessions(service proxy.ServicePortName)
