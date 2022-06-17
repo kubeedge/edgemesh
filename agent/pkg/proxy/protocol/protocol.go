@@ -42,7 +42,7 @@ func (tcp *TCPProxy) SetListener(ip net.IP, port int) error {
 		Port: port + tmpPort,
 	}
 	for {
-		ln, err := net.ListenTCP("tcp", listenAddr)
+		ln, err := net.ListenTCP(string(TCP), listenAddr)
 		if err == nil {
 			tcp.Listener = ln
 			break
