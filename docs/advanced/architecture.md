@@ -2,7 +2,7 @@
 
 ## Overview
 
-![edgemesh-architecture](/images/advanced/em-arch.png)
+![edgemesh-architecture](../.vuepress/public/images/advanced/em-arch.png)
 
 The above figure shows a brief overview of the EdgeMesh architecture, EdgeMesh contains edgemesh-server and edgemesh-agent.
 
@@ -33,6 +33,6 @@ To ensure the capability of service discovery in some edge devices with low-vers
 
 ## Future Works
 
-![edgemesh-future-work](/images/advanced/future-work.png)
+![edgemesh-future-work](../.vuepress/public/images/advanced/future-work.png)
 
 At present, the implementation of EdgeMesh relies on the connectivity of the host network. In the future, EdgeMesh will realize the capabilities of CNI plug-ins, and realize the Pod network connectivity between edge nodes and nodes on the cloud, or edge nodes across LANs in a  compatible manner with mainstream CNI plug-ins (e.g., flannel / calico, etc). Finally, EdgeMesh can even replace part of its own components with cloud-native components (e.g., replacing [kube-proxy](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-proxy/) to achieve the capabilities of the Cluster IP, replacing [node local dns cache ](https://kubernetes.io/docs/tasks/administer-cluster/nodelocaldns/) to achieve node-level dns capabilities, and replace [envoy](https://www.envoyproxy.io/) to achieve mesh-layer capabilities).

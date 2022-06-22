@@ -2,7 +2,7 @@
 
 ## 概览
 
-![edgemesh-architecture](/images/advanced/em-arch.png)
+![edgemesh-architecture](../../.vuepress/public/images/advanced/em-arch.png)
 
 上图展示了 EdgeMesh 的简要架构，EdgeMesh 包含两个微服务：edgemesh-server 和 edgemesh-agent。
 
@@ -33,6 +33,6 @@ edgemesh-agent 的核心组件包括：
 
 ## 未来工作
 
-![edgemesh-future-work](/images/advanced/future-work.png)
+![edgemesh-future-work](../../.vuepress/public/images/advanced/future-work.png)
 
 目前，EdgeMesh 的功能实现依赖于主机网络的连通性。未来，EdgeMesh 将会实现 CNI 插件的能力，以兼容主流 CNI 插件（例如 Flannel / Calico 等）的方式实现边缘节点和云上节点、跨局域网边缘节点之间的 Pod 网络连通。最终，EdgeMesh 甚至可以将部分自身组件替换成云原生组件（例如替换 [kube-proxy](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-proxy/) 实现 Cluster IP 层的能力、替换 [node local dns cache](https://kubernetes.io/docs/tasks/administer-cluster/nodelocaldns/) 实现节点级 dns 的能力、替换 [envoy](https://www.envoyproxy.io/) 实现 mesh 层的能力）。
