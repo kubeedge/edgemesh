@@ -240,7 +240,7 @@ func (s *Socks5Proxy) HandleSocksProxy(conn net.Conn) {
 
 func proxyConnectToRemote(host string, targetIP string, port int32, conn net.Conn) {
 	proxyOpts := proxy.ProxyOptions{
-		Protocol: "tcp",
+		Protocol: string(protocol.TCP),
 		NodeName: host,
 		IP:       targetIP,
 		Port:     port,
