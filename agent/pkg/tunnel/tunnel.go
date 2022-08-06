@@ -13,7 +13,11 @@ import (
 	"github.com/kubeedge/edgemesh/common/constants"
 )
 
-const RetryConnectTime = 3
+const (
+	RetryConnectTime     = 3
+	RetryConnectDuration = 2 * time.Second
+	HeartbeatDuration    = 10 * time.Second
+)
 
 func (t *TunnelAgent) Run() {
 	for {
@@ -32,7 +36,7 @@ func (t *TunnelAgent) Run() {
 				err = t.Host.Connect(context.Background(), *relay)
 				if err != nil {
 					klog.Warningf("Connect to server err: %v", err)
-					time.Sleep(2 * time.Second)
+					time.Sleep(RetryConnectDuration)
 					retryTime++
 					continue
 				}
@@ -41,7 +45,7 @@ func (t *TunnelAgent) Run() {
 					err = controller.APIConn.SetPeerAddrInfo(t.Config.NodeName, InfoFromHostAndRelay(t.Host, relay))
 					if err != nil {
 						klog.Warningf("Set peer addr info to secret err: %v", err)
-						time.Sleep(2 * time.Second)
+						time.Sleep(RetryConnectDuration)
 						retryTime++
 						continue
 					}
@@ -52,7 +56,7 @@ func (t *TunnelAgent) Run() {
 			}
 		}
 		// heartbeat time
-		time.Sleep(10 * time.Second)
+		time.Sleep(HeartbeatDuration)
 	}
 }
 
