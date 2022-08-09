@@ -21,6 +21,8 @@ import (
 const (
 	MaxReadSize  = 4096
 	MaxRetryTime = 3
+	TCP          = "tcp"
+	UDP          = "udp"
 )
 
 var ProxyProtocol protocol.ID = "/libp2p/tunnel-proxy/1.0.0"
@@ -84,9 +86,9 @@ func (ps *ProxyService) ProxyStreamHandler(stream network.Stream) {
 
 	streamConn := libp2p.NewStreamConn(stream)
 	switch targetProto {
-	case "tcp":
+	case TCP:
 		go util.ProxyConn(streamConn, proxyConn)
-	case "udp":
+	case UDP:
 		go util.ProxyConnUDP(streamConn, proxyConn.(*net.UDPConn))
 	}
 	klog.Infof("Success proxy for {%s %s %s}", targetProto, targetNode, targetAddr)
@@ -94,9 +96,9 @@ func (ps *ProxyService) ProxyStreamHandler(stream network.Stream) {
 
 func (ps *ProxyService) TryConnectEndpoint(msg *pb.Proxy) (conn net.Conn, err error) {
 	switch msg.GetProtocol() {
-	case "tcp":
+	case TCP:
 		for i := 0; i < MaxRetryTime; i++ {
-			conn, err = net.DialTCP("tcp", nil, &net.TCPAddr{
+			conn, err = net.DialTCP(TCP, nil, &net.TCPAddr{
 				IP:   net.ParseIP(msg.GetIp()),
 				Port: int(msg.GetPort()),
 			})
@@ -105,9 +107,9 @@ func (ps *ProxyService) TryConnectEndpoint(msg *pb.Proxy) (conn net.Conn, err er
 			}
 			time.Sleep(time.Second)
 		}
-	case "udp":
+	case UDP:
 		for i := 0; i < MaxRetryTime; i++ {
-			conn, err = net.DialUDP("udp", nil, &net.UDPAddr{
+			conn, err = net.DialUDP(UDP, nil, &net.UDPAddr{
 				IP:   net.ParseIP(msg.GetIp()),
 				Port: int(msg.GetPort()),
 			})
