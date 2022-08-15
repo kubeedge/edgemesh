@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"github.com/buraksezer/consistent"
-	"github.com/cespare/xxhash"
+	"github.com/cespare/xxhash/v2"
 
 	"github.com/kubeedge/edgemesh/agent/pkg/chassis/config"
 )
