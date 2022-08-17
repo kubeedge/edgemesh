@@ -26,6 +26,15 @@ type TunnelAgentConfig struct {
 	EnableHolePunch bool `json:"enableHolePunch,omitempty"`
 	// Transport indicates the transport protocol used by the p2p tunnel
 	Transport string `json:"transport,omitempty"`
+	// RelayNodes indicates some nodes that can become libp2p relay nodes
+	RelayNodes []*RelayNode `json:"relayNodes,omitempty"`
+}
+
+type RelayNode struct {
+	// NodeName indicates the relay node name, which is the same as the node name of Kubernetes
+	NodeName string `json:"nodeName,omitempty"`
+	// AdvertiseAddress sets the IP address for the relay node to advertise
+	AdvertiseAddress []string `json:"advertiseAddress,omitempty"`
 }
 
 func NewTunnelAgentConfig() *TunnelAgentConfig {
