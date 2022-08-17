@@ -19,7 +19,7 @@ const (
 	HeartbeatDuration    = 10 * time.Second
 )
 
-func (t *TunnelAgent) Run() {
+func (t *EdgeTunnel) Run() {
 	for {
 		relay, err := controller.APIConn.GetPeerAddrInfo(constants.ServerAddrName)
 		if err != nil {

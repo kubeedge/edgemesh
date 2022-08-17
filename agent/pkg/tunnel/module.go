@@ -28,18 +28,18 @@ const (
 	UnknownMode      TunnelMode = "Unknown"
 )
 
-var Agent *TunnelAgent
+var Agent *EdgeTunnel
 
-// TunnelAgent is used for solving cross subset communication
-type TunnelAgent struct {
-	Config   *config.TunnelAgentConfig
+// EdgeTunnel is used for solving cross subset communication
+type EdgeTunnel struct {
+	Config   *config.EdgeTunnelConfig
 	Host     host.Host
 	ProxySvc *proxy.ProxyService
 	Mode     TunnelMode
 }
 
-func newTunnelAgent(c *config.TunnelAgentConfig, ifm *informers.Manager, mode TunnelMode) (*TunnelAgent, error) {
-	Agent = &TunnelAgent{Config: c}
+func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode TunnelMode) (*EdgeTunnel, error) {
+	Agent = &EdgeTunnel{Config: c}
 	if !c.Enable {
 		return Agent, nil
 	}
@@ -98,9 +98,9 @@ func newTunnelAgent(c *config.TunnelAgentConfig, ifm *informers.Manager, mode Tu
 	return Agent, nil
 }
 
-// Register register tunnelagent to beehive modules
-func Register(c *config.TunnelAgentConfig, ifm *informers.Manager, mode TunnelMode) error {
-	agent, err := newTunnelAgent(c, ifm, mode)
+// Register register edgetunnel to beehive modules
+func Register(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode TunnelMode) error {
+	agent, err := newEdgeTunnel(c, ifm, mode)
 	if err != nil {
 		return fmt.Errorf("register module tunnelagent error: %v", err)
 	}
@@ -108,22 +108,22 @@ func Register(c *config.TunnelAgentConfig, ifm *informers.Manager, mode TunnelMo
 	return nil
 }
 
-// Name of tunnelagent
-func (t *TunnelAgent) Name() string {
-	return modules.TunnelAgentModuleName
+// Name of edgetunnel
+func (t *EdgeTunnel) Name() string {
+	return modules.EdgeTunnelModuleName
 }
 
-// Group of tunnelagent
-func (t *TunnelAgent) Group() string {
-	return modules.TunnelAgentModuleName
+// Group of edgetunnel
+func (t *EdgeTunnel) Group() string {
+	return modules.EdgeTunnelModuleName
 }
 
 // Enable indicates whether enable this module
-func (t *TunnelAgent) Enable() bool {
+func (t *EdgeTunnel) Enable() bool {
 	return t.Config.Enable
 }
 
-// Start tunnelserver
-func (t *TunnelAgent) Start() {
+// Start edgetunnel
+func (t *EdgeTunnel) Start() {
 	t.Run()
 }

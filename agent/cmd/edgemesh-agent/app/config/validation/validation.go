@@ -12,11 +12,11 @@ import (
 func ValidateEdgeMeshAgentConfiguration(c *config.EdgeMeshAgentConfig) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, validation.ValidateKubeAPIConfig(*c.KubeAPIConfig)...)
-	allErrs = append(allErrs, ValidateModuleTunnelAgent(*c.Modules.TunnelAgentConfig)...)
+	allErrs = append(allErrs, ValidateModuleTunnelAgent(*c.Modules.EdgeTunnelConfig)...)
 	return allErrs
 }
 
-func ValidateModuleTunnelAgent(c tunnelconfig.TunnelAgentConfig) field.ErrorList {
+func ValidateModuleTunnelAgent(c tunnelconfig.EdgeTunnelConfig) field.ErrorList {
 	if !c.Enable {
 		return field.ErrorList{}
 	}

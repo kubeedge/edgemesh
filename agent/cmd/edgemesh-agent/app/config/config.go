@@ -75,8 +75,8 @@ type Modules struct {
 	EdgeProxyConfig *proxyconfig.EdgeProxyConfig `json:"edgeProxy,omitempty"`
 	// EdgeGatewayConfig indicates edgegateway module config
 	EdgeGatewayConfig *gwconfig.EdgeGatewayConfig `json:"edgeGateway,omitempty"`
-	// TunnelAgentConfig indicates tunnelagent module config
-	TunnelAgentConfig *tunnelconfig.TunnelAgentConfig `json:"tunnel,omitempty"`
+	// EdgeTunnelConfig indicates tunnel module config
+	EdgeTunnelConfig *tunnelconfig.EdgeTunnelConfig `json:"tunnel,omitempty"`
 }
 
 // NewEdgeMeshAgentConfig returns a full EdgeMeshAgentConfig object
@@ -103,7 +103,7 @@ func NewEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 			EdgeDNSConfig:     dnsconfig.NewEdgeDNSConfig(),
 			EdgeProxyConfig:   proxyconfig.NewEdgeProxyConfig(),
 			EdgeGatewayConfig: gwconfig.NewEdgeGatewayConfig(),
-			TunnelAgentConfig: tunnelconfig.NewTunnelAgentConfig(),
+			EdgeTunnelConfig:  tunnelconfig.NewEdgeTunnelConfig(),
 		},
 	}
 

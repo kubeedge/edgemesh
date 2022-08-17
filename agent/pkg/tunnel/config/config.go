@@ -9,7 +9,7 @@ const (
 	defaultListenPort = 20006
 )
 
-type TunnelAgentConfig struct {
+type EdgeTunnelConfig struct {
 	// Enable indicates whether TunnelAgent is enabled,
 	// if set to false (for debugging etc.), skip checking other TunnelAgent configs.
 	// default false
@@ -37,8 +37,8 @@ type RelayNode struct {
 	AdvertiseAddress []string `json:"advertiseAddress,omitempty"`
 }
 
-func NewTunnelAgentConfig() *TunnelAgentConfig {
-	return &TunnelAgentConfig{
+func NewEdgeTunnelConfig() *EdgeTunnelConfig {
+	return &EdgeTunnelConfig{
 		Enable: false,
 		Security: &security.Security{
 			Enable:            false,

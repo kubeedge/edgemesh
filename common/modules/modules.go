@@ -4,6 +4,6 @@ const (
 	EdgeDNSModuleName      = "edgedns"
 	EdgeProxyModuleName    = "edgeproxy"
 	EdgeGatewayModuleName  = "edgegateway"
-	TunnelAgentModuleName  = "tunnelagent"
+	EdgeTunnelModuleName   = "edgetunnel"
 	TunnelServerModuleName = "tunnelserver"
 )
