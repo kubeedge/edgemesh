@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/binary"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/host"
-	relayv1 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv1/relay"
 	"io"
 	mrand "math/rand"
 	"os"
+
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
+	maddr "github.com/multiformats/go-multiaddr"
 )
 
 func HostnameOrDie() string {
@@ -41,19 +42,46 @@ func GenerateKeyPairWithString(s string) (crypto.PrivKey, error) {
 	return privKey, nil
 }
 
-//判断当前节点是否启动relay中继
-func EnableRelayorNot(host host.Host) {
+// AppendMultiaddrs appending a new maddr to maddrs will consider deduplication.
+func AppendMultiaddrs(maddrs *[]maddr.Multiaddr, dest maddr.Multiaddr) {
+	existed := false
+	for _, addr := range *maddrs {
+		if dest.Equal(addr) {
+			existed = true
+			break
+		}
+	}
+	if !existed {
+		*maddrs = append(*maddrs, dest)
+	}
+}
 
-	// 如果拥有公网地址，启动作为中继
-	if HostnameOrDie() == "k8s-master" || HostnameOrDie() == "ke-edge1" {
-		// TODO
-		r, err := relayv1.NewRelay(host)
+func AddCircuitAddrsToPeer(peer *peer.AddrInfo, relays []maddr.Multiaddr) {
+	for _, relay := range relays {
+		circuitAddr, err := maddr.NewMultiaddr(fmt.Sprintf("%s/p2p-circuit", relay.String()))
 		if err != nil {
 			panic(err)
 		}
-		defer r.Close()
+		peer.Addrs = append(peer.Addrs, circuitAddr)
 	}
+}
 
-	//如果设置当前节点作为中继，启动作为中继
+func GeneratePeerInfo(hostname string, addrs []string) (*peer.AddrInfo, error) {
+	priv, err := GenerateKeyPairWithString(hostname)
+	if err != nil {
+		return nil, err
+	}
+	pid, err := peer.IDFromPrivateKey(priv)
+	if err != nil {
+		return nil, err
+	}
+	maddrs, err := StringsToAddrs(addrs)
+	if err != nil {
+		return nil, err
+	}
+	return &peer.AddrInfo{
+		ID:    pid,
+		Addrs: maddrs,
+	}, nil
 
 }

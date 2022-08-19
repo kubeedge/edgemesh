@@ -11,14 +11,18 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/kubeedge/beehive v0.0.0
 	github.com/kubeedge/kubeedge v1.6.2
-	github.com/libp2p/go-libp2p v0.13.1-0.20210224102305-f981b25d2738
-	github.com/libp2p/go-libp2p-circuit v0.4.0
-	github.com/libp2p/go-libp2p-core v0.8.5
-	github.com/libp2p/go-libp2p-quic-transport v0.11.1
-	github.com/libp2p/go-libp2p-tls v0.1.3
+	github.com/libp2p/go-libp2p v0.18.0
+	github.com/libp2p/go-libp2p-circuit v0.6.0
+	github.com/libp2p/go-libp2p-connmgr v0.4.0
+	github.com/libp2p/go-libp2p-core v0.14.0
+	github.com/libp2p/go-libp2p-discovery v0.5.0
+	github.com/libp2p/go-libp2p-kad-dht v0.15.0
+	github.com/libp2p/go-libp2p-noise v0.3.0
+	github.com/libp2p/go-libp2p-quic-transport v0.16.1
+	github.com/libp2p/go-libp2p-tls v0.3.1
 	github.com/libp2p/go-msgio v0.1.0
-	github.com/libp2p/go-ws-transport v0.4.0
-	github.com/multiformats/go-multiaddr v0.3.1
+	github.com/libp2p/go-ws-transport v0.6.0
+	github.com/multiformats/go-multiaddr v0.5.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.16.0
 	github.com/opencontainers/runc v1.0.2
