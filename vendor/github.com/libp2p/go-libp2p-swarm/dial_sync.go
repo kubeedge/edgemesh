@@ -2,135 +2,108 @@ package swarm
 
 import (
 	"context"
-	"errors"
 	"sync"
 
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-// TODO: change this text when we fix the bug
-var errDialCanceled = errors.New("dial was aborted internally, likely due to https://git.io/Je2wW")
+// dialWorkerFunc is used by dialSync to spawn a new dial worker
+type dialWorkerFunc func(peer.ID, <-chan dialRequest)
 
-// DialFunc is the type of function expected by DialSync.
-type DialFunc func(context.Context, peer.ID) (*Conn, error)
-
-// NewDialSync constructs a new DialSync
-func NewDialSync(dfn DialFunc) *DialSync {
-	return &DialSync{
-		dials:    make(map[peer.ID]*activeDial),
-		dialFunc: dfn,
+// newDialSync constructs a new dialSync
+func newDialSync(worker dialWorkerFunc) *dialSync {
+	return &dialSync{
+		dials:      make(map[peer.ID]*activeDial),
+		dialWorker: worker,
 	}
 }
 
-// DialSync is a dial synchronization helper that ensures that at most one dial
+// dialSync is a dial synchronization helper that ensures that at most one dial
 // to any given peer is active at any given time.
-type DialSync struct {
-	dials    map[peer.ID]*activeDial
-	dialsLk  sync.Mutex
-	dialFunc DialFunc
+type dialSync struct {
+	mutex      sync.Mutex
+	dials      map[peer.ID]*activeDial
+	dialWorker dialWorkerFunc
 }
 
 type activeDial struct {
-	id       peer.ID
-	refCnt   int
-	refCntLk sync.Mutex
-	cancel   func()
+	refCnt int
 
-	err    error
-	conn   *Conn
-	waitch chan struct{}
+	ctx    context.Context
+	cancel func()
 
-	ds *DialSync
+	reqch chan dialRequest
 }
 
-func (ad *activeDial) wait(ctx context.Context) (*Conn, error) {
-	defer ad.decref()
+func (ad *activeDial) close() {
+	ad.cancel()
+	close(ad.reqch)
+}
+
+func (ad *activeDial) dial(ctx context.Context) (*Conn, error) {
+	dialCtx := ad.ctx
+
+	if forceDirect, reason := network.GetForceDirectDial(ctx); forceDirect {
+		dialCtx = network.WithForceDirectDial(dialCtx, reason)
+	}
+	if simConnect, isClient, reason := network.GetSimultaneousConnect(ctx); simConnect {
+		dialCtx = network.WithSimultaneousConnect(dialCtx, isClient, reason)
+	}
+
+	resch := make(chan dialResponse, 1)
 	select {
-	case <-ad.waitch:
-		return ad.conn, ad.err
+	case ad.reqch <- dialRequest{ctx: dialCtx, resch: resch}:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
+	select {
+	case res := <-resch:
+		return res.conn, res.err
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
 }
 
-func (ad *activeDial) incref() {
-	ad.refCntLk.Lock()
-	defer ad.refCntLk.Unlock()
-	ad.refCnt++
-}
-
-func (ad *activeDial) decref() {
-	ad.refCntLk.Lock()
-	ad.refCnt--
-	maybeZero := (ad.refCnt <= 0)
-	ad.refCntLk.Unlock()
-
-	// make sure to always take locks in correct order.
-	if maybeZero {
-		ad.ds.dialsLk.Lock()
-		ad.refCntLk.Lock()
-		// check again after lock swap drop to make sure nobody else called incref
-		// in between locks
-		if ad.refCnt <= 0 {
-			ad.cancel()
-			delete(ad.ds.dials, ad.id)
-		}
-		ad.refCntLk.Unlock()
-		ad.ds.dialsLk.Unlock()
-	}
-}
-
-func (ad *activeDial) start(ctx context.Context) {
-	ad.conn, ad.err = ad.ds.dialFunc(ctx, ad.id)
-
-	// This isn't the user's context so we should fix the error.
-	switch ad.err {
-	case context.Canceled:
-		// The dial was canceled with `CancelDial`.
-		ad.err = errDialCanceled
-	case context.DeadlineExceeded:
-		// We hit an internal timeout, not a context timeout.
-		ad.err = ErrDialTimeout
-	}
-	close(ad.waitch)
-	ad.cancel()
-}
-
-func (ds *DialSync) getActiveDial(ctx context.Context, p peer.ID) *activeDial {
-	ds.dialsLk.Lock()
-	defer ds.dialsLk.Unlock()
+func (ds *dialSync) getActiveDial(p peer.ID) (*activeDial, error) {
+	ds.mutex.Lock()
+	defer ds.mutex.Unlock()
 
 	actd, ok := ds.dials[p]
 	if !ok {
-		adctx, cancel := context.WithCancel(ctx)
+		// This code intentionally uses the background context. Otherwise, if the first call
+		// to Dial is canceled, subsequent dial calls will also be canceled.
+		ctx, cancel := context.WithCancel(context.Background())
 		actd = &activeDial{
-			id:     p,
+			ctx:    ctx,
 			cancel: cancel,
-			waitch: make(chan struct{}),
-			ds:     ds,
+			reqch:  make(chan dialRequest),
 		}
+		go ds.dialWorker(p, actd.reqch)
 		ds.dials[p] = actd
-
-		go actd.start(adctx)
 	}
-
-	// increase ref count before dropping dialsLk
-	actd.incref()
-
-	return actd
+	// increase ref count before dropping mutex
+	actd.refCnt++
+	return actd, nil
 }
 
-// DialLock initiates a dial to the given peer if there are none in progress
+// Dial initiates a dial to the given peer if there are none in progress
 // then waits for the dial to that peer to complete.
-func (ds *DialSync) DialLock(ctx context.Context, p peer.ID) (*Conn, error) {
-	return ds.getActiveDial(ctx, p).wait(ctx)
-}
-
-// CancelDial cancels all in-progress dials to the given peer.
-func (ds *DialSync) CancelDial(p peer.ID) {
-	ds.dialsLk.Lock()
-	defer ds.dialsLk.Unlock()
-	if ad, ok := ds.dials[p]; ok {
-		ad.cancel()
+func (ds *dialSync) Dial(ctx context.Context, p peer.ID) (*Conn, error) {
+	ad, err := ds.getActiveDial(p)
+	if err != nil {
+		return nil, err
 	}
+
+	defer func() {
+		ds.mutex.Lock()
+		defer ds.mutex.Unlock()
+		ad.refCnt--
+		if ad.refCnt == 0 {
+			ad.close()
+			delete(ds.dials, p)
+		}
+	}()
+	return ad.dial(ctx)
 }

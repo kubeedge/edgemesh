@@ -12,16 +12,6 @@ import (
 	"github.com/lucas-clemente/quic-go/logging"
 )
 
-// RetireBugBackwardsCompatibilityMode controls a backwards compatibility mode, necessary due to a bug in
-// quic-go v0.17.2 (and earlier), where under certain circumstances, an endpoint would retire the connection
-// ID it is currently using. See https://github.com/lucas-clemente/quic-go/issues/2658.
-// The bug has now been fixed, and new deployments have nothing to worry about.
-// Deployments that already have quic-go <= v0.17.2 deployed should active RetireBugBackwardsCompatibilityMode.
-// If activated, quic-go will take steps to avoid the bug from triggering when connected to endpoints that are still
-// running quic-go <= v0.17.2.
-// This flag will be removed in a future version of quic-go.
-var RetireBugBackwardsCompatibilityMode bool
-
 // The StreamID is the ID of a QUIC stream.
 type StreamID = protocol.StreamID
 
@@ -31,10 +21,6 @@ type VersionNumber = protocol.VersionNumber
 const (
 	// VersionDraft29 is IETF QUIC draft-29
 	VersionDraft29 = protocol.VersionDraft29
-	// VersionDraft32 is IETF QUIC draft-32
-	VersionDraft32 = protocol.VersionDraft32
-	// VersionDraft34 is IETF QUIC draft-34
-	VersionDraft34 = protocol.VersionDraft34
 	// Version1 is RFC 9000
 	Version1 = protocol.Version1
 )
@@ -138,7 +124,7 @@ type SendStream interface {
 	// Write will unblock immediately, and future calls to Write will fail.
 	// When called multiple times or after closing the stream it is a no-op.
 	CancelWrite(StreamErrorCode)
-	// The context is canceled as soon as the write-side of the stream is closed.
+	// The Context is canceled as soon as the write-side of the stream is closed.
 	// This happens when Close() or CancelWrite() is called, or when the peer
 	// cancels the read-side of their stream.
 	// Warning: This API should not be considered stable and might change soon.
@@ -146,7 +132,7 @@ type SendStream interface {
 	// SetWriteDeadline sets the deadline for future Write calls
 	// and any currently-blocked Write call.
 	// Even if write times out, it may return n > 0, indicating that
-	// some of the data was successfully written.
+	// some data was successfully written.
 	// A zero value for t means Write will not time out.
 	SetWriteDeadline(t time.Time) error
 }
@@ -220,7 +206,7 @@ type Session interface {
 type EarlySession interface {
 	Session
 
-	// Blocks until the handshake completes (or fails).
+	// HandshakeComplete blocks until the handshake completes (or fails).
 	// Data sent before completion of the handshake is encrypted with 1-RTT keys.
 	// Note that the client's identity hasn't been verified yet.
 	HandshakeComplete() context.Context
@@ -280,6 +266,13 @@ type Config struct {
 	// MaxConnectionReceiveWindow is the connection-level flow control window for receiving data.
 	// If this value is zero, it will default to 15 MB.
 	MaxConnectionReceiveWindow uint64
+	// AllowConnectionWindowIncrease is called every time the connection flow controller attempts
+	// to increase the connection flow control window.
+	// If set, the caller can prevent an increase of the window. Typically, it would do so to
+	// limit the memory usage.
+	// To avoid deadlocks, it is not valid to call other functions on the session or on streams
+	// in this callback.
+	AllowConnectionWindowIncrease func(sess Session, delta uint64) bool
 	// MaxIncomingStreams is the maximum number of concurrent bidirectional streams that a peer is allowed to open.
 	// Values above 2^60 are invalid.
 	// If not set, it will default to 100.
@@ -297,7 +290,12 @@ type Config struct {
 	KeepAlive bool
 	// DisablePathMTUDiscovery disables Path MTU Discovery (RFC 8899).
 	// Packets will then be at most 1252 (IPv4) / 1232 (IPv6) bytes in size.
+	// Note that Path MTU discovery is always disabled on Windows, see https://github.com/lucas-clemente/quic-go/issues/3273.
 	DisablePathMTUDiscovery bool
+	// DisableVersionNegotiationPackets disables the sending of Version Negotiation packets.
+	// This can be useful if version information is exchanged out-of-band.
+	// It has no effect for a client.
+	DisableVersionNegotiationPackets bool
 	// See https://datatracker.ietf.org/doc/draft-ietf-quic-datagram/.
 	// Datagrams will only be available when both peers enable datagram support.
 	EnableDatagrams bool

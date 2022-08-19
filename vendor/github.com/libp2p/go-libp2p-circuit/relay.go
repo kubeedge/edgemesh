@@ -14,11 +14,12 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
+	"github.com/libp2p/go-libp2p-core/transport"
 
 	pool "github.com/libp2p/go-buffer-pool"
-	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
+
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -35,14 +36,17 @@ var (
 
 	HopStreamBufferSize = 4096
 	HopStreamLimit      = 1 << 19 // 512K hops for 1M goroutines
+
+	streamTimeout = 1 * time.Minute
 )
 
 // Relay is the relay transport and service.
 type Relay struct {
-	host     host.Host
-	upgrader *tptu.Upgrader
-	ctx      context.Context
-	self     peer.ID
+	host      host.Host
+	upgrader  transport.Upgrader
+	ctx       context.Context
+	ctxCancel context.CancelFunc
+	self      peer.ID
 
 	active bool
 	hop    bool
@@ -91,15 +95,15 @@ func (e RelayError) Error() string {
 }
 
 // NewRelay constructs a new relay.
-func NewRelay(ctx context.Context, h host.Host, upgrader *tptu.Upgrader, opts ...RelayOpt) (*Relay, error) {
+func NewRelay(h host.Host, upgrader transport.Upgrader, opts ...RelayOpt) (*Relay, error) {
 	r := &Relay{
 		upgrader: upgrader,
 		host:     h,
-		ctx:      ctx,
 		self:     h.ID(),
 		incoming: make(chan *Conn),
 		hopCount: make(map[peer.ID]int),
 	}
+	r.ctx, r.ctxCancel = context.WithCancel(context.Background())
 
 	for _, opt := range opts {
 		switch opt {
@@ -196,7 +200,7 @@ func (r *Relay) DialPeer(ctx context.Context, relay peer.AddrInfo, dest peer.Add
 
 func (r *Relay) Matches(addr ma.Multiaddr) bool {
 	// TODO: Look at the prefix transport as well.
-	_, err := addr.ValueForProtocol(P_CIRCUIT)
+	_, err := addr.ValueForProtocol(ma.P_CIRCUIT)
 	return err == nil
 }
 
@@ -240,6 +244,8 @@ func (r *Relay) CanHop(ctx context.Context, id peer.ID) (bool, error) {
 }
 
 func (r *Relay) handleNewStream(s network.Stream) {
+	s.SetReadDeadline(time.Now().Add(streamTimeout))
+
 	log.Infof("new relay stream from: %s", s.Conn().RemotePeer())
 
 	rd := newDelimitedReader(s, maxMessageSize)
@@ -252,6 +258,8 @@ func (r *Relay) handleNewStream(s network.Stream) {
 		r.handleError(s, pb.CircuitRelay_MALFORMED_MESSAGE)
 		return
 	}
+	// reset stream deadline as message has been read
+	s.SetReadDeadline(time.Time{})
 
 	switch msg.GetType() {
 	case pb.CircuitRelay_HOP:

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/libp2p/go-libp2p-core/network"
+
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/transport"
 	ma "github.com/multiformats/go-multiaddr"
@@ -15,13 +17,14 @@ func (d *RelayTransport) Dial(ctx context.Context, a ma.Multiaddr, p peer.ID) (t
 		return nil, err
 	}
 	c.tagHop()
-	return d.upgrader.UpgradeOutbound(ctx, d, c, p)
+	scope, _ := network.NullResourceManager.OpenConnection(network.DirOutbound, false)
+	return d.upgrader.Upgrade(ctx, d, c, network.DirOutbound, p, scope)
 }
 
 func (r *Relay) Dial(ctx context.Context, a ma.Multiaddr, p peer.ID) (*Conn, error) {
 	// split /a/p2p-circuit/b into (/a, /p2p-circuit/b)
 	relayaddr, destaddr := ma.SplitFunc(a, func(c ma.Component) bool {
-		return c.Protocol().Code == P_CIRCUIT
+		return c.Protocol().Code == ma.P_CIRCUIT
 	})
 
 	// If the address contained no /p2p-circuit part, the second part is nil.

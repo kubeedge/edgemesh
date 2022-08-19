@@ -30,6 +30,6 @@ func init() {
 		if err != nil {
 			panic("error in lowTimeoutFilters init: " + err.Error())
 		}
-		lowTimeoutFilters.AddDialFilter(f)
+		lowTimeoutFilters.AddFilter(*f, ma.ActionDeny)
 	}
 }

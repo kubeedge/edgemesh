@@ -229,25 +229,30 @@ func (m *metricsConnTracer) NegotiatedVersion(chosen quic.VersionNumber, clientV
 
 func (m *metricsConnTracer) ClosedConnection(e error) {
 	var (
-		transportErr *quic.TransportError
-		remote       bool
-		desc         string
+		applicationErr      *quic.ApplicationError
+		transportErr        *quic.TransportError
+		statelessResetErr   *quic.StatelessResetError
+		vnErr               *quic.VersionNegotiationError
+		idleTimeoutErr      *quic.IdleTimeoutError
+		handshakeTimeoutErr *quic.HandshakeTimeoutError
+		remote              bool
+		desc                string
 	)
 
 	switch {
-	case errors.Is(e, &quic.ApplicationError{}):
+	case errors.As(e, &applicationErr):
 		return
 	case errors.As(e, &transportErr):
 		remote = transportErr.Remote
 		desc = transportErr.ErrorCode.String()
-	case errors.Is(e, &quic.StatelessResetError{}):
+	case errors.As(e, &statelessResetErr):
 		remote = true
 		desc = "stateless_reset"
-	case errors.Is(e, &quic.VersionNegotiationError{}):
+	case errors.As(e, &vnErr):
 		desc = "version_negotiation"
-	case errors.Is(e, &quic.IdleTimeoutError{}):
+	case errors.As(e, &idleTimeoutErr):
 		desc = "idle_timeout"
-	case errors.Is(e, &quic.HandshakeTimeoutError{}):
+	case errors.As(e, &handshakeTimeoutErr):
 		desc = "handshake_timeout"
 	default:
 		desc = fmt.Sprintf("unknown error: %v", e)
