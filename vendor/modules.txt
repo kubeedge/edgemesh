@@ -394,10 +394,6 @@ github.com/libp2p/go-libp2p/p2p/protocol/ping
 github.com/libp2p/go-libp2p-asn-util
 # github.com/libp2p/go-libp2p-blankhost v0.3.0
 github.com/libp2p/go-libp2p-blankhost
-# github.com/libp2p/go-libp2p-circuit v0.6.0
-## explicit
-github.com/libp2p/go-libp2p-circuit
-github.com/libp2p/go-libp2p-circuit/pb
 # github.com/libp2p/go-libp2p-core v0.14.0
 ## explicit
 github.com/libp2p/go-libp2p-core/connmgr
@@ -493,6 +489,7 @@ github.com/libp2p/go-reuseport-transport
 # github.com/libp2p/go-stream-muxer-multistream v0.4.0
 github.com/libp2p/go-stream-muxer-multistream
 # github.com/libp2p/go-tcp-transport v0.5.1
+## explicit
 github.com/libp2p/go-tcp-transport
 # github.com/libp2p/go-ws-transport v0.6.0
 ## explicit
