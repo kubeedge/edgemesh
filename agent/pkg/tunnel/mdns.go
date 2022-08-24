@@ -1,13 +1,14 @@
-package mdns
+package tunnel
 
 import (
 	"context"
+	"log"
+
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	mdns "github.com/libp2p/go-libp2p/p2p/discovery/mdns"
-	"log"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 )
 
 type discoveryNotifee struct {
