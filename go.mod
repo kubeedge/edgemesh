@@ -13,7 +13,6 @@ require (
 	github.com/kubeedge/kubeedge v1.6.2
 	github.com/libp2p/go-libp2p v0.18.0
 	github.com/libp2p/go-libp2p-circuit v0.6.0
-	github.com/libp2p/go-libp2p-connmgr v0.4.0
 	github.com/libp2p/go-libp2p-core v0.14.0
 	github.com/libp2p/go-libp2p-discovery v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.15.0
@@ -47,7 +46,6 @@ replace (
 	github.com/coredns/coredns => github.com/Poorunga/coredns v1.8.8-alpha.1
 	github.com/kubeedge/beehive v0.0.0 => github.com/kubeedge/beehive v0.0.0-20201125122335-cd19bca6e436
 	github.com/kubeedge/viaduct v0.0.0 => github.com/kubeedge/viaduct v0.0.0-20210601015050-d832643a3d35
-	github.com/libp2p/go-libp2p-tls => github.com/Poorunga/go-libp2p-tls v0.1.4
 	k8s.io/api v0.0.0 => k8s.io/api v0.23.0
 	k8s.io/apiextensions-apiserver v0.0.0 => k8s.io/apiextensions-apiserver v0.23.0
 	k8s.io/apimachinery v0.0.0 => k8s.io/apimachinery v0.23.0

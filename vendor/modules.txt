@@ -398,9 +398,6 @@ github.com/libp2p/go-libp2p-blankhost
 ## explicit
 github.com/libp2p/go-libp2p-circuit
 github.com/libp2p/go-libp2p-circuit/pb
-# github.com/libp2p/go-libp2p-connmgr v0.4.0
-## explicit
-github.com/libp2p/go-libp2p-connmgr
 # github.com/libp2p/go-libp2p-core v0.14.0
 ## explicit
 github.com/libp2p/go-libp2p-core/connmgr
@@ -469,7 +466,7 @@ github.com/libp2p/go-libp2p-record/pb
 github.com/libp2p/go-libp2p-resource-manager
 # github.com/libp2p/go-libp2p-swarm v0.10.2
 github.com/libp2p/go-libp2p-swarm
-# github.com/libp2p/go-libp2p-tls v0.3.1 => github.com/Poorunga/go-libp2p-tls v0.1.4
+# github.com/libp2p/go-libp2p-tls v0.3.1
 ## explicit
 github.com/libp2p/go-libp2p-tls
 # github.com/libp2p/go-libp2p-transport-upgrader v0.7.1
@@ -1385,7 +1382,6 @@ sigs.k8s.io/structured-merge-diff/v4/value
 ## explicit
 sigs.k8s.io/yaml
 # github.com/coredns/coredns => github.com/Poorunga/coredns v1.8.8-alpha.1
-# github.com/libp2p/go-libp2p-tls => github.com/Poorunga/go-libp2p-tls v0.1.4
 # k8s.io/api v0.0.0 => k8s.io/api v0.23.0
 # k8s.io/apiextensions-apiserver v0.0.0 => k8s.io/apiextensions-apiserver v0.23.0
 # k8s.io/apimachinery v0.0.0 => k8s.io/apimachinery v0.23.0
