@@ -1,11 +1,9 @@
 package tunnel
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/libp2p/go-libp2p"
-	circuit "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-core/host"
 	libp2ptlsca "github.com/libp2p/go-libp2p-tls"
 	ma "github.com/multiformats/go-multiaddr"
@@ -69,22 +67,17 @@ func newTunnelServer(c *config.TunnelServerConfig, ifm *informers.Manager) (serv
 		libp2p.ListenAddrStrings(util.GenerateMultiAddr(c.Transport, "0.0.0.0", c.ListenPort)),
 		util.GenerateTransportOption(c.Transport),
 		libp2p.AddrsFactory(addressFactory),
-		libp2p.EnableRelay(circuit.OptHop),
 		libp2p.ForceReachabilityPrivate(),
 		libp2p.Identity(privateKey),
 	}
 
 	if c.Security.Enable {
-		if err := libp2ptlsca.EnableCAEncryption(c.Security.TLSCAFile, c.Security.TLSCertFile,
-			c.Security.TLSPrivateKeyFile); err != nil {
-			return nil, fmt.Errorf("go-libp2p-tls: enable ca encryption err: %w", err)
-		}
 		opts = append(opts, libp2p.Security(libp2ptlsca.ID, libp2ptlsca.New))
 	} else {
 		opts = append(opts, libp2p.NoSecurity)
 	}
 
-	h, err := libp2p.New(context.Background(), opts...)
+	h, err := libp2p.New(opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start tunnel server: %w", err)
 	}

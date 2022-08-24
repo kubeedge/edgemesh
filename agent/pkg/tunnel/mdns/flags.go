@@ -110,17 +110,3 @@ func relayPeers() addrList {
 	}
 	return maddrs
 }
-
-// AppendMultiaddrs appending a new maddr to maddrs will consider deduplication.
-func AppendMultiaddrs(maddrs *[]maddr.Multiaddr, dest maddr.Multiaddr) {
-	existed := false
-	for _, addr := range *maddrs {
-		if dest.Equal(addr) {
-			existed = true
-			break
-		}
-	}
-	if !existed {
-		*maddrs = append(*maddrs, dest)
-	}
-}

@@ -2,14 +2,22 @@ package tunnel
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/host"
+	p2phost "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
+	corev1 "k8s.io/api/core/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/informers"
+	coreinformers "k8s.io/client-go/informers/core/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/controller"
+	mdnsutil "github.com/kubeedge/edgemesh/agent/pkg/tunnel/mdns"
 	"github.com/kubeedge/edgemesh/common/constants"
 )
 
@@ -19,7 +27,101 @@ const (
 	HeartbeatDuration    = 10 * time.Second
 )
 
+func (t *EdgeTunnel) runController(kubeClient kubernetes.Interface, resyncPeriod time.Duration) {
+	informerFactory := informers.NewSharedInformerFactory(kubeClient, resyncPeriod)
+	t.initNodeController(informerFactory.Core().V1().Nodes(), resyncPeriod)
+	go t.runNodeController(t.stopCh)
+
+	informerFactory.Start(t.stopCh)
+}
+
+func (t *EdgeTunnel) initNodeController(nodeInformer coreinformers.NodeInformer, resyncPeriod time.Duration) {
+	t.nodeSynced = nodeInformer.Informer().HasSynced
+	nodeInformer.Informer().AddEventHandlerWithResyncPeriod(
+		cache.ResourceEventHandlerFuncs{
+			AddFunc:    t.handleAddNode,
+			UpdateFunc: t.handleUpdateNode,
+			DeleteFunc: t.handleDeleteNode,
+		}, resyncPeriod)
+}
+
+func (t *EdgeTunnel) runNodeController(stopCh <-chan struct{}) {
+	klog.InfoS("Running node controller")
+
+	if !cache.WaitForNamedCacheSync("tunnel node controller", stopCh, t.nodeSynced) {
+		klog.Errorf("Failed to wait for cache sync")
+		return
+	}
+}
+
+func (t *EdgeTunnel) addPeer(name string) {
+	t.peerMapMutex.Lock()
+	defer t.peerMapMutex.Unlock()
+
+	klog.Infof("======== %v", t.peerMap)
+	id, err := mdnsutil.PeerIDFromString(name)
+	if err != nil {
+		klog.ErrorS(err, "Failed to generate peer id for %s", name)
+		return
+	}
+	t.peerMap[name] = &peer.AddrInfo{
+		ID:    id,
+		Addrs: make([]ma.Multiaddr, 0),
+	}
+}
+
+func (t *EdgeTunnel) delPeer(name string) {
+	t.peerMapMutex.Lock()
+	delete(t.peerMap, name)
+	t.peerMapMutex.Unlock()
+}
+
+func (t *EdgeTunnel) handleAddNode(obj interface{}) {
+	node, ok := obj.(*corev1.Node)
+	if !ok {
+		utilruntime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
+		return
+	}
+
+	_, exists := t.peerMap[node.Name]
+	if !exists {
+		t.addPeer(node.Name)
+	}
+}
+
+func (t *EdgeTunnel) handleUpdateNode(oldObj, newObj interface{}) {
+	oldNode, ok := oldObj.(*corev1.Node)
+	if !ok {
+		utilruntime.HandleError(fmt.Errorf("unexpected object type: %v", oldNode))
+		return
+	}
+	newNode, ok := newObj.(*corev1.Node)
+	if !ok {
+		utilruntime.HandleError(fmt.Errorf("unexpected object type: %v", newNode))
+		return
+	}
+
+	if oldNode.Name != newNode.Name {
+		t.delPeer(oldNode.Name)
+	}
+	_, exists := t.peerMap[newNode.Name]
+	if !exists {
+		t.addPeer(newNode.Name)
+	}
+}
+
+func (t *EdgeTunnel) handleDeleteNode(obj interface{}) {
+	node, ok := obj.(*corev1.Node)
+	if !ok {
+		utilruntime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
+		return
+	}
+	t.delPeer(node.Name)
+}
+
 func (t *EdgeTunnel) Run() {
+	t.runController(t.kubeClient, t.resyncPeriod)
+
 	for {
 		relay, err := controller.APIConn.GetPeerAddrInfo(constants.ServerAddrName)
 		if err != nil {
@@ -28,12 +130,12 @@ func (t *EdgeTunnel) Run() {
 			continue
 		}
 
-		if len(t.Host.Network().ConnsToPeer(relay.ID)) == 0 {
+		if len(t.peerHost.Network().ConnsToPeer(relay.ID)) == 0 {
 			klog.Warningf("Connection between agent and server %v is not established, try connect", relay.Addrs)
 			retryTime := 0
 			for retryTime < RetryConnectTime {
 				klog.Infof("Tunnel agent connecting to tunnel server")
-				err = t.Host.Connect(context.Background(), *relay)
+				err = t.peerHost.Connect(context.Background(), *relay)
 				if err != nil {
 					klog.Warningf("Connect to server err: %v", err)
 					time.Sleep(RetryConnectDuration)
@@ -42,7 +144,7 @@ func (t *EdgeTunnel) Run() {
 				}
 
 				if t.Mode == ServerClientMode {
-					err = controller.APIConn.SetPeerAddrInfo(t.Config.NodeName, InfoFromHostAndRelay(t.Host, relay))
+					err = controller.APIConn.SetPeerAddrInfo(t.Config.NodeName, InfoFrompeerHostAndRelay(t.peerHost, relay))
 					if err != nil {
 						klog.Warningf("Set peer addr info to secret err: %v", err)
 						time.Sleep(RetryConnectDuration)
@@ -60,7 +162,7 @@ func (t *EdgeTunnel) Run() {
 	}
 }
 
-func InfoFromHostAndRelay(host host.Host, relay *peer.AddrInfo) *peer.AddrInfo {
+func InfoFrompeerHostAndRelay(host p2phost.Host, relay *peer.AddrInfo) *peer.AddrInfo {
 	p2pProto := ma.ProtocolWithCode(ma.P_P2P)
 	circuitProto := ma.ProtocolWithCode(ma.P_CIRCUIT)
 	peerAddrInfo := &peer.AddrInfo{

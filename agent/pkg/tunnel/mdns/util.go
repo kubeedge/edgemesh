@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/binary"
+	"fmt"
 	"io"
 	mrand "math/rand"
 	"os"
@@ -84,4 +85,16 @@ func GeneratePeerInfo(hostname string, addrs []string) (*peer.AddrInfo, error) {
 		Addrs: maddrs,
 	}, nil
 
+}
+
+func PeerIDFromString(s string) (peer.ID, error) {
+	privKey, err := GenerateKeyPairWithString(s)
+	if err != nil {
+		return "", err
+	}
+	peerid, err := peer.IDFromPrivateKey(privKey)
+	if err != nil {
+		return "", err
+	}
+	return peerid, nil
 }
