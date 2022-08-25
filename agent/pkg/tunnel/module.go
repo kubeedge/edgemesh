@@ -49,10 +49,82 @@ type EdgeTunnel struct {
 
 	relayPeersMutex sync.Mutex // protect relayPeers
 	relayPeers      map[string]*peer.AddrInfo
+	relayService    *relayv2.Relay
 
 	nodeCacheSynced cache.InformerSynced
 	resyncPeriod    time.Duration
 	stopCh          chan struct{}
+}
+
+func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode TunnelMode) (*EdgeTunnel, error) {
+	// TODO Set the NodeName variable in the outer function
+	c.NodeName = util.FetchNodeName()
+
+	ctx := context.Background()
+
+	privKey, err := GenerateKeyPairWithString(c.NodeName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate private key: %w", err)
+	}
+
+	var idht *dht.IpfsDHT
+	opts := []libp2p.Option{
+		libp2p.Identity(privKey),
+		libp2p.ListenAddrStrings(GenerateMultiAddrString(c.Transport, "0.0.0.0", c.ListenPort)),
+		GenerateTransportOption(c.Transport),
+		libp2p.DefaultSecurity,
+		libp2p.NATPortMap(),
+		libp2p.Routing(func(h p2phost.Host) (routing.PeerRouting, error) {
+			idht, err = dht.New(ctx, h)
+			return idht, err
+		}),
+		libp2p.EnableAutoRelay(),
+		libp2p.EnableNATService(),
+	}
+
+	relayPeers := generateRelayPeer(c.RelayNodes, c.Transport, c.ListenPort)
+	// If this host is a relay node, we need to append its advertiseAddress
+	relayInfo, isRelay := relayPeers[c.NodeName]
+	if isRelay {
+		opts = append(opts, libp2p.AddrsFactory(func(maddrs []ma.Multiaddr) []ma.Multiaddr {
+			maddrs = append(maddrs, relayInfo.Addrs...)
+			return maddrs
+		}))
+	}
+
+	if c.EnableHolePunch {
+		opts = append(opts, libp2p.EnableHolePunching())
+	}
+
+	h, err := libp2p.New(opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to new p2p host: %w", err)
+	}
+	klog.V(0).Infof("I'm %s\n", fmt.Sprintf("{%v: %v}", h.ID(), h.Addrs()))
+
+	// If this host is a relay node, we need to run libp2p relayv2 service
+	var relayService *relayv2.Relay // TODO close relayService
+	if isRelay {
+		relayService, err = relayv2.New(h)
+		if err != nil {
+			return nil, fmt.Errorf("run libp2p relayv2 service error: %w", err)
+		}
+	}
+
+	edgeTunnel := &EdgeTunnel{
+		Config:       c,
+		ProxySvc:     proxy.NewProxyService(h),
+		Mode:         mode,
+		kubeClient:   ifm.GetKubeClient(),
+		p2pHost:      h,
+		hostCtx:      ctx,
+		peerMap:      make(map[string]peer.ID),
+		relayPeers:   relayPeers,
+		relayService: relayService,
+		resyncPeriod: 15 * time.Minute,
+		stopCh:       make(chan struct{}),
+	}
+	return edgeTunnel, nil
 }
 
 func generateRelayPeer(relayNodes []*config.RelayNode, protocol string, listenPort int) map[string]*peer.AddrInfo {
@@ -82,98 +154,22 @@ func generateRelayPeer(relayNodes []*config.RelayNode, protocol string, listenPo
 	return relayPeers
 }
 
-func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode TunnelMode) (*EdgeTunnel, error) {
-	Agent = &EdgeTunnel{Config: c}
-	if !c.Enable {
-		return Agent, nil
-	}
-	// TODO get node name on upper function.
-	Agent.Config.NodeName = util.FetchNodeName()
-
-	ctx := context.Background()
-
-	privKey, err := GenerateKeyPairWithString(Agent.Config.NodeName)
-	if err != nil {
-		return Agent, fmt.Errorf("failed to generate private key: %w", err)
-	}
-
-	var idht *dht.IpfsDHT
-	opts := []libp2p.Option{
-		libp2p.Identity(privKey),
-		libp2p.ListenAddrStrings(GenerateMultiAddrString(c.Transport, "0.0.0.0", c.ListenPort)),
-		GenerateTransportOption(c.Transport),
-		libp2p.DefaultSecurity,
-		libp2p.NATPortMap(),
-		libp2p.Routing(func(h p2phost.Host) (routing.PeerRouting, error) {
-			idht, err = dht.New(ctx, h)
-			return idht, err
-		}),
-		libp2p.EnableAutoRelay(),
-		libp2p.EnableNATService(),
-	}
-
-	relayPeers := generateRelayPeer(c.RelayNodes, c.Transport, c.ListenPort)
-	relayInfo, isRelay := relayPeers[c.NodeName]
-	if isRelay {
-		opts = append(opts, libp2p.AddrsFactory(func(maddrs []ma.Multiaddr) []ma.Multiaddr {
-			maddrs = append(maddrs, relayInfo.Addrs...)
-			return maddrs
-		}))
-	}
-
-	if c.EnableHolePunch {
-		opts = append(opts, libp2p.EnableHolePunching())
-	}
-
-	h, err := libp2p.New(opts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to new p2p host: %w", err)
-	}
-	klog.V(0).Infof("I'm %s\n", fmt.Sprintf("{%v: %v}", h.ID(), h.Addrs()))
-
-	// setup relay
-	if isRelay {
-		_, err := relayv2.New(h)
-		if err != nil {
-			return Agent, fmt.Errorf("setup libp2p relayv2 error: %w", err)
-		}
-	}
-
-	Agent.resyncPeriod = 15 * time.Minute
-	Agent.kubeClient = ifm.GetKubeClient()
-	Agent.peerMap = make(map[string]peer.ID)
-	Agent.stopCh = make(chan struct{})
-	Agent.relayPeers = make(map[string]*peer.AddrInfo)
-	Agent.p2pHost = h
-	Agent.ProxySvc = proxy.NewProxyService(h)
-	Agent.Mode = mode
-	Agent.relayPeers = relayPeers
-	Agent.hostCtx = ctx
-	klog.V(4).Infof("tunnel agent mode is %v", mode)
-
-	if mode == ServerClientMode {
-		h.SetStreamHandler(proxy.ProxyProtocol, Agent.ProxySvc.ProxyStreamHandler)
-	}
-
-	return Agent, nil
-}
-
-// Register register edgetunnel to beehive modules
+// Register register EdgeTunnel to beehive modules
 func Register(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode TunnelMode) error {
 	agent, err := newEdgeTunnel(c, ifm, mode)
 	if err != nil {
-		return fmt.Errorf("register module edgeTunnel error: %v", err)
+		return fmt.Errorf("register module EdgeTunnel error: %v", err)
 	}
 	core.Register(agent)
 	return nil
 }
 
-// Name of edgetunnel
+// Name of EdgeTunnel
 func (t *EdgeTunnel) Name() string {
 	return modules.EdgeTunnelModuleName
 }
 
-// Group of edgetunnel
+// Group of EdgeTunnel
 func (t *EdgeTunnel) Group() string {
 	return modules.EdgeTunnelModuleName
 }
@@ -183,7 +179,7 @@ func (t *EdgeTunnel) Enable() bool {
 	return t.Config.Enable
 }
 
-// Start edgetunnel
+// Start EdgeTunnel
 func (t *EdgeTunnel) Start() {
 	t.Run()
 }

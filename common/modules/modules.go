@@ -1,9 +1,9 @@
 package modules
 
 const (
-	EdgeDNSModuleName      = "edgedns"
-	EdgeProxyModuleName    = "edgeproxy"
-	EdgeGatewayModuleName  = "edgegateway"
-	EdgeTunnelModuleName   = "edgetunnel"
+	EdgeDNSModuleName      = "EdgeDns"
+	EdgeProxyModuleName    = "EdgeProxy"
+	EdgeGatewayModuleName  = "EdgeGateway"
+	EdgeTunnelModuleName   = "EdgeTunnel"
 	TunnelServerModuleName = "tunnelserver"
 )
