@@ -6,8 +6,11 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
+	"github.com/libp2p/go-msgio/protoio"
+	ma "github.com/multiformats/go-multiaddr"
 	corev1 "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -15,10 +18,12 @@ import (
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
+
+	discoverypb "github.com/kubeedge/edgemesh/agent/pkg/tunnel/pb/discovery"
 )
 
 const (
-	HeartbeatInterval    = time.Minute
+	HeartbeatInterval    = time.Minute // TODO get from config
 	retryConnectInterval = 2 * time.Second
 	retryConnectTime     = 3
 )
@@ -40,7 +45,7 @@ func initMDNS(peerhost host.Host, rendezvous string) chan peer.AddrInfo {
 
 	ser := mdns.NewMdnsService(peerhost, rendezvous, n)
 	if err := ser.Start(); err != nil {
-		panic(err)
+		panic(err) // TODO return error
 	}
 	return n.PeerChan
 }
@@ -50,14 +55,110 @@ func (t *EdgeTunnel) runMdnsDiscovery() {
 		if pi.ID == t.p2pHost.ID() {
 			continue
 		}
-		klog.Infof("Mdns discovery found peer: %s", pi)
-		// TODO store
-		if err := t.p2pHost.Connect(t.hostCtx, pi); err != nil {
-			klog.Errorf("Connection failed: %v", err)
-		} else {
-			klog.Infof("Connecting to: %v", pi)
+		klog.Infof("[MDNS] Discovery found peer: %s", pi)
+		err := t.p2pHost.Connect(t.hostCtx, pi)
+		if err != nil {
+			klog.Errorf("[MDNS] Connection with peer %s failed: %v", pi, err)
+			return
+		}
+		klog.Infof("[MDNS] Connection with peer %s success", pi)
+		stream, err := t.p2pHost.NewStream(t.hostCtx, pi.ID, discoverypb.DiscoveryProtocol)
+		if err != nil {
+			klog.Errorf("[MDNS] New stream between peer %s err: %v", pi, err)
+			return
+		}
+		// defer stream.Reset() here will cause resource leak
+
+		streamWriter := protoio.NewDelimitedWriter(stream)
+		streamReader := protoio.NewDelimitedReader(stream, 4096) // todo get from default
+
+		// handshake with target peer
+		protocol := string(discoverypb.MdnsDiscovery)
+		msg := &discoverypb.Discovery{
+			Type:     discoverypb.Discovery_CONNECT.Enum(),
+			Protocol: &protocol,
+			NodeName: &t.Config.NodeName,
+		}
+		err = streamWriter.WriteMsg(msg)
+		if err != nil {
+			resetErr := stream.Reset()
+			if resetErr != nil {
+				klog.Errorf("[MDNS] Stream between %s reset err: %v", pi, resetErr)
+			}
+			klog.Errorf("[MDNS] Write msg to %s err: %v", pi, err)
+			return
+		}
+
+		// read response
+		msg.Reset()
+		err = streamReader.ReadMsg(msg)
+		if err != nil {
+			resetErr := stream.Reset()
+			if resetErr != nil {
+				klog.Errorf("[MDNS] Stream between %s reset err: %v", pi, resetErr)
+			}
+			klog.Errorf("[MDNS] Read response msg from %s err: %v", pi, err)
+			return
+		}
+		msgType := msg.GetType()
+		if msgType != discoverypb.Discovery_SUCCESS {
+			resetErr := stream.Reset()
+			if resetErr != nil {
+				klog.Errorf("[MDNS] Stream between %s reset err: %v", pi, resetErr)
+			}
+			klog.Errorf("[MDNS] Failed to build stream between %s, Type is %s, err: %v", pi, msg.GetType(), err)
+			return
+		}
+
+		// store info
+		nodeName := msg.GetNodeName()
+		klog.Infof("[%s] discovery to %s : %s", protocol, nodeName, pi)
+		// TODO store nodePeer and peerNode info
+
+		// reset resource
+		msg.Reset()
+		err = stream.Reset()
+		if err != nil {
+			klog.Errorf("[MDNS] Stream between %s reset err: %v", pi, err)
 		}
 	}
+}
+
+func (t *EdgeTunnel) discoveryStreamHandler(stream network.Stream) {
+	remotePeer := peer.AddrInfo{
+		ID:    stream.Conn().RemotePeer(),
+		Addrs: []ma.Multiaddr{stream.Conn().RemoteMultiaddr()},
+	}
+	klog.Infof("Discovery service got a new stream from %s", remotePeer)
+	streamWriter := protoio.NewDelimitedWriter(stream)
+	streamReader := protoio.NewDelimitedReader(stream, 4096) // TODO get from default
+
+	msg := new(discoverypb.Discovery)
+	defer msg.Reset()
+
+	err := streamReader.ReadMsg(msg)
+	if err != nil {
+		klog.Errorf("Read msg from %s err: %v", remotePeer, err)
+		return
+	}
+	if msg.GetType() != discoverypb.Discovery_CONNECT {
+		klog.Errorf("Stream between %s, Type should be CONNECT", remotePeer)
+		return
+	}
+	protocol := msg.GetProtocol()
+	nodeName := msg.GetNodeName()
+	klog.Infof("[%s] discovery from %s : %s", protocol, nodeName, remotePeer)
+
+	// write response
+	msg.Type = discoverypb.Discovery_SUCCESS.Enum()
+	msg.NodeName = &t.Config.NodeName
+	err = streamWriter.WriteMsg(msg)
+	if err != nil {
+		klog.Errorf("[%s] Write msg to %s err: %v", protocol, remotePeer, err)
+		return
+	}
+
+	// TODO store nodePeer and peerNode info
 }
 
 func (t *EdgeTunnel) runController() {
@@ -146,6 +247,7 @@ func (t *EdgeTunnel) handleDeleteNode(obj interface{}) {
 	t.delPeer(node.Name)
 }
 
+// TODO replace with async.Runner
 func (t *EdgeTunnel) Heartbeat() {
 	err := wait.PollImmediateUntil(HeartbeatInterval, func() (done bool, err error) {
 		t.connectToRelays()

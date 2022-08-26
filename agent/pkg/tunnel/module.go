@@ -3,6 +3,7 @@ package tunnel
 import (
 	"context"
 	"fmt"
+	discoverypb "github.com/kubeedge/edgemesh/agent/pkg/tunnel/pb/discovery"
 	"sync"
 	"time"
 
@@ -49,7 +50,12 @@ type EdgeTunnel struct {
 	peerMapMutex sync.Mutex         // protect peerMap
 	peerMap      map[string]peer.ID // map of Kubernetes node name and peer id
 
-	rendezvous   string // unique string to identify group of nodes
+	nodePeerMapMutex sync.Mutex                // protect nodePeerMap
+	nodePeerMap      map[string]*peer.AddrInfo // map of Kubernetes node name and *peer.AddrInfo
+	peerNodeMapMutex sync.Mutex                // protect  peerNodeMap
+	peerNodeMap      map[peer.ID]string        // map of peer.ID and Kubernetes node name
+
+	rendezvous   string // unique string to identify group of libp2p nodes
 	mdnsPeerChan chan peer.AddrInfo
 
 	relayPeersMutex sync.Mutex // protect relayPeers
@@ -108,12 +114,13 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 	klog.V(0).Infof("I'm %s\n", fmt.Sprintf("{%v: %v}", h.ID(), h.Addrs()))
 
 	// If this host is a relay node, we need to run libp2p relayv2 service
-	var relayService *relayv2.Relay // TODO close relayService
+	var relayService *relayv2.Relay
 	if isRelay {
-		relayService, err = relayv2.New(h)
+		relayService, err = relayv2.New(h) // TODO close relayService
 		if err != nil {
 			return nil, fmt.Errorf("run libp2p relayv2 service error: %w", err)
 		}
+		klog.Infof("Run as a relay node")
 	}
 
 	edgeTunnel := &EdgeTunnel{
@@ -131,6 +138,9 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 		resyncPeriod: 15 * time.Minute, // TODO get from config
 		stopCh:       make(chan struct{}),
 	}
+
+	h.SetStreamHandler(proxy.ProxyProtocol, edgeTunnel.ProxySvc.ProxyStreamHandler)
+	h.SetStreamHandler(discoverypb.DiscoveryProtocol, edgeTunnel.discoveryStreamHandler)
 	return edgeTunnel, nil
 }
 
