@@ -31,6 +31,8 @@ const (
 	ClientMode       TunnelMode = "ClientOnly"
 	ServerClientMode TunnelMode = "ServerAndClient"
 	UnknownMode      TunnelMode = "Unknown"
+
+	defaultRendezvous = "edgemesh-rendezvous"
 )
 
 var Agent *EdgeTunnel
@@ -46,6 +48,9 @@ type EdgeTunnel struct {
 	hostCtx      context.Context    // ctx governs the lifetime of the libp2p host
 	peerMapMutex sync.Mutex         // protect peerMap
 	peerMap      map[string]peer.ID // map of Kubernetes node name and peer id
+
+	rendezvous   string // unique string to identify group of nodes
+	mdnsPeerChan chan peer.AddrInfo
 
 	relayPeersMutex sync.Mutex // protect relayPeers
 	relayPeers      map[string]*peer.AddrInfo
@@ -121,7 +126,9 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 		peerMap:      make(map[string]peer.ID),
 		relayPeers:   relayPeers,
 		relayService: relayService,
-		resyncPeriod: 15 * time.Minute,
+		rendezvous:   defaultRendezvous, // TODO get from config
+		mdnsPeerChan: initMDNS(h, defaultRendezvous),
+		resyncPeriod: 15 * time.Minute, // TODO get from config
 		stopCh:       make(chan struct{}),
 	}
 	return edgeTunnel, nil

@@ -5,7 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	corev1 "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -20,6 +22,43 @@ const (
 	retryConnectInterval = 2 * time.Second
 	retryConnectTime     = 3
 )
+
+// discoveryNotifee implement mdns interface
+type discoveryNotifee struct {
+	PeerChan chan peer.AddrInfo
+}
+
+// HandlePeerFound interface to be called when new peer is found
+func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
+	n.PeerChan <- pi
+}
+
+// initMDNS initialize the MDNS service
+func initMDNS(peerhost host.Host, rendezvous string) chan peer.AddrInfo {
+	n := &discoveryNotifee{}
+	n.PeerChan = make(chan peer.AddrInfo)
+
+	ser := mdns.NewMdnsService(peerhost, rendezvous, n)
+	if err := ser.Start(); err != nil {
+		panic(err)
+	}
+	return n.PeerChan
+}
+
+func (t *EdgeTunnel) runMdnsDiscovery() {
+	for pi := range t.mdnsPeerChan {
+		if pi.ID == t.p2pHost.ID() {
+			continue
+		}
+		klog.Infof("Mdns discovery found peer: %s", pi)
+		// TODO store
+		if err := t.p2pHost.Connect(t.hostCtx, pi); err != nil {
+			klog.Errorf("Connection failed: %v", err)
+		} else {
+			klog.Infof("Connecting to: %v", pi)
+		}
+	}
+}
 
 func (t *EdgeTunnel) runController() {
 	informerFactory := informers.NewSharedInformerFactory(t.kubeClient, t.resyncPeriod)
@@ -157,5 +196,6 @@ func (t *EdgeTunnel) connectToRelay(relay *peer.AddrInfo) {
 
 func (t *EdgeTunnel) Run() {
 	t.runController()
+	go t.runMdnsDiscovery()
 	t.Heartbeat()
 }
