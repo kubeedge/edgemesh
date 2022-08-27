@@ -139,9 +139,13 @@ func (t *EdgeTunnel) discovery(discoverType discoverypb.DiscoveryType, pi peer.A
 		return
 	}
 
-	// TODO cache nodePeer and peerNode info
+	// cache node and peer info
 	nodeName := msg.GetNodeName()
 	klog.Infof("[%s] Discovery to %s : %s", protocol, nodeName, pi)
+	t.mu.Lock()
+	t.nodePeerMap[nodeName] = &pi
+	t.peerNodeMap[pi.ID] = nodeName
+	t.mu.Unlock()
 }
 
 func (t *EdgeTunnel) discoveryStreamHandler(stream network.Stream) {
@@ -176,8 +180,12 @@ func (t *EdgeTunnel) discoveryStreamHandler(stream network.Stream) {
 		return
 	}
 
-	// TODO cache node and peer info
+	// cache node and peer info
 	klog.Infof("[%s] discovery from %s : %s", protocol, nodeName, remotePeer)
+	t.mu.Lock()
+	t.nodePeerMap[nodeName] = &remotePeer
+	t.peerNodeMap[remotePeer.ID] = nodeName
+	t.mu.Unlock()
 }
 
 func (t *EdgeTunnel) runController() {
@@ -205,21 +213,28 @@ func (t *EdgeTunnel) runNodeController(stopCh <-chan struct{}) {
 }
 
 func (t *EdgeTunnel) addPeer(name string) {
-	t.peerMapMutex.Lock()
-	defer t.peerMapMutex.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 
-	id, err := PeerIDFromString(name)
+	peerid, err := PeerIDFromString(name)
 	if err != nil {
 		klog.ErrorS(err, "Failed to generate peer id for %s", name)
 		return
 	}
-	t.peerMap[name] = id
+	t.nodePeerMap[name] = &peer.AddrInfo{peerid, []ma.Multiaddr{}}
+	t.peerNodeMap[peerid] = name
 }
 
 func (t *EdgeTunnel) delPeer(name string) {
-	t.peerMapMutex.Lock()
-	delete(t.peerMap, name)
-	t.peerMapMutex.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	pi, ok := t.nodePeerMap[name]
+	if !ok {
+		return
+	}
+	delete(t.peerNodeMap, pi.ID)
+	delete(t.nodePeerMap, name)
 }
 
 func (t *EdgeTunnel) handleAddNode(obj interface{}) {
@@ -229,8 +244,9 @@ func (t *EdgeTunnel) handleAddNode(obj interface{}) {
 		return
 	}
 	klog.Infof("======== %v", node.Name)
-
-	_, exists := t.peerMap[node.Name]
+	// The operations of nodePeerMap and peerNodeMap are atomic, so we
+	// can judge whether the peer info exists according to nodePeerMap
+	_, exists := t.nodePeerMap[node.Name]
 	if !exists {
 		t.addPeer(node.Name)
 	}
@@ -251,7 +267,7 @@ func (t *EdgeTunnel) handleUpdateNode(oldObj, newObj interface{}) {
 	if oldNode.Name != newNode.Name {
 		t.delPeer(oldNode.Name)
 	}
-	_, exists := t.peerMap[newNode.Name]
+	_, exists := t.nodePeerMap[newNode.Name]
 	if !exists {
 		t.addPeer(newNode.Name)
 	}

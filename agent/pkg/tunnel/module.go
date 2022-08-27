@@ -45,15 +45,11 @@ type EdgeTunnel struct {
 	Mode       TunnelMode
 	kubeClient kubernetes.Interface
 
-	p2pHost      p2phost.Host       // libp2p host
-	hostCtx      context.Context    // ctx governs the lifetime of the libp2p host
-	peerMapMutex sync.Mutex         // protect peerMap
-	peerMap      map[string]peer.ID // map of Kubernetes node name and peer id
-
-	nodePeerMapMutex sync.Mutex                // protect nodePeerMap
-	nodePeerMap      map[string]*peer.AddrInfo // map of Kubernetes node name and *peer.AddrInfo
-	peerNodeMapMutex sync.Mutex                // protect  peerNodeMap
-	peerNodeMap      map[peer.ID]string        // map of peer.ID and Kubernetes node name
+	p2pHost     p2phost.Host              // libp2p host
+	hostCtx     context.Context           // ctx governs the lifetime of the libp2p host
+	mu          sync.Mutex                // protect nodePeerMap and peerNodeMap, guarantee the atomicity of their operations
+	nodePeerMap map[string]*peer.AddrInfo // map of Kubernetes node name and *peer.AddrInfo
+	peerNodeMap map[peer.ID]string        // map of peer.ID and Kubernetes node name
 
 	rendezvous   string // unique string to identify group of libp2p nodes
 	mdnsPeerChan chan peer.AddrInfo
@@ -140,7 +136,8 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 		kubeClient:   ifm.GetKubeClient(),
 		p2pHost:      h,
 		hostCtx:      ctx,
-		peerMap:      make(map[string]peer.ID),
+		nodePeerMap:  make(map[string]*peer.AddrInfo),
+		peerNodeMap:  make(map[peer.ID]string),
 		relayPeers:   relayPeers,
 		relayService: relayService,
 		rendezvous:   defaultRendezvous, // TODO get from config
@@ -152,6 +149,7 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 
 	h.SetStreamHandler(proxy.ProxyProtocol, edgeTunnel.ProxySvc.ProxyStreamHandler)
 	h.SetStreamHandler(discoverypb.DiscoveryProtocol, edgeTunnel.discoveryStreamHandler)
+	Agent = edgeTunnel // TODO convert var to func
 	return edgeTunnel, nil
 }
 
