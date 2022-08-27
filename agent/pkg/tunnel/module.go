@@ -3,7 +3,6 @@ package tunnel
 import (
 	"context"
 	"fmt"
-	discoverypb "github.com/kubeedge/edgemesh/agent/pkg/tunnel/pb/discovery"
 	"sync"
 	"time"
 
@@ -20,6 +19,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/config"
+	discoverypb "github.com/kubeedge/edgemesh/agent/pkg/tunnel/pb/discovery"
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/proxy"
 	"github.com/kubeedge/edgemesh/common/informers"
 	"github.com/kubeedge/edgemesh/common/modules"
@@ -57,6 +57,7 @@ type EdgeTunnel struct {
 
 	rendezvous   string // unique string to identify group of libp2p nodes
 	mdnsPeerChan chan peer.AddrInfo
+	dhtPeerChan  <-chan peer.AddrInfo
 
 	relayPeersMutex sync.Mutex // protect relayPeers
 	relayPeers      map[string]*peer.AddrInfo
@@ -123,6 +124,15 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 		klog.Infof("Run as a relay node")
 	}
 
+	mdnsPeerChan, err := initMDNS(h, defaultRendezvous)
+	if err != nil {
+		return nil, fmt.Errorf("init mdns discovery error: %w", err)
+	}
+	dhtPeerChan, err := initDHT(ctx, idht, defaultRendezvous)
+	if err != nil {
+		return nil, fmt.Errorf("init dht discovery error: %w", err)
+	}
+
 	edgeTunnel := &EdgeTunnel{
 		Config:       c,
 		ProxySvc:     proxy.NewProxyService(h),
@@ -134,7 +144,8 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 		relayPeers:   relayPeers,
 		relayService: relayService,
 		rendezvous:   defaultRendezvous, // TODO get from config
-		mdnsPeerChan: initMDNS(h, defaultRendezvous),
+		mdnsPeerChan: mdnsPeerChan,
+		dhtPeerChan:  dhtPeerChan,
 		resyncPeriod: 15 * time.Minute, // TODO get from config
 		stopCh:       make(chan struct{}),
 	}
