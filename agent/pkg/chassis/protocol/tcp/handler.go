@@ -13,7 +13,7 @@ import (
 
 	"github.com/kubeedge/edgemesh/agent/pkg/chassis/config"
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel"
-	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/proxy"
+	proxypb "github.com/kubeedge/edgemesh/agent/pkg/tunnel/pb/proxy"
 	"github.com/kubeedge/edgemesh/common/util"
 )
 
@@ -94,13 +94,13 @@ func (h *L4ProxyHandler) Handle(chain *handler.Chain, i *invocation.Invocation, 
 			klog.Warningf("Callback err: %v", err)
 		}
 	} else {
-		proxyOpts := proxy.ProxyOptions{
+		proxyOpts := proxypb.ProxyOptions{
 			Protocol: "tcp",
 			NodeName: targetNodeName,
 			IP:       targetIP,
 			Port:     int32(targetPort),
 		}
-		stream, err := tunnel.Agent.ProxySvc.GetProxyStream(proxyOpts)
+		stream, err := tunnel.Agent.GetProxyStream(proxyOpts)
 		if err != nil {
 			r.Err = fmt.Errorf("l4 proxy get proxy stream from %s error: %v", targetNodeName, err)
 			return

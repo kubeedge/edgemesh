@@ -3,6 +3,7 @@ package tunnel
 import (
 	"context"
 	"fmt"
+	"net"
 	"sync"
 	"time"
 
@@ -24,9 +25,16 @@ import (
 	"k8s.io/klog/v2"
 
 	discoverypb "github.com/kubeedge/edgemesh/agent/pkg/tunnel/pb/discovery"
+	proxypb "github.com/kubeedge/edgemesh/agent/pkg/tunnel/pb/proxy"
+	"github.com/kubeedge/edgemesh/common/libp2p"
+	"github.com/kubeedge/edgemesh/common/util"
 )
 
 const (
+	MaxReadSize  = 4096
+	MaxRetryTime = 3
+	UDP          = "udp"
+
 	HeartbeatInterval    = time.Minute // TODO get from config
 	retryConnectInterval = 2 * time.Second
 	retryConnectTime     = 3
@@ -111,9 +119,9 @@ func (t *EdgeTunnel) discovery(discoverType discoverypb.DiscoveryType, pi peer.A
 	}()
 
 	streamWriter := protoio.NewDelimitedWriter(stream)
-	streamReader := protoio.NewDelimitedReader(stream, 4096) // TODO get maxSize from default
+	streamReader := protoio.NewDelimitedReader(stream, MaxReadSize) // TODO get maxSize from default
 
-	// handshake with target peer
+	// handshake with dest peer
 	protocol := string(discoverypb.MdnsDiscovery)
 	msg := &discoverypb.Discovery{
 		Type:     discoverypb.Discovery_CONNECT.Enum(),
@@ -156,7 +164,7 @@ func (t *EdgeTunnel) discoveryStreamHandler(stream network.Stream) {
 	klog.Infof("Discovery service got a new stream from %s", remotePeer)
 
 	streamWriter := protoio.NewDelimitedWriter(stream)
-	streamReader := protoio.NewDelimitedReader(stream, 4096) // TODO get maxSize from default
+	streamReader := protoio.NewDelimitedReader(stream, MaxReadSize) // TODO get maxSize from default
 
 	msg := new(discoverypb.Discovery)
 	err := streamReader.ReadMsg(msg)
@@ -186,6 +194,158 @@ func (t *EdgeTunnel) discoveryStreamHandler(stream network.Stream) {
 	t.nodePeerMap[nodeName] = &remotePeer
 	t.peerNodeMap[remotePeer.ID] = nodeName
 	t.mu.Unlock()
+}
+
+func (t *EdgeTunnel) GetProxyStream(opts proxypb.ProxyOptions) (*libp2p.StreamConn, error) {
+	destName := opts.NodeName
+	destInfo, exists := t.nodePeerMap[destName]
+	if !exists {
+		return nil, fmt.Errorf("failed to found peer node %s in cache", destName)
+	}
+
+	if len(t.p2pHost.Network().ConnsToPeer(destInfo.ID)) < 2 {
+		klog.V(4).Infof("Try to connect with peer node %s", destName)
+		err := t.p2pHost.Connect(t.hostCtx, *destInfo)
+		if err != nil {
+			return nil, fmt.Errorf("connect to %s err: %w", destName, err)
+		}
+	}
+
+	stream, err := t.p2pHost.NewStream(t.hostCtx, destInfo.ID, proxypb.ProxyProtocol)
+	if err != nil {
+		return nil, fmt.Errorf("new stream between %s err: %w", destName, err)
+	}
+	// Will close the stream elsewhere
+	// defer stream.Close()
+
+	streamWriter := protoio.NewDelimitedWriter(stream)
+	streamReader := protoio.NewDelimitedReader(stream, MaxReadSize)
+
+	// handshake with dest peer
+	msg := &proxypb.Proxy{
+		Type:     proxypb.Proxy_CONNECT.Enum(),
+		Protocol: &opts.Protocol,
+		NodeName: &opts.NodeName,
+		Ip:       &opts.IP,
+		Port:     &opts.Port,
+	}
+	if err = streamWriter.WriteMsg(msg); err != nil {
+		resetErr := stream.Reset()
+		if resetErr != nil {
+			return nil, fmt.Errorf("stream between %s reset err: %w", opts.NodeName, resetErr)
+		}
+		return nil, fmt.Errorf("write conn msg to %s err: %w", opts.NodeName, err)
+	}
+
+	// read response
+	msg.Reset()
+	if err = streamReader.ReadMsg(msg); err != nil {
+		resetErr := stream.Reset()
+		if resetErr != nil {
+			return nil, fmt.Errorf("stream between %s reset err: %w", opts.NodeName, resetErr)
+		}
+		return nil, fmt.Errorf("read conn result msg from %s err: %w", opts.NodeName, err)
+	}
+	if msg.GetType() == proxypb.Proxy_FAILED {
+		resetErr := stream.Reset()
+		if resetErr != nil {
+			return nil, fmt.Errorf("stream between %s reset err: %w", opts.NodeName, err)
+		}
+		return nil, fmt.Errorf("libp2p dial %v err: Proxy.type is %s", opts, msg.GetType())
+	}
+
+	msg.Reset()
+	klog.V(4).Infof("libp2p dial %v success", opts)
+
+	return libp2p.NewStreamConn(stream), nil
+}
+
+func (t *EdgeTunnel) proxyStreamHandler(stream network.Stream) {
+	remotePeer := peer.AddrInfo{
+		ID:    stream.Conn().RemotePeer(),
+		Addrs: []ma.Multiaddr{stream.Conn().RemoteMultiaddr()},
+	}
+	klog.Infof("Proxy service got a new stream from %s", remotePeer)
+
+	streamWriter := protoio.NewDelimitedWriter(stream)
+	streamReader := protoio.NewDelimitedReader(stream, MaxReadSize) // TODO get maxSize from default
+
+	msg := new(proxypb.Proxy)
+	err := streamReader.ReadMsg(msg)
+	if err != nil {
+		klog.Errorf("Read msg from %s err: %v", remotePeer, err)
+		return
+	}
+	if msg.GetType() != proxypb.Proxy_CONNECT {
+		klog.Errorf("Read msg from %s type should be CONNECT", remotePeer)
+		return
+	}
+	targetProto := msg.GetProtocol()
+	targetNode := msg.GetNodeName()
+	targetIP := msg.GetIp()
+	targetPort := msg.GetPort()
+	targetAddr := fmt.Sprintf("%s:%d", targetIP, targetPort)
+
+	proxyConn, err := tryDialEndpoint(targetProto, targetIP, int(targetPort))
+	if err != nil {
+		klog.Errorf("l4 proxy connect to %v err: %v", msg, err)
+		msg.Reset()
+		msg.Type = proxypb.Proxy_FAILED.Enum()
+		if err = streamWriter.WriteMsg(msg); err != nil {
+			klog.Errorf("Write msg to %s err: %v", remotePeer, err)
+			return
+		}
+		return
+	}
+
+	// write response
+	msg.Type = proxypb.Proxy_SUCCESS.Enum()
+	err = streamWriter.WriteMsg(msg)
+	if err != nil {
+		klog.Errorf("Write msg to %s err: %v", remotePeer, err)
+		return
+	}
+	msg.Reset()
+
+	streamConn := libp2p.NewStreamConn(stream)
+	switch targetProto {
+	case TCP:
+		go util.ProxyConn(streamConn, proxyConn)
+	case UDP:
+		go util.ProxyConnUDP(streamConn, proxyConn.(*net.UDPConn))
+	}
+	klog.Infof("Success proxy for {%s %s %s}", targetProto, targetNode, targetAddr)
+}
+
+func tryDialEndpoint(protocol, ip string, port int) (conn net.Conn, err error) {
+	switch protocol {
+	case TCP:
+		for i := 0; i < MaxRetryTime; i++ {
+			conn, err = net.DialTCP(TCP, nil, &net.TCPAddr{
+				IP:   net.ParseIP(ip),
+				Port: port,
+			})
+			if err == nil {
+				return conn, nil
+			}
+			time.Sleep(time.Second)
+		}
+	case UDP:
+		for i := 0; i < MaxRetryTime; i++ {
+			conn, err = net.DialUDP(UDP, nil, &net.UDPAddr{
+				IP:   net.ParseIP(ip),
+				Port: int(port),
+			})
+			if err == nil {
+				return conn, nil
+			}
+			time.Sleep(time.Second)
+		}
+	default:
+		return nil, fmt.Errorf("unsupported protocol: %s", protocol)
+	}
+	klog.Errorf("max retries for dial")
+	return nil, err
 }
 
 func (t *EdgeTunnel) runController() {

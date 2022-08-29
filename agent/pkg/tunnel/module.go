@@ -20,7 +20,7 @@ import (
 
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/config"
 	discoverypb "github.com/kubeedge/edgemesh/agent/pkg/tunnel/pb/discovery"
-	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/proxy"
+	proxypb "github.com/kubeedge/edgemesh/agent/pkg/tunnel/pb/proxy"
 	"github.com/kubeedge/edgemesh/common/informers"
 	"github.com/kubeedge/edgemesh/common/modules"
 	"github.com/kubeedge/edgemesh/common/util"
@@ -41,7 +41,6 @@ var Agent *EdgeTunnel
 // EdgeTunnel is used for solving cross subset communication
 type EdgeTunnel struct {
 	Config     *config.EdgeTunnelConfig
-	ProxySvc   *proxy.ProxyService
 	Mode       TunnelMode
 	kubeClient kubernetes.Interface
 
@@ -131,7 +130,6 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 
 	edgeTunnel := &EdgeTunnel{
 		Config:       c,
-		ProxySvc:     proxy.NewProxyService(h),
 		Mode:         mode,
 		kubeClient:   ifm.GetKubeClient(),
 		p2pHost:      h,
@@ -147,8 +145,8 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 		stopCh:       make(chan struct{}),
 	}
 
-	h.SetStreamHandler(proxy.ProxyProtocol, edgeTunnel.ProxySvc.ProxyStreamHandler)
 	h.SetStreamHandler(discoverypb.DiscoveryProtocol, edgeTunnel.discoveryStreamHandler)
+	h.SetStreamHandler(proxypb.ProxyProtocol, edgeTunnel.proxyStreamHandler)
 	Agent = edgeTunnel // TODO convert var to func
 	return edgeTunnel, nil
 }

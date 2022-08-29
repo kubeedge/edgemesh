@@ -13,7 +13,7 @@ import (
 
 	"github.com/kubeedge/edgemesh/agent/pkg/proxy/protocol"
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel"
-	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/proxy"
+	proxypb "github.com/kubeedge/edgemesh/agent/pkg/tunnel/pb/proxy"
 	"github.com/kubeedge/edgemesh/common/constants"
 	"github.com/kubeedge/edgemesh/common/util"
 )
@@ -239,13 +239,13 @@ func (s *Socks5Proxy) HandleSocksProxy(conn net.Conn) {
 }
 
 func proxyConnectToRemote(host string, targetIP string, port int32, conn net.Conn) {
-	proxyOpts := proxy.ProxyOptions{
+	proxyOpts := proxypb.ProxyOptions{
 		Protocol: string(protocol.TCP),
 		NodeName: host,
 		IP:       targetIP,
 		Port:     port,
 	}
-	stream, err := tunnel.Agent.ProxySvc.GetProxyStream(proxyOpts)
+	stream, err := tunnel.Agent.GetProxyStream(proxyOpts)
 	if err != nil {
 		klog.Errorf("l4 proxy get proxy stream from %s error: %w", host, err)
 		return

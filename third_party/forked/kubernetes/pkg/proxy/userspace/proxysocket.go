@@ -17,7 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/proxy"
 
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel"
-	tunnelproxy "github.com/kubeedge/edgemesh/agent/pkg/tunnel/proxy"
+	proxypb "github.com/kubeedge/edgemesh/agent/pkg/tunnel/pb/proxy"
 	"github.com/kubeedge/edgemesh/common/util"
 )
 
@@ -152,8 +152,8 @@ func dialEndpoint(protocol, endpoint string, dialTimeout time.Duration) (net.Con
 			time.Sleep(dialTimeout)
 			return nil, fmt.Errorf("invalid endpoint %s", endpoint)
 		}
-		proxyOpts := tunnelproxy.ProxyOptions{Protocol: protocol, NodeName: targetNode, IP: targetIP, Port: int32(targetPort)}
-		streamConn, err := tunnel.Agent.ProxySvc.GetProxyStream(proxyOpts)
+		proxyOpts := proxypb.ProxyOptions{Protocol: protocol, NodeName: targetNode, IP: targetIP, Port: int32(targetPort)}
+		streamConn, err := tunnel.Agent.GetProxyStream(proxyOpts)
 		if err != nil {
 			time.Sleep(dialTimeout)
 			return nil, fmt.Errorf("get proxy stream from %s error: %v", targetNode, err)
