@@ -2,20 +2,30 @@ package tunnel
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5"
 	"encoding/binary"
 	"fmt"
 	"io"
 	mrand "math/rand"
 	"os"
+	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	p2phost "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	quic "github.com/libp2p/go-libp2p-quic-transport"
 	"github.com/libp2p/go-tcp-transport"
 	ws "github.com/libp2p/go-ws-transport"
 	ma "github.com/multiformats/go-multiaddr"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog/v2"
+
+	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/config"
 )
 
 const (
@@ -150,4 +160,69 @@ func StringsToMaddrs(addrStrings []string) (mas []ma.Multiaddr, err error) {
 		mas = append(mas, addr)
 	}
 	return
+}
+
+func GenerateRelayRecord(relayNodes []*config.RelayNode, protocol string, listenPort int) (map[string]*peer.AddrInfo, []ma.Multiaddr) {
+	relayPeers := make(map[string]*peer.AddrInfo)
+	relayMaddrs := make([]ma.Multiaddr, 0)
+	for _, relayNode := range relayNodes {
+		nodeName := relayNode.NodeName
+		peerid, err := PeerIDFromString(nodeName)
+		if err != nil {
+			klog.Errorf("Failed to generate peer id from %s", nodeName)
+			continue
+		}
+		// TODO It is assumed here that we have checked the validity of the IP.
+		addrStrings := make([]string, 0)
+		for _, addr := range relayNode.AdvertiseAddress {
+			addrStrings = append(addrStrings, GenerateMultiAddrString(protocol, addr, listenPort))
+		}
+		maddrs, err := StringsToMaddrs(addrStrings)
+		if err != nil {
+			klog.Errorf("Failed to convert addr strings to maddrs: %v", err)
+			continue
+		}
+		relayPeers[nodeName] = &peer.AddrInfo{
+			ID:    peerid,
+			Addrs: maddrs,
+		}
+		relayMaddrs = append(relayMaddrs, maddrs...)
+	}
+	return relayPeers, relayMaddrs
+}
+
+func BootstrapConnect(ctx context.Context, ph p2phost.Host, peers map[string]*peer.AddrInfo) error {
+	return wait.PollImmediate(5*time.Second, time.Minute, func() (bool, error) { // todo get timeout from config
+		var count int32
+		var wg sync.WaitGroup
+		for _, p := range peers {
+			if p.ID == ph.ID() {
+				atomic.AddInt32(&count, 1)
+				continue
+			}
+
+			wg.Add(1)
+			go func(p *peer.AddrInfo) {
+				defer wg.Done()
+				defer klog.Infoln("bootstrapDial", ph.ID(), p.ID)
+				klog.Infof("%s bootstrapping to %s", ph.ID(), p.ID)
+
+				ph.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
+				if err := ph.Connect(ctx, *p); err != nil {
+					klog.Infoln("bootstrapDialFailed", p.ID)
+					klog.Infof("failed to bootstrap with %v: %s", p.ID, err)
+					return
+				}
+				klog.Infoln("bootstrapDialSuccess", p.ID)
+				klog.Infof("bootstrapped with %v", p.ID)
+				atomic.AddInt32(&count, 1)
+			}(p)
+		}
+		wg.Wait()
+		if count != int32(len(peers)) {
+			klog.Errorf("Not all bootstrapDail connected, continue bootstrapDail...")
+			return false, nil
+		}
+		return true, nil
+	})
 }

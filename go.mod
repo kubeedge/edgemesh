@@ -9,13 +9,13 @@ require (
 	github.com/go-chassis/go-archaius v0.20.0
 	github.com/go-chassis/go-chassis v1.7.1
 	github.com/golang/protobuf v1.5.2
+	github.com/ipfs/go-log/v2 v2.5.0
 	github.com/kubeedge/beehive v0.0.0
 	github.com/kubeedge/kubeedge v1.6.2
 	github.com/libp2p/go-libp2p v0.18.0
 	github.com/libp2p/go-libp2p-core v0.14.0
 	github.com/libp2p/go-libp2p-discovery v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.15.0
-	github.com/libp2p/go-libp2p-noise v0.3.0
 	github.com/libp2p/go-libp2p-quic-transport v0.16.1
 	github.com/libp2p/go-libp2p-tls v0.3.1
 	github.com/libp2p/go-msgio v0.1.0

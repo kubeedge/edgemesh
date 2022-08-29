@@ -10,6 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
@@ -93,7 +94,6 @@ func (t *EdgeTunnel) runDhtDiscovery() {
 }
 
 func (t *EdgeTunnel) discovery(discoverType discoverypb.DiscoveryType, pi peer.AddrInfo) {
-	// Ignore itself
 	if pi.ID == t.p2pHost.ID() {
 		return
 	}
@@ -111,18 +111,15 @@ func (t *EdgeTunnel) discovery(discoverType discoverypb.DiscoveryType, pi peer.A
 		klog.Errorf("[%s] New stream between peer %s err: %v", discoverType, pi, err)
 		return
 	}
-	defer func() {
-		err := stream.Reset()
-		if err != nil {
-			klog.Errorf("[%s] Stream between %s reset err: %v", discoverType, pi, err)
-		}
-	}()
 
 	streamWriter := protoio.NewDelimitedWriter(stream)
 	streamReader := protoio.NewDelimitedReader(stream, MaxReadSize) // TODO get maxSize from default
 
 	// handshake with dest peer
 	protocol := string(discoverypb.MdnsDiscovery)
+	if discoverType == discoverypb.DhtDiscovery {
+		protocol = string(discoverypb.DhtDiscovery)
+	}
 	msg := &discoverypb.Discovery{
 		Type:     discoverypb.Discovery_CONNECT.Enum(),
 		Protocol: &protocol,
@@ -154,6 +151,9 @@ func (t *EdgeTunnel) discovery(discoverType discoverypb.DiscoveryType, pi peer.A
 	t.nodePeerMap[nodeName] = &pi
 	t.peerNodeMap[pi.ID] = nodeName
 	t.mu.Unlock()
+
+	// add relay maddrs
+	//t.p2pHost.Peerstore().AddAddrs(pi.ID, t.relayMaddrs, peerstore.PermanentAddrTTL)
 }
 
 func (t *EdgeTunnel) discoveryStreamHandler(stream network.Stream) {
@@ -189,11 +189,14 @@ func (t *EdgeTunnel) discoveryStreamHandler(stream network.Stream) {
 	}
 
 	// cache node and peer info
-	klog.Infof("[%s] discovery from %s : %s", protocol, nodeName, remotePeer)
+	klog.Infof("[%s] Discovery from %s : %s", protocol, nodeName, remotePeer)
 	t.mu.Lock()
 	t.nodePeerMap[nodeName] = &remotePeer
 	t.peerNodeMap[remotePeer.ID] = nodeName
 	t.mu.Unlock()
+
+	// add relay maddrs
+	t.p2pHost.Peerstore().AddAddrs(remotePeer.ID, t.relayMaddrs, peerstore.PermanentAddrTTL)
 }
 
 func (t *EdgeTunnel) GetProxyStream(opts proxypb.ProxyOptions) (*libp2p.StreamConn, error) {
@@ -211,7 +214,7 @@ func (t *EdgeTunnel) GetProxyStream(opts proxypb.ProxyOptions) (*libp2p.StreamCo
 		}
 	}
 
-	stream, err := t.p2pHost.NewStream(t.hostCtx, destInfo.ID, proxypb.ProxyProtocol)
+	stream, err := t.p2pHost.NewStream(network.WithUseTransient(t.hostCtx, "for-relay"), destInfo.ID, proxypb.ProxyProtocol)
 	if err != nil {
 		return nil, fmt.Errorf("new stream between %s err: %w", destName, err)
 	}
@@ -444,7 +447,7 @@ func (t *EdgeTunnel) handleDeleteNode(obj interface{}) {
 
 // TODO replace with async.Runner
 func (t *EdgeTunnel) Heartbeat() {
-	err := wait.PollImmediateUntil(HeartbeatInterval, func() (done bool, err error) {
+	err := wait.PollUntil(HeartbeatInterval, func() (done bool, err error) {
 		t.connectToRelays()
 		// We make the return value of ConditionFunc, such as bool to return false, and err to return to nil,
 		// to ensure that we can continuously execute the ConditionFunc.

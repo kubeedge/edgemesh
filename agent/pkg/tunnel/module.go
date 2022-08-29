@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	ipfslog "github.com/ipfs/go-log/v2"
 	"github.com/kubeedge/beehive/pkg/core"
 	"github.com/libp2p/go-libp2p"
 	p2phost "github.com/libp2p/go-libp2p-core/host"
@@ -54,9 +55,10 @@ type EdgeTunnel struct {
 	mdnsPeerChan chan peer.AddrInfo
 	dhtPeerChan  <-chan peer.AddrInfo
 
-	relayPeersMutex sync.Mutex // protect relayPeers
-	relayPeers      map[string]*peer.AddrInfo
-	relayService    *relayv2.Relay
+	isRelay      bool
+	relayMaddrs  []ma.Multiaddr
+	relayPeers   map[string]*peer.AddrInfo
+	relayService *relayv2.Relay
 
 	nodeCacheSynced cache.InformerSynced
 	resyncPeriod    time.Duration
@@ -64,6 +66,9 @@ type EdgeTunnel struct {
 }
 
 func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode TunnelMode) (*EdgeTunnel, error) {
+	// for debug
+	ipfslog.SetAllLoggers(ipfslog.LevelError)
+
 	// TODO Set the NodeName variable in the outer function
 	c.NodeName = util.FetchNodeName()
 
@@ -78,8 +83,8 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 	opts := []libp2p.Option{
 		libp2p.Identity(privKey),
 		libp2p.ListenAddrStrings(GenerateMultiAddrString(c.Transport, "0.0.0.0", c.ListenPort)),
-		GenerateTransportOption(c.Transport),
 		libp2p.DefaultSecurity,
+		GenerateTransportOption(c.Transport),
 		libp2p.NATPortMap(),
 		libp2p.Routing(func(h p2phost.Host) (routing.PeerRouting, error) {
 			idht, err = dht.New(ctx, h)
@@ -89,7 +94,7 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 		libp2p.EnableNATService(),
 	}
 
-	relayPeers := generateRelayPeer(c.RelayNodes, c.Transport, c.ListenPort)
+	relayPeers, relayMaddrs := GenerateRelayRecord(c.RelayNodes, c.Transport, c.ListenPort)
 	// If this host is a relay node, we need to append its advertiseAddress
 	relayInfo, isRelay := relayPeers[c.NodeName]
 	if isRelay {
@@ -119,6 +124,16 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 		klog.Infof("Run as a relay node")
 	}
 
+	// connect to bootstrap
+	err = BootstrapConnect(ctx, h, relayPeers)
+	if err != nil {
+		// We don't want to return error here, so that some
+		// edge region that don't have access to the external
+		// network can still work
+		klog.Warningf("Failed to bootstrap: %v", err)
+	}
+
+	// init discovery services
 	mdnsPeerChan, err := initMDNS(h, defaultRendezvous)
 	if err != nil {
 		return nil, fmt.Errorf("init mdns discovery error: %w", err)
@@ -126,6 +141,10 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 	dhtPeerChan, err := initDHT(ctx, idht, defaultRendezvous)
 	if err != nil {
 		return nil, fmt.Errorf("init dht discovery error: %w", err)
+	}
+	klog.Infof("Bootstrapping the DHT")
+	if err = idht.Bootstrap(ctx); err != nil {
+		return nil, fmt.Errorf("failed to bootstrap dht: %w", err)
 	}
 
 	edgeTunnel := &EdgeTunnel{
@@ -136,6 +155,8 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 		hostCtx:      ctx,
 		nodePeerMap:  make(map[string]*peer.AddrInfo),
 		peerNodeMap:  make(map[peer.ID]string),
+		isRelay:      isRelay,
+		relayMaddrs:  relayMaddrs,
 		relayPeers:   relayPeers,
 		relayService: relayService,
 		rendezvous:   defaultRendezvous, // TODO get from config
@@ -149,33 +170,6 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 	h.SetStreamHandler(proxypb.ProxyProtocol, edgeTunnel.proxyStreamHandler)
 	Agent = edgeTunnel // TODO convert var to func
 	return edgeTunnel, nil
-}
-
-func generateRelayPeer(relayNodes []*config.RelayNode, protocol string, listenPort int) map[string]*peer.AddrInfo {
-	relayPeers := make(map[string]*peer.AddrInfo)
-	for _, relayNode := range relayNodes {
-		nodeName := relayNode.NodeName
-		peerid, err := PeerIDFromString(nodeName)
-		if err != nil {
-			klog.Errorf("Failed to generate peer id from %s", nodeName)
-			continue
-		}
-		// TODO It is assumed here that we have checked the validity of the IP.
-		addrStrings := make([]string, 0)
-		for _, addr := range relayNode.AdvertiseAddress {
-			addrStrings = append(addrStrings, GenerateMultiAddrString(protocol, addr, listenPort))
-		}
-		maddrs, err := StringsToMaddrs(addrStrings)
-		if err != nil {
-			klog.Errorf("Failed to convert addr strings to maddrs: %v", err)
-			continue
-		}
-		relayPeers[nodeName] = &peer.AddrInfo{
-			ID:    peerid,
-			Addrs: maddrs,
-		}
-	}
-	return relayPeers
 }
 
 // Register register EdgeTunnel to beehive modules

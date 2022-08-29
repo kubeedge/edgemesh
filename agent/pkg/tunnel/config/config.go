@@ -25,6 +25,7 @@ type EdgeTunnelConfig struct {
 	// default true
 	EnableHolePunch bool `json:"enableHolePunch,omitempty"`
 	// Transport indicates the transport protocol used by the p2p tunnel
+	// default tcp
 	Transport string `json:"transport,omitempty"`
 	// RelayNodes indicates some nodes that can become libp2p relay nodes
 	RelayNodes []*RelayNode `json:"relayNodes,omitempty"`

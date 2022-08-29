@@ -276,6 +276,7 @@ github.com/ipfs/go-log/tracer
 github.com/ipfs/go-log/tracer/wire
 github.com/ipfs/go-log/writer
 # github.com/ipfs/go-log/v2 v2.5.0
+## explicit
 github.com/ipfs/go-log/v2
 # github.com/ipld/go-ipld-prime v0.9.0
 github.com/ipld/go-ipld-prime
@@ -443,7 +444,6 @@ github.com/libp2p/go-libp2p-mplex
 # github.com/libp2p/go-libp2p-nat v0.1.0
 github.com/libp2p/go-libp2p-nat
 # github.com/libp2p/go-libp2p-noise v0.3.0
-## explicit
 github.com/libp2p/go-libp2p-noise
 github.com/libp2p/go-libp2p-noise/pb
 # github.com/libp2p/go-libp2p-peerstore v0.6.0
