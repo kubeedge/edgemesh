@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	ipfslog "github.com/ipfs/go-log/v2"
 	"github.com/kubeedge/beehive/pkg/core"
@@ -15,8 +14,6 @@ import (
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 	ma "github.com/multiformats/go-multiaddr"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/config"
@@ -41,15 +38,12 @@ var Agent *EdgeTunnel
 
 // EdgeTunnel is used for solving cross subset communication
 type EdgeTunnel struct {
-	Config     *config.EdgeTunnelConfig
-	Mode       TunnelMode
-	kubeClient kubernetes.Interface
+	Config *config.EdgeTunnelConfig
 
-	p2pHost     p2phost.Host              // libp2p host
-	hostCtx     context.Context           // ctx governs the lifetime of the libp2p host
-	mu          sync.Mutex                // protect nodePeerMap and peerNodeMap, guarantee the atomicity of their operations
-	nodePeerMap map[string]*peer.AddrInfo // map of Kubernetes node name and *peer.AddrInfo
-	peerNodeMap map[peer.ID]string        // map of peer.ID and Kubernetes node name
+	p2pHost     p2phost.Host       // libp2p host
+	hostCtx     context.Context    // ctx governs the lifetime of the libp2p host
+	mu          sync.Mutex         // protect nodePeerMap
+	nodePeerMap map[string]peer.ID // map of Kubernetes node name and peer.ID
 
 	rendezvous   string // unique string to identify group of libp2p nodes
 	mdnsPeerChan chan peer.AddrInfo
@@ -60,9 +54,7 @@ type EdgeTunnel struct {
 	relayPeers   map[string]*peer.AddrInfo
 	relayService *relayv2.Relay
 
-	nodeCacheSynced cache.InformerSynced
-	resyncPeriod    time.Duration
-	stopCh          chan struct{}
+	stopCh chan struct{}
 }
 
 func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode TunnelMode) (*EdgeTunnel, error) {
@@ -149,12 +141,9 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 
 	edgeTunnel := &EdgeTunnel{
 		Config:       c,
-		Mode:         mode,
-		kubeClient:   ifm.GetKubeClient(),
 		p2pHost:      h,
 		hostCtx:      ctx,
-		nodePeerMap:  make(map[string]*peer.AddrInfo),
-		peerNodeMap:  make(map[peer.ID]string),
+		nodePeerMap:  make(map[string]peer.ID),
 		isRelay:      isRelay,
 		relayMaddrs:  relayMaddrs,
 		relayPeers:   relayPeers,
@@ -162,7 +151,6 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 		rendezvous:   defaultRendezvous, // TODO get from config
 		mdnsPeerChan: mdnsPeerChan,
 		dhtPeerChan:  dhtPeerChan,
-		resyncPeriod: 15 * time.Minute, // TODO get from config
 		stopCh:       make(chan struct{}),
 	}
 

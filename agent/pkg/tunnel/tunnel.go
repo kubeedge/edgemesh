@@ -17,12 +17,7 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
 	"github.com/libp2p/go-msgio/protoio"
 	ma "github.com/multiformats/go-multiaddr"
-	corev1 "k8s.io/api/core/v1"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/informers"
-	coreinformers "k8s.io/client-go/informers/core/v1"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 
 	discoverypb "github.com/kubeedge/edgemesh/agent/pkg/tunnel/pb/discovery"
@@ -99,18 +94,18 @@ func (t *EdgeTunnel) discovery(discoverType discoverypb.DiscoveryType, pi peer.A
 	}
 
 	klog.Infof("[%s] Discovery found peer: %s", discoverType, pi)
-	err := t.p2pHost.Connect(t.hostCtx, pi)
-	if err != nil {
-		klog.Errorf("[%s] Connection with peer %s failed: %v", discoverType, pi, err)
-		return
-	}
-	klog.Infof("[%s] Connection with peer %s success", discoverType, pi)
-
-	stream, err := t.p2pHost.NewStream(t.hostCtx, pi.ID, discoverypb.DiscoveryProtocol)
+	stream, err := t.p2pHost.NewStream(network.WithUseTransient(t.hostCtx, "for-relay"), pi.ID, discoverypb.DiscoveryProtocol)
 	if err != nil {
 		klog.Errorf("[%s] New stream between peer %s err: %v", discoverType, pi, err)
 		return
 	}
+	defer func() {
+		err = stream.Reset()
+		if err != nil {
+			klog.Errorf("[%s] Stream between %s reset err: %v", discoverType, pi, err)
+		}
+	}()
+	klog.Infof("[%s] New stream between peer %s success", discoverType, pi)
 
 	streamWriter := protoio.NewDelimitedWriter(stream)
 	streamReader := protoio.NewDelimitedReader(stream, MaxReadSize) // TODO get maxSize from default
@@ -144,16 +139,12 @@ func (t *EdgeTunnel) discovery(discoverType discoverypb.DiscoveryType, pi peer.A
 		return
 	}
 
-	// cache node and peer info
+	// (re)mapping nodeName and peerID
 	nodeName := msg.GetNodeName()
 	klog.Infof("[%s] Discovery to %s : %s", protocol, nodeName, pi)
 	t.mu.Lock()
-	t.nodePeerMap[nodeName] = &pi
-	t.peerNodeMap[pi.ID] = nodeName
+	t.nodePeerMap[nodeName] = pi.ID
 	t.mu.Unlock()
-
-	// add relay maddrs
-	//t.p2pHost.Peerstore().AddAddrs(pi.ID, t.relayMaddrs, peerstore.PermanentAddrTTL)
 }
 
 func (t *EdgeTunnel) discoveryStreamHandler(stream network.Stream) {
@@ -166,6 +157,7 @@ func (t *EdgeTunnel) discoveryStreamHandler(stream network.Stream) {
 	streamWriter := protoio.NewDelimitedWriter(stream)
 	streamReader := protoio.NewDelimitedReader(stream, MaxReadSize) // TODO get maxSize from default
 
+	// read handshake
 	msg := new(discoverypb.Discovery)
 	err := streamReader.ReadMsg(msg)
 	if err != nil {
@@ -188,36 +180,39 @@ func (t *EdgeTunnel) discoveryStreamHandler(stream network.Stream) {
 		return
 	}
 
-	// cache node and peer info
+	// (re)mapping nodeName and peerID
 	klog.Infof("[%s] Discovery from %s : %s", protocol, nodeName, remotePeer)
 	t.mu.Lock()
-	t.nodePeerMap[nodeName] = &remotePeer
-	t.peerNodeMap[remotePeer.ID] = nodeName
+	t.nodePeerMap[nodeName] = remotePeer.ID
 	t.mu.Unlock()
-
-	// add relay maddrs
-	t.p2pHost.Peerstore().AddAddrs(remotePeer.ID, t.relayMaddrs, peerstore.PermanentAddrTTL)
 }
 
 func (t *EdgeTunnel) GetProxyStream(opts proxypb.ProxyOptions) (*libp2p.StreamConn, error) {
 	destName := opts.NodeName
-	destInfo, exists := t.nodePeerMap[destName]
+	destID, exists := t.nodePeerMap[destName]
 	if !exists {
-		return nil, fmt.Errorf("failed to found peer node %s in cache", destName)
-	}
-
-	if len(t.p2pHost.Network().ConnsToPeer(destInfo.ID)) < 2 {
-		klog.V(4).Infof("Try to connect with peer node %s", destName)
-		err := t.p2pHost.Connect(t.hostCtx, *destInfo)
+		klog.Warningf("Could not find %s peer in cache", destName)
+		var err error
+		destID, err = PeerIDFromString(destName)
 		if err != nil {
-			return nil, fmt.Errorf("connect to %s err: %w", destName, err)
+			return nil, fmt.Errorf("failed to generate peer id for %s err: %w", destName, err)
 		}
+		destInfo := &peer.AddrInfo{destID, []ma.Multiaddr{}}
+		err = AddCircuitAddrsToPeer(destInfo, t.relayPeers)
+		if err != nil {
+			return nil, fmt.Errorf("failed to add circuit addrs to peer %s", destInfo)
+		}
+		t.p2pHost.Peerstore().AddAddrs(destInfo.ID, destInfo.Addrs, peerstore.PermanentAddrTTL)
+		klog.Infof("Auto generate peer info: %s", t.p2pHost.Peerstore().PeerInfo(destID))
+		// mapping nodeName and peerID
+		t.nodePeerMap[destName] = destID
 	}
 
-	stream, err := t.p2pHost.NewStream(network.WithUseTransient(t.hostCtx, "for-relay"), destInfo.ID, proxypb.ProxyProtocol)
+	stream, err := t.p2pHost.NewStream(network.WithUseTransient(t.hostCtx, "for-relay"), destID, proxypb.ProxyProtocol)
 	if err != nil {
 		return nil, fmt.Errorf("new stream between %s err: %w", destName, err)
 	}
+	klog.Infof("New stream between peer %s success", destID)
 	// Will close the stream elsewhere
 	// defer stream.Close()
 
@@ -273,6 +268,7 @@ func (t *EdgeTunnel) proxyStreamHandler(stream network.Stream) {
 	streamWriter := protoio.NewDelimitedWriter(stream)
 	streamReader := protoio.NewDelimitedReader(stream, MaxReadSize) // TODO get maxSize from default
 
+	// read handshake
 	msg := new(proxypb.Proxy)
 	err := streamReader.ReadMsg(msg)
 	if err != nil {
@@ -351,100 +347,6 @@ func tryDialEndpoint(protocol, ip string, port int) (conn net.Conn, err error) {
 	return nil, err
 }
 
-func (t *EdgeTunnel) runController() {
-	informerFactory := informers.NewSharedInformerFactory(t.kubeClient, t.resyncPeriod)
-	t.initNodeController(informerFactory.Core().V1().Nodes(), t.resyncPeriod)
-	go t.runNodeController(t.stopCh)
-
-	informerFactory.Start(t.stopCh)
-}
-
-func (t *EdgeTunnel) initNodeController(nodeInformer coreinformers.NodeInformer, resyncPeriod time.Duration) {
-	t.nodeCacheSynced = nodeInformer.Informer().HasSynced
-	nodeInformer.Informer().AddEventHandlerWithResyncPeriod(
-		cache.ResourceEventHandlerFuncs{
-			AddFunc:    t.handleAddNode,
-			UpdateFunc: t.handleUpdateNode,
-			DeleteFunc: t.handleDeleteNode,
-		}, resyncPeriod)
-}
-
-func (t *EdgeTunnel) runNodeController(stopCh <-chan struct{}) {
-	if !cache.WaitForNamedCacheSync("tunnel node controller", stopCh, t.nodeCacheSynced) {
-		return
-	}
-}
-
-func (t *EdgeTunnel) addPeer(name string) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	peerid, err := PeerIDFromString(name)
-	if err != nil {
-		klog.ErrorS(err, "Failed to generate peer id for %s", name)
-		return
-	}
-	t.nodePeerMap[name] = &peer.AddrInfo{peerid, []ma.Multiaddr{}}
-	t.peerNodeMap[peerid] = name
-}
-
-func (t *EdgeTunnel) delPeer(name string) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	pi, ok := t.nodePeerMap[name]
-	if !ok {
-		return
-	}
-	delete(t.peerNodeMap, pi.ID)
-	delete(t.nodePeerMap, name)
-}
-
-func (t *EdgeTunnel) handleAddNode(obj interface{}) {
-	node, ok := obj.(*corev1.Node)
-	if !ok {
-		utilruntime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
-		return
-	}
-	klog.Infof("======== %v", node.Name)
-	// The operations of nodePeerMap and peerNodeMap are atomic, so we
-	// can judge whether the peer info exists according to nodePeerMap
-	_, exists := t.nodePeerMap[node.Name]
-	if !exists {
-		t.addPeer(node.Name)
-	}
-}
-
-func (t *EdgeTunnel) handleUpdateNode(oldObj, newObj interface{}) {
-	oldNode, ok := oldObj.(*corev1.Node)
-	if !ok {
-		utilruntime.HandleError(fmt.Errorf("unexpected object type: %v", oldNode))
-		return
-	}
-	newNode, ok := newObj.(*corev1.Node)
-	if !ok {
-		utilruntime.HandleError(fmt.Errorf("unexpected object type: %v", newNode))
-		return
-	}
-
-	if oldNode.Name != newNode.Name {
-		t.delPeer(oldNode.Name)
-	}
-	_, exists := t.nodePeerMap[newNode.Name]
-	if !exists {
-		t.addPeer(newNode.Name)
-	}
-}
-
-func (t *EdgeTunnel) handleDeleteNode(obj interface{}) {
-	node, ok := obj.(*corev1.Node)
-	if !ok {
-		utilruntime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
-		return
-	}
-	t.delPeer(node.Name)
-}
-
 // TODO replace with async.Runner
 func (t *EdgeTunnel) Heartbeat() {
 	err := wait.PollUntil(HeartbeatInterval, func() (done bool, err error) {
@@ -495,7 +397,6 @@ func (t *EdgeTunnel) connectToRelay(relay *peer.AddrInfo) {
 }
 
 func (t *EdgeTunnel) Run() {
-	t.runController()
 	go t.runMdnsDiscovery()
 	go t.runDhtDiscovery()
 	t.Heartbeat()

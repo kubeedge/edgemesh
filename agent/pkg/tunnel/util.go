@@ -9,6 +9,7 @@ import (
 	"io"
 	mrand "math/rand"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -78,14 +79,17 @@ func AppendMultiaddrs(maddrs *[]ma.Multiaddr, dest ma.Multiaddr) {
 	}
 }
 
-func AddCircuitAddrsToPeer(peer *peer.AddrInfo, relays []ma.Multiaddr) {
-	for _, relay := range relays {
-		circuitAddr, err := ma.NewMultiaddr(fmt.Sprintf("%s/p2p-circuit", relay.String()))
-		if err != nil {
-			panic(err)
+func AddCircuitAddrsToPeer(peer *peer.AddrInfo, relayPeers map[string]*peer.AddrInfo) error {
+	for _, relay := range relayPeers {
+		for _, maddr := range relay.Addrs {
+			circuitAddr, err := ma.NewMultiaddr(strings.Join([]string{maddr.String(), "p2p", relay.ID.String(), "p2p-circuit"}, "/"))
+			if err != nil {
+				return err
+			}
+			peer.Addrs = append(peer.Addrs, circuitAddr)
 		}
-		peer.Addrs = append(peer.Addrs, circuitAddr)
 	}
+	return nil
 }
 
 func GeneratePeerInfo(hostname string, addrs []string) (*peer.AddrInfo, error) {
@@ -192,7 +196,7 @@ func GenerateRelayRecord(relayNodes []*config.RelayNode, protocol string, listen
 }
 
 func BootstrapConnect(ctx context.Context, ph p2phost.Host, peers map[string]*peer.AddrInfo) error {
-	return wait.PollImmediate(5*time.Second, time.Minute, func() (bool, error) { // todo get timeout from config
+	return wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) { // todo get timeout from config
 		var count int32
 		var wg sync.WaitGroup
 		for _, p := range peers {
