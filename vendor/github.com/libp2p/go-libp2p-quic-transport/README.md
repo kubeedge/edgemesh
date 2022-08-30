@@ -1,3 +1,7 @@
+# DEPRECATION NOTICE
+
+This package has moved into go-libp2p as a sub-package, github.com/libp2p/go-libp2p/p2p/transport/quic.
+
 # go-libp2p-quic-transport
 
 [![](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square)](https://protocol.ai)

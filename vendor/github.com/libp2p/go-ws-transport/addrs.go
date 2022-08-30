@@ -1,73 +1,39 @@
 package websocket
 
 import (
-	"fmt"
 	"net"
-	"net/url"
+
+	"github.com/libp2p/go-libp2p/p2p/transport/websocket"
 
 	ma "github.com/multiformats/go-multiaddr"
-	manet "github.com/multiformats/go-multiaddr/net"
 )
 
 // Addr is an implementation of net.Addr for WebSocket.
-type Addr struct {
-	*url.URL
-}
+// Deprecated: use github.com/libp2p/go-libp2p/p2p/transport/websocket.Addr instead.
+type Addr = websocket.Addr
 
-var _ net.Addr = (*Addr)(nil)
-
-// Network returns the network type for a WebSocket, "websocket".
-func (addr *Addr) Network() string {
-	return "websocket"
-}
-
-// NewAddr creates a new Addr using the given host string
+// NewAddr creates an Addr with `ws` scheme (insecure).
+//
+// Deprecated. Use NewAddrWithScheme.
 func NewAddr(host string) *Addr {
-	return &Addr{
-		URL: &url.URL{
-			Host: host,
-		},
-	}
+	// Older versions of the transport only supported insecure connections (i.e.
+	// WS instead of WSS). Assume that is the case here.
+	return NewAddrWithScheme(host, false)
 }
 
+// NewAddrWithScheme creates a new Addr using the given host string. isSecure
+// should be true for WSS connections and false for WS.
+// Deprecated: use github.com/libp2p/go-libp2p/p2p/transport/websocket.NewAddrWithScheme instead.
+func NewAddrWithScheme(host string, isSecure bool) *Addr {
+	return websocket.NewAddrWithScheme(host, isSecure)
+}
+
+// Deprecated: use github.com/libp2p/go-libp2p/p2p/transport/websocket.ConvertWebsocketMultiaddrToNetAddr instead.
 func ConvertWebsocketMultiaddrToNetAddr(maddr ma.Multiaddr) (net.Addr, error) {
-	_, host, err := manet.DialArgs(maddr)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewAddr(host), nil
+	return websocket.ConvertWebsocketMultiaddrToNetAddr(maddr)
 }
 
+// Deprecated: use github.com/libp2p/go-libp2p/p2p/transport/websocket.ParseWebsocketNetAddr instead.
 func ParseWebsocketNetAddr(a net.Addr) (ma.Multiaddr, error) {
-	wsa, ok := a.(*Addr)
-	if !ok {
-		return nil, fmt.Errorf("not a websocket address")
-	}
-
-	tcpaddr, err := net.ResolveTCPAddr("tcp", wsa.Host)
-	if err != nil {
-		return nil, err
-	}
-
-	tcpma, err := manet.FromNetAddr(tcpaddr)
-	if err != nil {
-		return nil, err
-	}
-
-	wsma, err := ma.NewMultiaddr("/ws")
-	if err != nil {
-		return nil, err
-	}
-
-	return tcpma.Encapsulate(wsma), nil
-}
-
-func parseMultiaddr(a ma.Multiaddr) (string, error) {
-	_, host, err := manet.DialArgs(a)
-	if err != nil {
-		return "", err
-	}
-
-	return "ws://" + host, nil
+	return websocket.ParseWebsocketNetAddr(a)
 }

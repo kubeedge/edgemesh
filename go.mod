@@ -4,30 +4,30 @@ go 1.16
 
 require (
 	github.com/buraksezer/consistent v0.9.0
-	github.com/cespare/xxhash/v2 v2.1.1
+	github.com/cespare/xxhash/v2 v2.1.2
 	github.com/coredns/coredns v1.8.7
 	github.com/go-chassis/go-archaius v0.20.0
 	github.com/go-chassis/go-chassis v1.7.1
 	github.com/golang/protobuf v1.5.2
-	github.com/ipfs/go-log/v2 v2.5.0
+	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/kubeedge/beehive v0.0.0
 	github.com/kubeedge/kubeedge v1.6.2
-	github.com/libp2p/go-libp2p v0.18.0
-	github.com/libp2p/go-libp2p-core v0.14.0
-	github.com/libp2p/go-libp2p-discovery v0.5.0
-	github.com/libp2p/go-libp2p-kad-dht v0.15.0
-	github.com/libp2p/go-libp2p-quic-transport v0.16.1
-	github.com/libp2p/go-libp2p-tls v0.3.1
-	github.com/libp2p/go-msgio v0.1.0
-	github.com/libp2p/go-tcp-transport v0.5.1
-	github.com/libp2p/go-ws-transport v0.6.0
-	github.com/multiformats/go-multiaddr v0.5.0
+	github.com/libp2p/go-libp2p v0.21.0
+	github.com/libp2p/go-libp2p-core v0.19.1
+	github.com/libp2p/go-libp2p-discovery v0.7.0
+	github.com/libp2p/go-libp2p-kad-dht v0.17.0
+	github.com/libp2p/go-libp2p-quic-transport v0.18.0
+	github.com/libp2p/go-libp2p-tls v0.5.0
+	github.com/libp2p/go-msgio v0.2.0
+	github.com/libp2p/go-tcp-transport v0.6.1
+	github.com/libp2p/go-ws-transport v0.7.0
+	github.com/multiformats/go-multiaddr v0.6.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.16.0
 	github.com/opencontainers/runc v1.0.2
 	github.com/spf13/cobra v1.2.1
 	github.com/vishvananda/netlink v1.1.0
-	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e
+	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
 	istio.io/api v0.0.0-20220124163811-3adce9124ae7
 	istio.io/client-go v1.12.3
 	k8s.io/api v0.23.1
