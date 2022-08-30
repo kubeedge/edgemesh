@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	ipfslog "github.com/ipfs/go-log/v2"
 	"github.com/kubeedge/beehive/pkg/core"
@@ -12,7 +13,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
+	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
+	relayv1 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv1/relay"
 	ma "github.com/multiformats/go-multiaddr"
 	"k8s.io/klog/v2"
 
@@ -52,14 +54,14 @@ type EdgeTunnel struct {
 	isRelay      bool
 	relayMaddrs  []ma.Multiaddr
 	relayPeers   map[string]*peer.AddrInfo
-	relayService *relayv2.Relay
+	relayService *relayv1.Relay
 
 	stopCh chan struct{}
 }
 
 func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode TunnelMode) (*EdgeTunnel, error) {
 	// for debug
-	ipfslog.SetAllLoggers(ipfslog.LevelError)
+	ipfslog.SetAllLoggers(ipfslog.LevelInfo)
 
 	// TODO Set the NodeName variable in the outer function
 	c.NodeName = util.FetchNodeName()
@@ -82,7 +84,7 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 			idht, err = dht.New(ctx, h)
 			return idht, err
 		}),
-		libp2p.EnableAutoRelay(),
+		libp2p.EnableAutoRelay(autorelay.WithCircuitV1Support(), autorelay.WithBootDelay(15*time.Second)),
 		libp2p.EnableNATService(),
 	}
 
@@ -106,14 +108,19 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 	}
 	klog.V(0).Infof("I'm %s\n", fmt.Sprintf("{%v: %v}", h.ID(), h.Addrs()))
 
-	// If this host is a relay node, we need to run libp2p relayv2 service
-	var relayService *relayv2.Relay
+	// If this host is a relay node, we need to run libp2p relayv1 service
+	var relayService *relayv1.Relay
 	if isRelay {
-		relayService, err = relayv2.New(h) // TODO close relayService
+		relayService, err = relayv1.NewRelay(h) // TODO close relayService
 		if err != nil {
-			return nil, fmt.Errorf("run libp2p relayv2 service error: %w", err)
+			return nil, fmt.Errorf("run libp2p relayv1 service error: %w", err)
 		}
 		klog.Infof("Run as a relay node")
+	}
+
+	klog.Infof("Bootstrapping the DHT")
+	if err = idht.Bootstrap(ctx); err != nil {
+		return nil, fmt.Errorf("failed to bootstrap dht: %w", err)
 	}
 
 	// connect to bootstrap
@@ -133,10 +140,6 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 	dhtPeerChan, err := initDHT(ctx, idht, defaultRendezvous)
 	if err != nil {
 		return nil, fmt.Errorf("init dht discovery error: %w", err)
-	}
-	klog.Infof("Bootstrapping the DHT")
-	if err = idht.Bootstrap(ctx); err != nil {
-		return nil, fmt.Errorf("failed to bootstrap dht: %w", err)
 	}
 
 	edgeTunnel := &EdgeTunnel{

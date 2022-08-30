@@ -11,10 +11,10 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
-	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
-	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
+	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
+	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 	"github.com/libp2p/go-msgio/protoio"
 	ma "github.com/multiformats/go-multiaddr"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -66,12 +66,8 @@ func (t *EdgeTunnel) runMdnsDiscovery() {
 }
 
 func initDHT(ctx context.Context, idht *dht.IpfsDHT, rendezvous string) (<-chan peer.AddrInfo, error) {
-	routingDiscovery := discovery.NewRoutingDiscovery(idht)
-	discovery.Advertise(ctx, routingDiscovery, rendezvous)
-	// The default value of autorelay.AdvertiseBootDelay is 15 min, but I hope
-	// that the relay nodes can take on the role of RelayV2 as soon as possible.
-	autorelay.AdvertiseBootDelay = 15 * time.Second
-	autorelay.Advertise(ctx, routingDiscovery)
+	routingDiscovery := drouting.NewRoutingDiscovery(idht)
+	dutil.Advertise(ctx, routingDiscovery, rendezvous)
 	klog.Infof("Starting DHT discovery service")
 
 	peerChan, err := routingDiscovery.FindPeers(ctx, rendezvous)
@@ -94,7 +90,7 @@ func (t *EdgeTunnel) discovery(discoverType discoverypb.DiscoveryType, pi peer.A
 	}
 
 	klog.Infof("[%s] Discovery found peer: %s", discoverType, pi)
-	stream, err := t.p2pHost.NewStream(network.WithUseTransient(t.hostCtx, "for-relay"), pi.ID, discoverypb.DiscoveryProtocol)
+	stream, err := t.p2pHost.NewStream(t.hostCtx, pi.ID, discoverypb.DiscoveryProtocol)
 	if err != nil {
 		klog.Errorf("[%s] New stream between peer %s err: %v", discoverType, pi, err)
 		return
@@ -191,7 +187,6 @@ func (t *EdgeTunnel) GetProxyStream(opts proxypb.ProxyOptions) (*libp2p.StreamCo
 	destName := opts.NodeName
 	destID, exists := t.nodePeerMap[destName]
 	if !exists {
-		klog.Warningf("Could not find %s peer in cache", destName)
 		var err error
 		destID, err = PeerIDFromString(destName)
 		if err != nil {
@@ -203,12 +198,12 @@ func (t *EdgeTunnel) GetProxyStream(opts proxypb.ProxyOptions) (*libp2p.StreamCo
 			return nil, fmt.Errorf("failed to add circuit addrs to peer %s", destInfo)
 		}
 		t.p2pHost.Peerstore().AddAddrs(destInfo.ID, destInfo.Addrs, peerstore.PermanentAddrTTL)
-		klog.Infof("Auto generate peer info: %s", t.p2pHost.Peerstore().PeerInfo(destID))
+		klog.Infof("Could not find peer %s in cache, auto generate peer info: %s", destName, t.p2pHost.Peerstore().PeerInfo(destID))
 		// mapping nodeName and peerID
 		t.nodePeerMap[destName] = destID
 	}
 
-	stream, err := t.p2pHost.NewStream(network.WithUseTransient(t.hostCtx, "for-relay"), destID, proxypb.ProxyProtocol)
+	stream, err := t.p2pHost.NewStream(t.hostCtx, destID, proxypb.ProxyProtocol)
 	if err != nil {
 		return nil, fmt.Errorf("new stream between %s err: %w", destName, err)
 	}
