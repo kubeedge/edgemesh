@@ -88,11 +88,14 @@ func Register(c *config.EdgeTunnelConfig, mode TunnelMode) error {
 }
 
 func newEdgeTunnel(c *config.EdgeTunnelConfig, mode TunnelMode) (*EdgeTunnel, error) {
-	// for debug
-	ipfslog.SetAllLoggers(ipfslog.LevelInfo)
+	// TODO set and get mode in config
 
 	// TODO Set the NodeName variable in the outer function
 	c.NodeName = util.FetchNodeName()
+
+	if c.EnableIpfsLog {
+		ipfslog.SetAllLoggers(ipfslog.LevelInfo)
+	}
 
 	ctx := context.Background()
 

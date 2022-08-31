@@ -29,9 +29,13 @@ type EdgeTunnelConfig struct {
 	// default tcp
 	Transport string `json:"transport,omitempty"`
 	// Rendezvous unique string to identify group of libp2p nodes
+	// default EdgeMesh_PlayGround
 	Rendezvous string `json:"rendezvous,omitempty"`
 	// RelayNodes indicates some nodes that can become libp2p relay nodes
 	RelayNodes []*RelayNode `json:"relayNodes,omitempty"`
+	// EnableIpfsLog open ipfs log info
+	// default false
+	EnableIpfsLog bool `json:"enableIpfsLog,omitempty"`
 }
 
 type RelayNode struct {
@@ -52,7 +56,8 @@ func NewEdgeTunnelConfig() *EdgeTunnelConfig {
 		},
 		ListenPort:      defaultListenPort,
 		EnableHolePunch: true,
-		Rendezvous:      defaultRendezvous,
 		Transport:       "tcp",
+		Rendezvous:      defaultRendezvous,
+		EnableIpfsLog:   false,
 	}
 }
