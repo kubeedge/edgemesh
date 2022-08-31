@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	ipfslog "github.com/ipfs/go-log/v2"
 	"github.com/kubeedge/beehive/pkg/core"
@@ -15,6 +14,8 @@ import (
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
 	relayv1 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv1/relay"
+	"github.com/libp2p/go-libp2p/p2p/protocol/holepunch"
+	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
 	ma "github.com/multiformats/go-multiaddr"
 	"k8s.io/klog/v2"
 
@@ -51,10 +52,11 @@ type EdgeTunnel struct {
 	mdnsPeerChan chan peer.AddrInfo
 	dhtPeerChan  <-chan peer.AddrInfo
 
-	isRelay      bool
-	relayMaddrs  []ma.Multiaddr
-	relayPeers   map[string]*peer.AddrInfo
-	relayService *relayv1.Relay
+	isRelay          bool
+	relayMaddrs      []ma.Multiaddr
+	relayPeers       map[string]*peer.AddrInfo
+	relayService     *relayv1.Relay
+	holepunchService *holepunch.Service
 
 	stopCh chan struct{}
 }
@@ -84,7 +86,8 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 			idht, err = dht.New(ctx, h)
 			return idht, err
 		}),
-		libp2p.EnableAutoRelay(autorelay.WithCircuitV1Support(), autorelay.WithBootDelay(15*time.Second)),
+		libp2p.EnableRelay(),
+		libp2p.EnableAutoRelay(autorelay.WithCircuitV1Support()),
 		libp2p.EnableNATService(),
 	}
 
@@ -118,6 +121,19 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 		klog.Infof("Run as a relay node")
 	}
 
+	// new hole punching service
+	ids, err := identify.NewIDService(h)
+	if err != nil {
+		return nil, fmt.Errorf("new id service error: %w", err)
+	}
+	var holepunchService *holepunch.Service
+	if c.EnableHolePunch {
+		holepunchService, err = holepunch.NewService(h, ids)
+		if err != nil {
+			return nil, fmt.Errorf("run libp2p holepunch service error: %w", err)
+		}
+	}
+
 	klog.Infof("Bootstrapping the DHT")
 	if err = idht.Bootstrap(ctx); err != nil {
 		return nil, fmt.Errorf("failed to bootstrap dht: %w", err)
@@ -143,18 +159,19 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 	}
 
 	edgeTunnel := &EdgeTunnel{
-		Config:       c,
-		p2pHost:      h,
-		hostCtx:      ctx,
-		nodePeerMap:  make(map[string]peer.ID),
-		isRelay:      isRelay,
-		relayMaddrs:  relayMaddrs,
-		relayPeers:   relayPeers,
-		relayService: relayService,
-		rendezvous:   defaultRendezvous, // TODO get from config
-		mdnsPeerChan: mdnsPeerChan,
-		dhtPeerChan:  dhtPeerChan,
-		stopCh:       make(chan struct{}),
+		Config:           c,
+		p2pHost:          h,
+		hostCtx:          ctx,
+		nodePeerMap:      make(map[string]peer.ID),
+		isRelay:          isRelay,
+		relayMaddrs:      relayMaddrs,
+		relayPeers:       relayPeers,
+		relayService:     relayService,
+		holepunchService: holepunchService,
+		rendezvous:       defaultRendezvous, // TODO get from config
+		mdnsPeerChan:     mdnsPeerChan,
+		dhtPeerChan:      dhtPeerChan,
+		stopCh:           make(chan struct{}),
 	}
 
 	h.SetStreamHandler(discoverypb.DiscoveryProtocol, edgeTunnel.discoveryStreamHandler)
