@@ -58,6 +58,36 @@ type EdgeTunnel struct {
 	stopCh chan struct{}
 }
 
+// Name of EdgeTunnel
+func (t *EdgeTunnel) Name() string {
+	return modules.EdgeTunnelModuleName
+}
+
+// Group of EdgeTunnel
+func (t *EdgeTunnel) Group() string {
+	return modules.EdgeTunnelModuleName
+}
+
+// Enable indicates whether enable this module
+func (t *EdgeTunnel) Enable() bool {
+	return t.Config.Enable
+}
+
+// Start EdgeTunnel
+func (t *EdgeTunnel) Start() {
+	t.Run()
+}
+
+// Register register EdgeTunnel to beehive modules
+func Register(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode TunnelMode) error {
+	agent, err := newEdgeTunnel(c, ifm, mode)
+	if err != nil {
+		return fmt.Errorf("register module EdgeTunnel error: %v", err)
+	}
+	core.Register(agent)
+	return nil
+}
+
 func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode TunnelMode) (*EdgeTunnel, error) {
 	// for debug
 	ipfslog.SetAllLoggers(ipfslog.LevelInfo)
@@ -174,34 +204,4 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 	h.SetStreamHandler(proxypb.ProxyProtocol, edgeTunnel.proxyStreamHandler)
 	Agent = edgeTunnel // TODO convert var to func
 	return edgeTunnel, nil
-}
-
-// Register register EdgeTunnel to beehive modules
-func Register(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode TunnelMode) error {
-	agent, err := newEdgeTunnel(c, ifm, mode)
-	if err != nil {
-		return fmt.Errorf("register module EdgeTunnel error: %v", err)
-	}
-	core.Register(agent)
-	return nil
-}
-
-// Name of EdgeTunnel
-func (t *EdgeTunnel) Name() string {
-	return modules.EdgeTunnelModuleName
-}
-
-// Group of EdgeTunnel
-func (t *EdgeTunnel) Group() string {
-	return modules.EdgeTunnelModuleName
-}
-
-// Enable indicates whether enable this module
-func (t *EdgeTunnel) Enable() bool {
-	return t.Config.Enable
-}
-
-// Start EdgeTunnel
-func (t *EdgeTunnel) Start() {
-	t.Run()
 }
