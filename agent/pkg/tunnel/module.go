@@ -33,8 +33,6 @@ const (
 	ClientMode       TunnelMode = "ClientOnly"
 	ServerClientMode TunnelMode = "ServerAndClient"
 	UnknownMode      TunnelMode = "Unknown"
-
-	defaultRendezvous = "edgemesh-rendezvous"
 )
 
 var Agent *EdgeTunnel
@@ -48,7 +46,6 @@ type EdgeTunnel struct {
 	mu          sync.Mutex         // protect nodePeerMap
 	nodePeerMap map[string]peer.ID // map of Kubernetes node name and peer.ID
 
-	rendezvous   string // unique string to identify group of libp2p nodes
 	mdnsPeerChan chan peer.AddrInfo
 	dhtPeerChan  <-chan peer.AddrInfo
 
@@ -149,11 +146,11 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 	}
 
 	// init discovery services
-	mdnsPeerChan, err := initMDNS(h, defaultRendezvous)
+	mdnsPeerChan, err := initMDNS(h, c.Rendezvous)
 	if err != nil {
 		return nil, fmt.Errorf("init mdns discovery error: %w", err)
 	}
-	dhtPeerChan, err := initDHT(ctx, idht, defaultRendezvous)
+	dhtPeerChan, err := initDHT(ctx, idht, c.Rendezvous)
 	if err != nil {
 		return nil, fmt.Errorf("init dht discovery error: %w", err)
 	}
@@ -168,7 +165,6 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 		relayPeers:       relayPeers,
 		relayService:     relayService,
 		holepunchService: holepunchService,
-		rendezvous:       defaultRendezvous, // TODO get from config
 		mdnsPeerChan:     mdnsPeerChan,
 		dhtPeerChan:      dhtPeerChan,
 		stopCh:           make(chan struct{}),

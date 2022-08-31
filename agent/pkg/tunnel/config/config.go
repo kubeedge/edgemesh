@@ -7,6 +7,7 @@ import (
 
 const (
 	defaultListenPort = 20006
+	defaultRendezvous = "EdgeMesh_PlayGround"
 )
 
 type EdgeTunnelConfig struct {
@@ -27,6 +28,8 @@ type EdgeTunnelConfig struct {
 	// Transport indicates the transport protocol used by the p2p tunnel
 	// default tcp
 	Transport string `json:"transport,omitempty"`
+	// Rendezvous unique string to identify group of libp2p nodes
+	Rendezvous string `json:"rendezvous,omitempty"`
 	// RelayNodes indicates some nodes that can become libp2p relay nodes
 	RelayNodes []*RelayNode `json:"relayNodes,omitempty"`
 }
@@ -49,6 +52,7 @@ func NewEdgeTunnelConfig() *EdgeTunnelConfig {
 		},
 		ListenPort:      defaultListenPort,
 		EnableHolePunch: true,
+		Rendezvous:      defaultRendezvous,
 		Transport:       "tcp",
 	}
 }
