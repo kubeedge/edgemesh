@@ -22,7 +22,6 @@ import (
 	"github.com/kubeedge/edgemesh/agent/pkg/tunnel/config"
 	discoverypb "github.com/kubeedge/edgemesh/agent/pkg/tunnel/pb/discovery"
 	proxypb "github.com/kubeedge/edgemesh/agent/pkg/tunnel/pb/proxy"
-	"github.com/kubeedge/edgemesh/common/informers"
 	"github.com/kubeedge/edgemesh/common/modules"
 	"github.com/kubeedge/edgemesh/common/util"
 )
@@ -79,8 +78,8 @@ func (t *EdgeTunnel) Start() {
 }
 
 // Register register EdgeTunnel to beehive modules
-func Register(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode TunnelMode) error {
-	agent, err := newEdgeTunnel(c, ifm, mode)
+func Register(c *config.EdgeTunnelConfig, mode TunnelMode) error {
+	agent, err := newEdgeTunnel(c, mode)
 	if err != nil {
 		return fmt.Errorf("register module EdgeTunnel error: %v", err)
 	}
@@ -88,7 +87,7 @@ func Register(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode TunnelMod
 	return nil
 }
 
-func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode TunnelMode) (*EdgeTunnel, error) {
+func newEdgeTunnel(c *config.EdgeTunnelConfig, mode TunnelMode) (*EdgeTunnel, error) {
 	// for debug
 	ipfslog.SetAllLoggers(ipfslog.LevelInfo)
 
@@ -200,8 +199,10 @@ func newEdgeTunnel(c *config.EdgeTunnelConfig, ifm *informers.Manager, mode Tunn
 		stopCh:           make(chan struct{}),
 	}
 
-	h.SetStreamHandler(discoverypb.DiscoveryProtocol, edgeTunnel.discoveryStreamHandler)
-	h.SetStreamHandler(proxypb.ProxyProtocol, edgeTunnel.proxyStreamHandler)
+	if mode == ServerClientMode {
+		h.SetStreamHandler(discoverypb.DiscoveryProtocol, edgeTunnel.discoveryStreamHandler)
+		h.SetStreamHandler(proxypb.ProxyProtocol, edgeTunnel.proxyStreamHandler)
+	}
 	Agent = edgeTunnel // TODO convert var to func
 	return edgeTunnel, nil
 }

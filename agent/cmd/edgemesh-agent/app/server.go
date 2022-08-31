@@ -137,15 +137,12 @@ func registerModules(c *config.EdgeMeshAgentConfig, ifm *informers.Manager) []er
 		errs = append(errs, err)
 	}
 
-	mode := tunnel.UnknownMode
+	mode := tunnel.ServerClientMode
 	if c.Modules.EdgeGatewayConfig.Enable {
 		mode = tunnel.ClientMode
 	}
-	if c.Modules.EdgeProxyConfig.Enable {
-		mode = tunnel.ServerClientMode
-	}
 
-	if err := tunnel.Register(c.Modules.EdgeTunnelConfig, ifm, mode); err != nil {
+	if err := tunnel.Register(c.Modules.EdgeTunnelConfig, mode); err != nil {
 		errs = append(errs, err)
 	}
 	return errs
