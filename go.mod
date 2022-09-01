@@ -14,10 +14,8 @@ require (
 	github.com/kubeedge/kubeedge v1.6.2
 	github.com/libp2p/go-libp2p v0.21.0
 	github.com/libp2p/go-libp2p-core v0.19.1
-	github.com/libp2p/go-libp2p-discovery v0.7.0
 	github.com/libp2p/go-libp2p-kad-dht v0.17.0
 	github.com/libp2p/go-libp2p-quic-transport v0.18.0
-	github.com/libp2p/go-libp2p-tls v0.5.0
 	github.com/libp2p/go-msgio v0.2.0
 	github.com/libp2p/go-tcp-transport v0.6.1
 	github.com/libp2p/go-ws-transport v0.7.0

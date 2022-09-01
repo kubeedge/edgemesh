@@ -248,7 +248,6 @@ github.com/hashicorp/go-multierror
 # github.com/hashicorp/go-version v1.2.0
 github.com/hashicorp/go-version
 # github.com/hashicorp/golang-lru v0.5.4
-github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
 # github.com/huin/goupnp v1.0.3
 github.com/huin/goupnp
@@ -342,8 +341,6 @@ github.com/kubeedge/kubeedge/cloud/pkg/common/informers
 github.com/kubeedge/kubeedge/cloud/pkg/devicecontroller/types
 github.com/kubeedge/kubeedge/cloud/pkg/leaderelection
 github.com/kubeedge/kubeedge/common/constants
-github.com/kubeedge/kubeedge/edge/pkg/edgehub/common/certutil
-github.com/kubeedge/kubeedge/edge/pkg/edgehub/common/http
 github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1
 github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1/validation
 github.com/kubeedge/kubeedge/pkg/apis/componentconfig/edgecore/v1alpha1
@@ -371,7 +368,6 @@ github.com/libp2p/go-flow-metrics
 ## explicit
 github.com/libp2p/go-libp2p
 github.com/libp2p/go-libp2p/config
-github.com/libp2p/go-libp2p/p2p/discovery/backoff
 github.com/libp2p/go-libp2p/p2p/discovery/mdns
 github.com/libp2p/go-libp2p/p2p/discovery/routing
 github.com/libp2p/go-libp2p/p2p/discovery/util
@@ -439,9 +435,6 @@ github.com/libp2p/go-libp2p-core/sec
 github.com/libp2p/go-libp2p-core/sec/insecure
 github.com/libp2p/go-libp2p-core/sec/insecure/pb
 github.com/libp2p/go-libp2p-core/transport
-# github.com/libp2p/go-libp2p-discovery v0.7.0
-## explicit
-github.com/libp2p/go-libp2p-discovery
 # github.com/libp2p/go-libp2p-kad-dht v0.17.0
 ## explicit
 github.com/libp2p/go-libp2p-kad-dht
@@ -468,9 +461,6 @@ github.com/libp2p/go-libp2p-record
 github.com/libp2p/go-libp2p-record/pb
 # github.com/libp2p/go-libp2p-resource-manager v0.5.1
 github.com/libp2p/go-libp2p-resource-manager
-# github.com/libp2p/go-libp2p-tls v0.5.0
-## explicit
-github.com/libp2p/go-libp2p-tls
 # github.com/libp2p/go-msgio v0.2.0
 ## explicit
 github.com/libp2p/go-msgio
