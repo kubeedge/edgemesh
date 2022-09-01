@@ -1,7 +1,6 @@
 package parse
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -11,9 +10,6 @@ import (
 
 	"github.com/miekg/dns"
 )
-
-// ErrNoNameservers is returned by HostPortOrFile if no servers can be parsed.
-var ErrNoNameservers = errors.New("no nameservers found")
 
 // Strips the zone, but preserves any port that comes after the zone
 func stripZone(host string) string {
@@ -74,7 +70,7 @@ func HostPortOrFile(s ...string) ([]string, error) {
 		servers = append(servers, h)
 	}
 	if len(servers) == 0 {
-		return servers, ErrNoNameservers
+		return servers, fmt.Errorf("no nameservers found")
 	}
 	return servers, nil
 }

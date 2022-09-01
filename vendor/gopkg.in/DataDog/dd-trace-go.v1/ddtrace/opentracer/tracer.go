@@ -1,7 +1,7 @@
 // Unless explicitly stated otherwise all files in this repository are licensed
 // under the Apache License Version 2.0.
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
-// Copyright 2016 Datadog, Inc.
+// Copyright 2016-2020 Datadog, Inc.
 
 // Package opentracer provides a wrapper on top of the Datadog tracer that can be used with Opentracing.
 // It also provides a set of opentracing.StartSpanOption that are specific to Datadog's APM product.
@@ -20,8 +20,6 @@
 package opentracer
 
 import (
-	"context"
-
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/internal"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
@@ -49,9 +47,7 @@ func (t *opentracer) StartSpan(operationName string, options ...opentracing.Star
 	}
 	opts := []ddtrace.StartSpanOption{tracer.StartTime(sso.StartTime)}
 	for _, ref := range sso.References {
-		if v, ok := ref.ReferencedContext.(ddtrace.SpanContext); ok {
-			// opentracing.ChildOfRef and opentracing.FollowsFromRef will both be represented as
-			// children because Datadog APM does not have a concept of FollowsFrom references.
+		if v, ok := ref.ReferencedContext.(ddtrace.SpanContext); ok && ref.Type == opentracing.ChildOfRef {
 			opts = append(opts, tracer.ChildOf(v))
 			break // can only have one parent
 		}
@@ -73,7 +69,7 @@ func (t *opentracer) Inject(ctx opentracing.SpanContext, format interface{}, car
 	}
 	switch format {
 	case opentracing.TextMap, opentracing.HTTPHeaders:
-		return translateError(t.Tracer.Inject(sctx, carrier))
+		return t.Tracer.Inject(sctx, carrier)
 	default:
 		return opentracing.ErrUnsupportedFormat
 	}
@@ -83,35 +79,8 @@ func (t *opentracer) Inject(ctx opentracing.SpanContext, format interface{}, car
 func (t *opentracer) Extract(format interface{}, carrier interface{}) (opentracing.SpanContext, error) {
 	switch format {
 	case opentracing.TextMap, opentracing.HTTPHeaders:
-		sctx, err := t.Tracer.Extract(carrier)
-		return sctx, translateError(err)
+		return t.Tracer.Extract(carrier)
 	default:
 		return nil, opentracing.ErrUnsupportedFormat
-	}
-}
-
-var _ opentracing.TracerContextWithSpanExtension = (*opentracer)(nil)
-
-// ContextWithSpan implements opentracing.TracerContextWithSpanExtension.
-func (t *opentracer) ContextWithSpanHook(ctx context.Context, openSpan opentracing.Span) context.Context {
-	ddSpan, ok := openSpan.(*span)
-	if !ok {
-		return ctx
-	}
-	return tracer.ContextWithSpan(ctx, ddSpan.Span)
-}
-
-func translateError(err error) error {
-	switch err {
-	case tracer.ErrSpanContextNotFound:
-		return opentracing.ErrSpanContextNotFound
-	case tracer.ErrInvalidCarrier:
-		return opentracing.ErrInvalidCarrier
-	case tracer.ErrInvalidSpanContext:
-		return opentracing.ErrInvalidSpanContext
-	case tracer.ErrSpanContextCorrupted:
-		return opentracing.ErrSpanContextCorrupted
-	default:
-		return err
 	}
 }

@@ -110,7 +110,6 @@ func (s *Server) Serve(l net.Listener) error {
 	s.m.Lock()
 	s.server[tcp] = &dns.Server{Listener: l, Net: "tcp", Handler: dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
 		ctx := context.WithValue(context.Background(), Key{}, s)
-		ctx = context.WithValue(ctx, LoopKey{}, 0)
 		s.ServeDNS(ctx, w, r)
 	})}
 	s.m.Unlock()
@@ -124,7 +123,6 @@ func (s *Server) ServePacket(p net.PacketConn) error {
 	s.m.Lock()
 	s.server[udp] = &dns.Server{PacketConn: p, Net: "udp", Handler: dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
 		ctx := context.WithValue(context.Background(), Key{}, s)
-		ctx = context.WithValue(ctx, LoopKey{}, 0)
 		s.ServeDNS(ctx, w, r)
 	})}
 	s.m.Unlock()
@@ -213,7 +211,7 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 			// In case the user doesn't enable error plugin, we still
 			// need to make sure that we stay alive up here
 			if rec := recover(); rec != nil {
-				log.Errorf("Recovered from panic in server: %q %v", s.Addr, rec)
+				log.Errorf("Recovered from panic in server: %q", s.Addr)
 				vars.Panic.Inc()
 				errorAndMetricsFunc(s.Addr, w, r, dns.RcodeServerFailure)
 			}
@@ -247,11 +245,22 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 				return
 			}
 			if r.Question[0].Qtype != dns.TypeDS {
-				rcode, _ := h.pluginChain.ServeDNS(ctx, w, r)
-				if !plugin.ClientWrite(rcode) {
-					errorFunc(s.Addr, w, r, rcode)
+				if h.FilterFunc == nil {
+					rcode, _ := h.pluginChain.ServeDNS(ctx, w, r)
+					if !plugin.ClientWrite(rcode) {
+						errorFunc(s.Addr, w, r, rcode)
+					}
+					return
 				}
-				return
+				// FilterFunc is set, call it to see if we should use this handler.
+				// This is given to full query name.
+				if h.FilterFunc(q) {
+					rcode, _ := h.pluginChain.ServeDNS(ctx, w, r)
+					if !plugin.ClientWrite(rcode) {
+						errorFunc(s.Addr, w, r, rcode)
+					}
+					return
+				}
 			}
 			// The type is DS, keep the handler, but keep on searching as maybe we are serving
 			// the parent as well and the DS should be routed to it - this will probably *misroute* DS
@@ -328,7 +337,7 @@ func errorAndMetricsFunc(server string, w dns.ResponseWriter, r *dns.Msg, rc int
 	answer.SetRcode(r, rc)
 	state.SizeAndDo(answer)
 
-	vars.Report(server, state, vars.Dropped, rcode.ToString(rc), "" /* plugin */, answer.Len(), time.Now())
+	vars.Report(server, state, vars.Dropped, rcode.ToString(rc), answer.Len(), time.Now())
 
 	w.WriteMsg(answer)
 }
@@ -338,13 +347,8 @@ const (
 	udp = 1
 )
 
-type (
-	// Key is the context key for the current server added to the context.
-	Key struct{}
-
-	// LoopKey is the context key to detect server wide loops.
-	LoopKey struct{}
-)
+// Key is the context key for the current server added to the context.
+type Key struct{}
 
 // EnableChaos is a map with plugin names for which we should open CH class queries as we block these by default.
 var EnableChaos = map[string]struct{}{

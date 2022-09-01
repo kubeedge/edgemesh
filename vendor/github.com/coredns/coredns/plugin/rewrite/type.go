@@ -31,15 +31,18 @@ func newTypeRule(nextAction string, args ...string) (Rule, error) {
 }
 
 // Rewrite rewrites the current request.
-func (rule *typeRule) Rewrite(ctx context.Context, state request.Request) (ResponseRules, Result) {
+func (rule *typeRule) Rewrite(ctx context.Context, state request.Request) Result {
 	if rule.fromType > 0 && rule.toType > 0 {
 		if state.QType() == rule.fromType {
 			state.Req.Question[0].Qtype = rule.toType
-			return nil, RewriteDone
+			return RewriteDone
 		}
 	}
-	return nil, RewriteIgnored
+	return RewriteIgnored
 }
 
 // Mode returns the processing mode.
 func (rule *typeRule) Mode() string { return rule.nextAction }
+
+// GetResponseRule return a rule to rewrite the response with. Currently not implemented.
+func (rule *typeRule) GetResponseRule() ResponseRule { return ResponseRule{} }

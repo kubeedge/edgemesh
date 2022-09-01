@@ -5,7 +5,8 @@ go 1.16
 require (
 	github.com/buraksezer/consistent v0.9.0
 	github.com/cespare/xxhash/v2 v2.1.2
-	github.com/coredns/coredns v1.8.7
+	github.com/coredns/caddy v1.1.0
+	github.com/coredns/coredns v1.8.0
 	github.com/go-chassis/go-archaius v0.20.0
 	github.com/go-chassis/go-chassis v1.7.1
 	github.com/golang/protobuf v1.5.2
@@ -41,7 +42,6 @@ require (
 )
 
 replace (
-	github.com/coredns/coredns => github.com/Poorunga/coredns v1.8.8-alpha.1
 	github.com/kubeedge/beehive v0.0.0 => github.com/kubeedge/beehive v0.0.0-20201125122335-cd19bca6e436
 	github.com/kubeedge/viaduct v0.0.0 => github.com/kubeedge/viaduct v0.0.0-20210601015050-d832643a3d35
 	k8s.io/api v0.0.0 => k8s.io/api v0.23.0

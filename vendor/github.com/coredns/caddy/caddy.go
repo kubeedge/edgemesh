@@ -648,11 +648,6 @@ func executeDirectives(inst *Instance, filename string,
 						ServerBlockStorage:  storages[i][dir],
 					}
 
-					// only set up directives for the first key in a block
-					if j > 0 {
-						continue
-					}
-
 					setup, err := DirectiveAction(inst.serverType, dir)
 					if err != nil {
 						return err

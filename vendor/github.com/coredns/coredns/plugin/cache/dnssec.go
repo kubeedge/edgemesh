@@ -4,7 +4,7 @@ import "github.com/miekg/dns"
 
 // isDNSSEC returns true if r is a DNSSEC record. NSEC,NSEC3,DS and RRSIG/SIG
 // are DNSSEC records. DNSKEYs is not in this list on the assumption that the
-// client explicitly asked for it.
+// client explictly asked for it.
 func isDNSSEC(r dns.RR) bool {
 	switch r.Header().Rrtype {
 	case dns.TypeNSEC:
@@ -26,7 +26,7 @@ func isDNSSEC(r dns.RR) bool {
 // returned.
 func filterRRSlice(rrs []dns.RR, ttl uint32, do, dup bool) []dns.RR {
 	j := 0
-	rs := make([]dns.RR, len(rrs))
+	rs := make([]dns.RR, len(rrs), len(rrs))
 	for _, r := range rrs {
 		if !do && isDNSSEC(r) {
 			continue

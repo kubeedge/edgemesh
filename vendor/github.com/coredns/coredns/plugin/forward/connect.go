@@ -97,13 +97,6 @@ func (p *Proxy) Connect(ctx context.Context, state request.Request, opts options
 	}
 
 	pc.c.SetWriteDeadline(time.Now().Add(maxTimeout))
-	// records the origin Id before upstream.
-	originId := state.Req.Id
-	state.Req.Id = dns.Id()
-	defer func() {
-		state.Req.Id = originId
-	}()
-
 	if err := pc.c.WriteMsg(state.Req); err != nil {
 		pc.c.Close() // not giving it back
 		if err == io.EOF && cached {
@@ -121,10 +114,6 @@ func (p *Proxy) Connect(ctx context.Context, state request.Request, opts options
 			if err == io.EOF && cached {
 				return nil, ErrCachedClosed
 			}
-			// recovery the origin Id after upstream.
-			if ret != nil {
-				ret.Id = originId
-			}
 			return ret, err
 		}
 		// drop out-of-order responses
@@ -132,8 +121,6 @@ func (p *Proxy) Connect(ctx context.Context, state request.Request, opts options
 			break
 		}
 	}
-	// recovery the origin Id after upstream.
-	ret.Id = originId
 
 	p.transport.Yield(pc)
 
@@ -144,7 +131,7 @@ func (p *Proxy) Connect(ctx context.Context, state request.Request, opts options
 
 	RequestCount.WithLabelValues(p.addr).Add(1)
 	RcodeCount.WithLabelValues(rc, p.addr).Add(1)
-	RequestDuration.WithLabelValues(p.addr, rc).Observe(time.Since(start).Seconds())
+	RequestDuration.WithLabelValues(p.addr).Observe(time.Since(start).Seconds())
 
 	return ret, nil
 }

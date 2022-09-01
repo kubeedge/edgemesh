@@ -28,14 +28,13 @@ type DNS64 struct {
 	Next         plugin.Handler
 	Prefix       *net.IPNet
 	TranslateAll bool // Not comply with 5.1.1
-	AllowIPv4    bool
 	Upstream     UpstreamInt
 }
 
 // ServeDNS implements the plugin.Handler interface.
 func (d *DNS64) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	// Don't proxy if we don't need to.
-	if !d.requestShouldIntercept(&request.Request{W: w, Req: r}) {
+	if !requestShouldIntercept(&request.Request{W: w, Req: r}) {
 		return d.Next.ServeDNS(ctx, w, r)
 	}
 
@@ -70,13 +69,13 @@ func (d *DNS64) Name() string { return "dns64" }
 
 // requestShouldIntercept returns true if the request represents one that is eligible
 // for DNS64 rewriting:
-// 1. The request came in over IPv6 or the 'allow_ipv4' option is set
+// 1. The request came in over IPv6 (not in RFC)
 // 2. The request is of type AAAA
 // 3. The request is of class INET
-func (d *DNS64) requestShouldIntercept(req *request.Request) bool {
-	// Make sure that request came in over IPv4 unless AllowIPv4 option is enabled.
-	// Translating requests without taking into consideration client (source) IP might be problematic in dual-stack networks.
-	if !d.AllowIPv4 && req.Family() == 1 {
+func requestShouldIntercept(req *request.Request) bool {
+	// Only intercept with this when the request came in over IPv6. This is not mentioned in the RFC.
+	// File an issue if you think we should translate even requests made using IPv4, or have a configuration flag
+	if req.Family() == 1 { // If it came in over v4, don't do anything.
 		return false
 	}
 
@@ -130,9 +129,6 @@ func (d *DNS64) DoDNS64(ctx context.Context, w dns.ResponseWriter, r *dns.Msg, o
 func (d *DNS64) Synthesize(origReq, origResponse, resp *dns.Msg) *dns.Msg {
 	ret := dns.Msg{}
 	ret.SetReply(origReq)
-
-	// persist truncated state of AAAA response
-	ret.Truncated = resp.Truncated
 
 	// 5.3.2: DNS64 MUST pass the additional section unchanged
 	ret.Extra = resp.Extra

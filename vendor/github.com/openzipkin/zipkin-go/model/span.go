@@ -1,4 +1,4 @@
-// Copyright 2021 The OpenZipkin Authors
+// Copyright 2019 The OpenZipkin Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ package model
 import (
 	"encoding/json"
 	"errors"
-	"strings"
 	"time"
 )
 
@@ -87,8 +86,6 @@ func (s SpanModel) MarshalJSON() ([]byte, error) {
 		// will be naturally rounded. See TestSpanDurationRounding in span_test.go
 		s.Duration += 500 * time.Nanosecond
 	}
-
-	s.Name = strings.ToLower(s.Name)
 
 	if s.LocalEndpoint.Empty() {
 		s.LocalEndpoint = nil

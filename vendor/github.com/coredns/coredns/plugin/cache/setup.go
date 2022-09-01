@@ -41,7 +41,10 @@ func cacheParse(c *caddy.Controller) (*Cache, error) {
 		j++
 
 		// cache [ttl] [zones..]
+		origins := make([]string, len(c.ServerBlockKeys))
+		copy(origins, c.ServerBlockKeys)
 		args := c.RemainingArgs()
+
 		if len(args) > 0 {
 			// first args may be just a number, then it is the ttl, if not it is a zone
 			ttl, err := strconv.Atoi(args[0])
@@ -54,8 +57,10 @@ func cacheParse(c *caddy.Controller) (*Cache, error) {
 				ca.nttl = time.Duration(ttl) * time.Second
 				args = args[1:]
 			}
+			if len(args) > 0 {
+				copy(origins, args)
+			}
 		}
-		origins := plugin.OriginsFromArgsOrServerBlock(args, c.ServerBlockKeys)
 
 		// Refinements? In an extra block.
 		for c.NextBlock() {
@@ -184,7 +189,11 @@ func cacheParse(c *caddy.Controller) (*Cache, error) {
 			}
 		}
 
+		for i := range origins {
+			origins[i] = plugin.Host(origins[i]).Normalize()
+		}
 		ca.Zones = origins
+
 		ca.pcache = cache.New(ca.pcap)
 		ca.ncache = cache.New(ca.ncap)
 	}

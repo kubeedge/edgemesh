@@ -4,9 +4,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -95,7 +95,7 @@ func loadRoots(caPath string) (*x509.CertPool, error) {
 	}
 
 	roots := x509.NewCertPool()
-	pem, err := os.ReadFile(caPath)
+	pem, err := ioutil.ReadFile(caPath)
 	if err != nil {
 		return nil, fmt.Errorf("error reading %s: %s", caPath, err)
 	}
@@ -108,6 +108,11 @@ func loadRoots(caPath string) (*x509.CertPool, error) {
 
 // NewHTTPSTransport returns an HTTP transport configured using tls.Config
 func NewHTTPSTransport(cc *tls.Config) *http.Transport {
+	// this seems like a bad idea but was here in the previous version
+	if cc != nil {
+		cc.InsecureSkipVerify = true
+	}
+
 	tr := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		Dial: (&net.Dialer{

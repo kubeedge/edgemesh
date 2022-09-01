@@ -1,4 +1,4 @@
-// Copyright 2021 The OpenZipkin Authors
+// Copyright 2019 The OpenZipkin Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -120,7 +120,7 @@ func ParseSingleHeader(contextHeader string) (*model.SpanContext, error) {
 			pos = 16
 		}
 
-		low, err := strconv.ParseUint(contextHeader[pos:pos+16], 16, 64)
+		low, err := strconv.ParseUint(contextHeader[pos+1:pos+16], 16, 64)
 		if err != nil {
 			return nil, ErrInvalidTraceIDValue
 		}

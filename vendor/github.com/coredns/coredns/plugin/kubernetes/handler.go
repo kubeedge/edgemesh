@@ -2,8 +2,6 @@ package kubernetes
 
 import (
 	"context"
-	"strings"
-	"sync/atomic"
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/request"
@@ -29,10 +27,6 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 		err     error
 	)
 
-	if wildQuestion(state.Name()) {
-		atomic.AddUint64(&wildCount, 1)
-	}
-
 	switch state.QType() {
 	case dns.TypeA:
 		records, err = plugin.A(ctx, &k, zone, state, nil, plugin.Options{})
@@ -49,11 +43,7 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 	case dns.TypeSRV:
 		records, extra, err = plugin.SRV(ctx, &k, zone, state, plugin.Options{})
 	case dns.TypeSOA:
-		if qname == zone {
-			records, err = plugin.SOA(ctx, &k, zone, state, plugin.Options{})
-		}
-	case dns.TypeAXFR, dns.TypeIXFR:
-		return dns.RcodeRefused, nil
+		records, err = plugin.SOA(ctx, &k, zone, state, plugin.Options{})
 	case dns.TypeNS:
 		if state.Name() == zone {
 			records, extra, err = plugin.NS(ctx, &k, zone, state, plugin.Options{})
@@ -90,13 +80,9 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 	m.Authoritative = true
 	m.Answer = append(m.Answer, records...)
 	m.Extra = append(m.Extra, extra...)
+
 	w.WriteMsg(m)
-
 	return dns.RcodeSuccess, nil
-}
-
-func wildQuestion(name string) bool {
-	return strings.HasPrefix(name, "*.") || strings.HasPrefix(name, "any.") || strings.Contains(name, ".*.") || strings.Contains(name, ".any.")
 }
 
 // Name implements the Handler interface.

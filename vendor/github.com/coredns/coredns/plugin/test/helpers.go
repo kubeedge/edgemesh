@@ -29,15 +29,14 @@ func (p RRSet) Less(i, j int) bool { return p[i].String() < p[j].String() }
 // Case represents a test case that encapsulates various data from a query and response.
 // Note that is the TTL of a record is 303 we don't compare it with the TTL.
 type Case struct {
-	Qname             string
-	Qtype             uint16
-	Rcode             int
-	Do                bool
-	AuthenticatedData bool
-	Answer            []dns.RR
-	Ns                []dns.RR
-	Extra             []dns.RR
-	Error             error
+	Qname  string
+	Qtype  uint16
+	Rcode  int
+	Do     bool
+	Answer []dns.RR
+	Ns     []dns.RR
+	Extra  []dns.RR
+	Error  error
 }
 
 // Msg returns a *dns.Msg embedded in c.
@@ -99,9 +98,6 @@ func DNSKEY(rr string) *dns.DNSKEY { r, _ := dns.NewRR(rr); return r.(*dns.DNSKE
 
 // DS returns a DS record from rr. It panics on errors.
 func DS(rr string) *dns.DS { r, _ := dns.NewRR(rr); return r.(*dns.DS) }
-
-// NAPTR returns a NAPTR record from rr. It panics on errors.
-func NAPTR(rr string) *dns.NAPTR { r, _ := dns.NewRR(rr); return r.(*dns.NAPTR) }
 
 // OPT returns an OPT record with UDP buffer size set to bufsize and the DO bit set to do.
 func OPT(bufsize int, do bool) *dns.OPT {
