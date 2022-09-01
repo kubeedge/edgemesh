@@ -16,14 +16,15 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/proxy"
 
-	"github.com/kubeedge/edgemesh/agent/pkg/tunnel"
-	proxypb "github.com/kubeedge/edgemesh/agent/pkg/tunnel/pb/proxy"
-	"github.com/kubeedge/edgemesh/common/util"
+	"github.com/kubeedge/edgemesh/pkg/common/util"
+	"github.com/kubeedge/edgemesh/pkg/tunnel"
+	proxypb "github.com/kubeedge/edgemesh/pkg/tunnel/pb/proxy"
 )
 
 var myNodeName string
 
 func init() {
+	// TODO remove
 	myNodeName = util.FetchNodeName()
 }
 

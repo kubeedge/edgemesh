@@ -20,14 +20,12 @@ GO_LDFLAGS='$(shell hack/make-rules/version.sh)'
 
 # make all builds both agent and server binaries
 
-BINARIES=edgemesh-agent \
-         edgemesh-server
+BINARIES=edgemesh-agent
 
 # the env PLATFORMS defines to generate linux images for amd 64-bit, arm 64-bit and armv7 architectures
 # the full list of PLATFORMS is linux/amd64,linux/arm64,linux/arm/v7
-PLATFORMS ?= linux/amd64,linux/arm64
-COMPONENTS=agent \
-           server
+PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7
+COMPONENTS=agent
 
 .EXPORT_ALL_VARIABLES:
 OUT_DIR ?= _output/local
@@ -50,8 +48,8 @@ define ALL_HELP_INFO
 #     to "-N -l" to disable optimizations and inlining, this will be helpful when you want to
 #     use the debugging tools like delve. When GOLDFLAGS is unspecified, it defaults to "-s -w" which strips
 #     debug information, see https://golang.org/cmd/link for other flags.
-
 endef
+
 .PHONY: all
 ifeq ($(HELP),y)
 all: clean
@@ -166,9 +164,9 @@ lb:
 endif
 
 
-.PHONY: images agentimage serverimage
-images: agentimage serverimage
-agentimage serverimage:
+.PHONY: images agentimage
+images: agentimage
+agentimage:
 	docker build --build-arg GO_LDFLAGS=${GO_LDFLAGS} -t kubeedge/edgemesh-${@:image=}:${IMAGE_TAG} -f build/${@:image=}/Dockerfile .
 
 
