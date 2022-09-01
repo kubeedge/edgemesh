@@ -3,10 +3,7 @@ package dns
 import (
 	"fmt"
 
-	"github.com/coredns/coredns/coremain"
 	"github.com/kubeedge/beehive/pkg/core"
-	"k8s.io/klog/v2"
-
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
 	"github.com/kubeedge/edgemesh/pkg/common/informers"
@@ -34,12 +31,7 @@ func (d *EdgeDNS) Enable() bool {
 
 // Start EdgeDNS
 func (d *EdgeDNS) Start() {
-	if d.Config.CacheDNS.Enable {
-		klog.Infof("Runs CoreDNS v%s as a cache dns", coremain.CoreVersion)
-	} else {
-		klog.Infof("Runs CoreDNS v%s as a local dns", coremain.CoreVersion)
-	}
-	coremain.Run()
+	d.Run()
 }
 
 // Register register edgedns to beehive modules
