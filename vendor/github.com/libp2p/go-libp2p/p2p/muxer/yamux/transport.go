@@ -1,11 +1,11 @@
 package yamux
 
 import (
-	"io/ioutil"
+	"io"
 	"math"
 	"net"
 
-	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p/core/network"
 
 	"github.com/libp2p/go-yamux/v3"
 )
@@ -21,7 +21,7 @@ func init() {
 	// totally unacceptable.
 	config.MaxStreamWindowSize = uint32(16 * 1024 * 1024)
 	// don't spam
-	config.LogOutput = ioutil.Discard
+	config.LogOutput = io.Discard
 	// We always run over a security transport that buffers internally
 	// (i.e., uses a block cipher).
 	config.ReadBufSize = 0

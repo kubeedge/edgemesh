@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/canonicallog"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/transport"
+	"github.com/libp2p/go-libp2p/core/canonicallog"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/transport"
 
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -155,7 +155,7 @@ var BackoffMax = time.Minute * 5
 // Backoff is not exponential, it's quadratic and computed according to the
 // following formula:
 //
-//     BackoffBase + BakoffCoef * PriorBackoffs^2
+//	BackoffBase + BakoffCoef * PriorBackoffs^2
 //
 // Where PriorBackoffs is the number of previous backoffs.
 func (db *DialBackoff) AddBackoff(p peer.ID, addr ma.Multiaddr) {
@@ -403,7 +403,7 @@ func (s *Swarm) dialAddr(ctx context.Context, p peer.ID, addr ma.Multiaddr) (tra
 	return connC, nil
 }
 
-// TODO We should have a `IsFdConsuming() bool` method on the `Transport` interface in go-libp2p-core/transport.
+// TODO We should have a `IsFdConsuming() bool` method on the `Transport` interface in go-libp2p/core/transport.
 // This function checks if any of the transport protocols in the address requires a file descriptor.
 // For now:
 // A Non-circuit address which has the TCP/UNIX protocol is deemed FD consuming.

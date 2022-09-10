@@ -5,6 +5,9 @@ package libp2p
 import (
 	"crypto/rand"
 
+	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoremem"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"github.com/libp2p/go-libp2p/p2p/muxer/yamux"
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
 	"github.com/libp2p/go-libp2p/p2p/security/noise"
@@ -13,10 +16,6 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	ws "github.com/libp2p/go-libp2p/p2p/transport/websocket"
 
-	"github.com/libp2p/go-libp2p-core/crypto"
-
-	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
-	rcmgr "github.com/libp2p/go-libp2p-resource-manager"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -56,7 +55,7 @@ var DefaultPeerstore Option = func(cfg *Config) error {
 
 // RandomIdentity generates a random identity. (default behaviour)
 var RandomIdentity = func(cfg *Config) error {
-	priv, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
+	priv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		return err
 	}
