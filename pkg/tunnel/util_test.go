@@ -2,10 +2,11 @@ package tunnel
 
 import (
 	"fmt"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/multiformats/go-multiaddr"
 	"reflect"
 	"testing"
+
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiformats/go-multiaddr"
 )
 
 /**
@@ -120,7 +121,7 @@ func TestAddCircuitAddrsToPeer(t *testing.T) {
 		Addrs: *relay,
 	}
 
-	relayList := map[string]*peer.AddrInfo{
+	relayList := RelayMap{
 		"A": {pid, *target},
 		"B": {pid, *target},
 	}
@@ -151,7 +152,7 @@ func TestAppendMultiaddrs(t *testing.T) {
 
 	//test if not get destination
 	for _, n := range *destnode {
-		AppendMultiaddrs(node, n)
+		*node = AppendMultiaddrs(*node, n)
 	}
 	Peer := peer.AddrInfo{
 		ID:    "k8s",
@@ -259,7 +260,7 @@ func BenchmarkAppendMultiaddrs(b *testing.B) {
 	//test if not get destination
 	b.ResetTimer()
 	for _, n := range *destnode {
-		AppendMultiaddrs(node, n)
+		*node = AppendMultiaddrs(*node, n)
 	}
 	b.StopTimer()
 }
@@ -274,7 +275,7 @@ func BenchmarkAddCircuitAddrsToPeer(b *testing.B) {
 	}
 	target := generatemultiB(Nodes, b)
 
-	relayList := map[string]*peer.AddrInfo{
+	relayList := RelayMap{
 		"A": {"12D3KooWF3RB8SoMRZht7MDqF6GoipSPdFxVb9EikoU7NuPX6hjk", *target},
 		"B": {"12D3KooWF3RB8SoMRZht7MDqF3RB8SSPdFxVb9EikoU7NuPXjkoP", *target},
 	}

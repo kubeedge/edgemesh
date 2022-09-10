@@ -2,46 +2,34 @@ package tunnel
 
 import (
 	"bytes"
-	"context"
 	"crypto/md5"
 	"encoding/binary"
 	"fmt"
 	"io"
 	mrand "math/rand"
-	"os"
+	"net"
 	"strings"
-	"sync"
-	"sync/atomic"
-	"time"
+
+	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
+	quic "github.com/libp2p/go-libp2p/p2p/transport/quic"
+	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
+	ws "github.com/libp2p/go-libp2p/p2p/transport/websocket"
+	ma "github.com/multiformats/go-multiaddr"
+	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
-	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	p2phost "github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
-	quic "github.com/libp2p/go-libp2p-quic-transport"
-	"github.com/libp2p/go-tcp-transport"
-	ws "github.com/libp2p/go-ws-transport"
-	ma "github.com/multiformats/go-multiaddr"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/klog/v2"
 )
 
 const (
-	// These are the protocols supported by libp2p Transport
+	UDP       = "udp"
 	TCP       = "tcp"
 	Websocket = "ws"
 	Quic      = "quic"
-)
 
-func HostnameOrDie() string {
-	hostname, err := os.Hostname()
-	if err != nil {
-		panic(err)
-	}
-	return hostname
-}
+	ipIndex = 2
+)
 
 func GenerateKeyPairWithString(s string) (crypto.PrivKey, error) {
 	m := md5.New()
@@ -64,21 +52,15 @@ func GenerateKeyPairWithString(s string) (crypto.PrivKey, error) {
 	return privKey, nil
 }
 
-// AppendMultiaddrs appending a new maddr to maddrs, this function will consider deduplication.
-func AppendMultiaddrs(maddrs *[]ma.Multiaddr, dest ma.Multiaddr) {
-	existed := false
-	for _, addr := range *maddrs {
-		if dest.Equal(addr) {
-			existed = true
-			break
-		}
+// AppendMultiaddrs append a maddr into maddrs, do nothing if contains
+func AppendMultiaddrs(maddrs []ma.Multiaddr, dest ma.Multiaddr) []ma.Multiaddr {
+	if !ma.Contains(maddrs, dest) {
+		maddrs = append(maddrs, dest)
 	}
-	if !existed {
-		*maddrs = append(*maddrs, dest)
-	}
+	return maddrs
 }
 
-func AddCircuitAddrsToPeer(peer *peer.AddrInfo, relayPeers map[string]*peer.AddrInfo) error {
+func AddCircuitAddrsToPeer(peer *peer.AddrInfo, relayPeers RelayMap) error {
 	for _, relay := range relayPeers {
 		for _, maddr := range relay.Addrs {
 			circuitAddr, err := ma.NewMultiaddr(strings.Join([]string{maddr.String(), "p2p", relay.ID.String(), "p2p-circuit"}, "/"))
@@ -108,7 +90,6 @@ func GeneratePeerInfo(hostname string, addrs []string) (*peer.AddrInfo, error) {
 		ID:    pid,
 		Addrs: mas,
 	}, nil
-
 }
 
 func PeerIDFromString(s string) (peer.ID, error) {
@@ -165,9 +146,8 @@ func StringsToMaddrs(addrStrings []string) (mas []ma.Multiaddr, err error) {
 	return
 }
 
-func GenerateRelayRecord(relayNodes []*v1alpha1.RelayNode, protocol string, listenPort int) (map[string]*peer.AddrInfo, []ma.Multiaddr) {
-	relayPeers := make(map[string]*peer.AddrInfo)
-	relayMaddrs := make([]ma.Multiaddr, 0)
+func GenerateRelayMap(relayNodes []*v1alpha1.RelayNode, protocol string, listenPort int) RelayMap {
+	relayPeers := make(RelayMap)
 	for _, relayNode := range relayNodes {
 		nodeName := relayNode.NodeName
 		peerid, err := PeerIDFromString(nodeName)
@@ -189,43 +169,33 @@ func GenerateRelayRecord(relayNodes []*v1alpha1.RelayNode, protocol string, list
 			ID:    peerid,
 			Addrs: maddrs,
 		}
-		relayMaddrs = append(relayMaddrs, maddrs...)
 	}
-	return relayPeers, relayMaddrs
+	return relayPeers
 }
 
-func BootstrapConnect(ctx context.Context, ph p2phost.Host, peers map[string]*peer.AddrInfo) error {
-	return wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) { // todo get timeout from config
-		var count int32
-		var wg sync.WaitGroup
-		for _, p := range peers {
-			if p.ID == ph.ID() {
-				atomic.AddInt32(&count, 1)
-				continue
-			}
-
-			wg.Add(1)
-			go func(p *peer.AddrInfo) {
-				defer wg.Done()
-				defer klog.Infoln("bootstrapDial", ph.ID(), p.ID)
-				klog.Infof("%s bootstrapping to %s", ph.ID(), p.ID)
-
-				ph.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
-				if err := ph.Connect(ctx, *p); err != nil {
-					klog.Infoln("bootstrapDialFailed", p.ID)
-					klog.Infof("failed to bootstrap with %v: %s", p.ID, err)
-					return
-				}
-				klog.Infoln("bootstrapDialSuccess", p.ID)
-				klog.Infof("bootstrapped with %v", p.ID)
-				atomic.AddInt32(&count, 1)
-			}(p)
+func FilterPrivateMaddr(maddrs []ma.Multiaddr) []ma.Multiaddr {
+	result := make([]ma.Multiaddr, 0)
+	for _, maddr := range maddrs {
+		maddrElements := strings.Split(maddr.String(), "/")
+		ip := maddrElements[ipIndex]
+		ipAddress := net.ParseIP(ip)
+		if !ipAddress.IsLoopback() && !ipAddress.IsPrivate() {
+			result = append(result, maddr)
 		}
-		wg.Wait()
-		if count != int32(len(peers)) {
-			klog.Errorf("Not all bootstrapDail connected, continue bootstrapDail...")
-			return false, nil
+	}
+	return result
+}
+
+func FilterCircuitMaddr(maddrs []ma.Multiaddr) []ma.Multiaddr {
+	result := make([]ma.Multiaddr, 0)
+	for _, maddr := range maddrs {
+		if !strings.Contains(maddr.String(), "p2p-circuit") {
+			result = append(result, maddr)
 		}
-		return true, nil
-	})
+	}
+	return result
+}
+
+func IsNoFindPeerError(err error) bool {
+	return strings.HasSuffix(err.Error(), "failed to find any peer in table")
 }

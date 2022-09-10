@@ -83,6 +83,9 @@ func NewDefaultEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 				Transport:       "tcp",
 				Rendezvous:      "EDGEMESH_PLAYGOUND",
 				EnableIpfsLog:   false,
+				MaxCandidates:   5,
+				HeartbeatPeriod: 120,
+				FinderPeriod:    60,
 			},
 		},
 	}

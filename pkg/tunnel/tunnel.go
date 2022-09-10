@@ -5,13 +5,17 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
+	ds "github.com/ipfs/go-datastore"
+	dsync "github.com/ipfs/go-datastore/sync"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/libp2p/go-libp2p-kad-dht/dual"
+	p2phost "github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
@@ -27,14 +31,16 @@ import (
 )
 
 const (
-	MaxReadSize  = 4096
-	MaxRetryTime = 3
-	UDP          = "udp"
+	MaxReadSize = 4096
 
-	HeartbeatInterval    = time.Minute // TODO get from config
-	retryConnectInterval = 2 * time.Second
-	retryConnectTime     = 3
+	DailRetryTime = 3
+	DailSleepTime = 200 * time.Microsecond
+
+	RetryTime     = 3
+	RetryInterval = 2 * time.Second
 )
+
+type RelayMap map[string]*peer.AddrInfo
 
 // discoveryNotifee implement mdns interface
 type discoveryNotifee struct {
@@ -47,11 +53,11 @@ func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 }
 
 // initMDNS initialize the MDNS service
-func initMDNS(peerhost host.Host, rendezvous string) (chan peer.AddrInfo, error) {
+func initMDNS(host p2phost.Host, rendezvous string) (chan peer.AddrInfo, error) {
 	n := &discoveryNotifee{}
 	n.PeerChan = make(chan peer.AddrInfo)
 
-	ser := mdns.NewMdnsService(peerhost, rendezvous, n)
+	ser := mdns.NewMdnsService(host, rendezvous, n)
 	if err := ser.Start(); err != nil {
 		return nil, err
 	}
@@ -65,8 +71,8 @@ func (t *EdgeTunnel) runMdnsDiscovery() {
 	}
 }
 
-func initDHT(ctx context.Context, idht *dht.IpfsDHT, rendezvous string) (<-chan peer.AddrInfo, error) {
-	routingDiscovery := drouting.NewRoutingDiscovery(idht)
+func initDHT(ctx context.Context, ddht *dual.DHT, rendezvous string) (<-chan peer.AddrInfo, error) {
+	routingDiscovery := drouting.NewRoutingDiscovery(ddht)
 	dutil.Advertise(ctx, routingDiscovery, rendezvous)
 	klog.Infof("Starting DHT discovery service")
 
@@ -84,13 +90,34 @@ func (t *EdgeTunnel) runDhtDiscovery() {
 	}
 }
 
+func (t *EdgeTunnel) isRelayPeer(id peer.ID) bool {
+	for _, relay := range t.relayMap {
+		if relay.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
 func (t *EdgeTunnel) discovery(discoverType discoverypb.DiscoveryType, pi peer.AddrInfo) {
 	if pi.ID == t.p2pHost.ID() {
 		return
 	}
 
-	klog.Infof("[%s] Discovery found peer: %s", discoverType, pi)
-	stream, err := t.p2pHost.NewStream(t.hostCtx, pi.ID, discoverypb.DiscoveryProtocol)
+	// If dht discovery finds a non-relay peer, add the circuit address to this peer.
+	// This is done to avoid delays in RESERVATION https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md.
+	if discoverType == discoverypb.DhtDiscovery && !t.isRelayPeer(pi.ID) {
+		addrInfo := peer.AddrInfo{ID: pi.ID, Addrs: []ma.Multiaddr{}}
+		err := AddCircuitAddrsToPeer(&addrInfo, t.relayMap)
+		if err != nil {
+			klog.Errorf("Failed to add circuit addrs to peer %s", addrInfo)
+			return
+		}
+		t.p2pHost.Peerstore().AddAddrs(pi.ID, addrInfo.Addrs, peerstore.TempAddrTTL)
+	}
+
+	klog.Infof("[%s] Discovery found peer: %s", discoverType, t.p2pHost.Peerstore().PeerInfo(pi.ID))
+	stream, err := t.p2pHost.NewStream(network.WithUseTransient(t.hostCtx, "relay"), pi.ID, discoverypb.DiscoveryProtocol)
 	if err != nil {
 		klog.Errorf("[%s] New stream between peer %s err: %v", discoverType, pi, err)
 		return
@@ -138,9 +165,7 @@ func (t *EdgeTunnel) discovery(discoverType discoverypb.DiscoveryType, pi peer.A
 	// (re)mapping nodeName and peerID
 	nodeName := msg.GetNodeName()
 	klog.Infof("[%s] Discovery to %s : %s", protocol, nodeName, pi)
-	t.mu.Lock()
 	t.nodePeerMap[nodeName] = pi.ID
-	t.mu.Unlock()
 }
 
 func (t *EdgeTunnel) discoveryStreamHandler(stream network.Stream) {
@@ -178,9 +203,7 @@ func (t *EdgeTunnel) discoveryStreamHandler(stream network.Stream) {
 
 	// (re)mapping nodeName and peerID
 	klog.Infof("[%s] Discovery from %s : %s", protocol, nodeName, remotePeer)
-	t.mu.Lock()
 	t.nodePeerMap[nodeName] = remotePeer.ID
-	t.mu.Unlock()
 }
 
 func (t *EdgeTunnel) GetProxyStream(opts proxypb.ProxyOptions) (*libp2p.StreamConn, error) {
@@ -192,24 +215,23 @@ func (t *EdgeTunnel) GetProxyStream(opts proxypb.ProxyOptions) (*libp2p.StreamCo
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate peer id for %s err: %w", destName, err)
 		}
-		destInfo := &peer.AddrInfo{destID, []ma.Multiaddr{}}
-		err = AddCircuitAddrsToPeer(destInfo, t.relayPeers)
+		destInfo := peer.AddrInfo{ID: destID, Addrs: []ma.Multiaddr{}}
+		err = AddCircuitAddrsToPeer(&destInfo, t.relayMap)
 		if err != nil {
 			return nil, fmt.Errorf("failed to add circuit addrs to peer %s", destInfo)
 		}
-		t.p2pHost.Peerstore().AddAddrs(destInfo.ID, destInfo.Addrs, peerstore.PermanentAddrTTL)
-		klog.Infof("Could not find peer %s in cache, auto generate peer info: %s", destName, t.p2pHost.Peerstore().PeerInfo(destID))
+		t.p2pHost.Peerstore().AddAddrs(destInfo.ID, destInfo.Addrs, peerstore.TempAddrTTL)
 		// mapping nodeName and peerID
+		klog.Infof("Could not find peer %s in cache, auto generate peer info: %s", destName, t.p2pHost.Peerstore().PeerInfo(destID))
 		t.nodePeerMap[destName] = destID
 	}
 
-	stream, err := t.p2pHost.NewStream(t.hostCtx, destID, proxypb.ProxyProtocol)
+	stream, err := t.p2pHost.NewStream(network.WithUseTransient(t.hostCtx, "relay"), destID, proxypb.ProxyProtocol)
 	if err != nil {
 		return nil, fmt.Errorf("new stream between %s err: %w", destName, err)
 	}
-	klog.Infof("New stream between peer %s success", destID)
-	// Will close the stream elsewhere
-	// defer stream.Close()
+	klog.Infof("New stream between peer %s success", t.p2pHost.Peerstore().PeerInfo(destID))
+	// defer stream.Close() // will close the stream elsewhere
 
 	streamWriter := protoio.NewDelimitedWriter(stream)
 	streamReader := protoio.NewDelimitedReader(stream, MaxReadSize)
@@ -314,7 +336,7 @@ func (t *EdgeTunnel) proxyStreamHandler(stream network.Stream) {
 func tryDialEndpoint(protocol, ip string, port int) (conn net.Conn, err error) {
 	switch protocol {
 	case TCP:
-		for i := 0; i < MaxRetryTime; i++ {
+		for i := 0; i < DailRetryTime; i++ {
 			conn, err = net.DialTCP(TCP, nil, &net.TCPAddr{
 				IP:   net.ParseIP(ip),
 				Port: port,
@@ -322,10 +344,10 @@ func tryDialEndpoint(protocol, ip string, port int) (conn net.Conn, err error) {
 			if err == nil {
 				return conn, nil
 			}
-			time.Sleep(time.Second)
+			time.Sleep(DailRetryTime)
 		}
 	case UDP:
-		for i := 0; i < MaxRetryTime; i++ {
+		for i := 0; i < DailRetryTime; i++ {
 			conn, err = net.DialUDP(UDP, nil, &net.UDPAddr{
 				IP:   net.ParseIP(ip),
 				Port: int(port),
@@ -333,7 +355,7 @@ func tryDialEndpoint(protocol, ip string, port int) (conn net.Conn, err error) {
 			if err == nil {
 				return conn, nil
 			}
-			time.Sleep(time.Second)
+			time.Sleep(DailSleepTime)
 		}
 	default:
 		return nil, fmt.Errorf("unsupported protocol: %s", protocol)
@@ -342,22 +364,136 @@ func tryDialEndpoint(protocol, ip string, port int) (conn net.Conn, err error) {
 	return nil, err
 }
 
-// TODO replace with async.Runner
-func (t *EdgeTunnel) Heartbeat() {
-	err := wait.PollUntil(HeartbeatInterval, func() (done bool, err error) {
-		t.connectToRelays()
-		// We make the return value of ConditionFunc, such as bool to return false, and err to return to nil,
-		// to ensure that we can continuously execute the ConditionFunc.
+func BootstrapConnect(ctx context.Context, ph p2phost.Host, bootstrapPeers RelayMap) error {
+	return wait.PollImmediate(10*time.Second, time.Minute, func() (bool, error) { // TODO get timeout from config
+		var count int32
+		var wg sync.WaitGroup
+		for _, p := range bootstrapPeers {
+			if p.ID == ph.ID() {
+				atomic.AddInt32(&count, 1)
+				continue
+			}
+
+			wg.Add(1)
+			go func(p *peer.AddrInfo) {
+				defer wg.Done()
+				klog.Infof("[Bootstrap] %s bootstrapping to %s", ph.ID(), p.ID)
+
+				ph.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
+				if err := ph.Connect(ctx, *p); err != nil {
+					klog.Errorf("[Bootstrap] failed to bootstrap with %s: %v", p, err)
+					return
+				}
+				klog.Infof("[Bootstrap] success bootstrapped with %s", p)
+				atomic.AddInt32(&count, 1)
+			}(p)
+		}
+		wg.Wait()
+		if count != int32(len(bootstrapPeers)) {
+			klog.Errorf("[Bootstrap] Not all bootstrapDail connected, continue bootstrapDail...")
+			return false, nil
+		}
+		return true, nil
+	})
+}
+
+func newDHT(ctx context.Context, host p2phost.Host, relayPeers RelayMap) (*dual.DHT, error) {
+	relays := make([]peer.AddrInfo, 0, len(relayPeers))
+	for _, relay := range relayPeers {
+		relays = append(relays, *relay)
+	}
+	dstore := dsync.MutexWrap(ds.NewMapDatastore())
+	ddht, err := dual.New(
+		ctx,
+		host,
+		dual.DHTOption(
+			dht.Concurrency(10),
+			dht.Mode(dht.ModeServer),
+			dht.Datastore(dstore)),
+		dual.WanDHTOption(dht.BootstrapPeers(relays...)),
+	)
+	if err != nil {
+		return nil, err
+	}
+	return ddht, nil
+}
+
+func (t *EdgeTunnel) nodeNameFromPeerID(id peer.ID) (string, bool) {
+	for nodeName, peerID := range t.nodePeerMap {
+		if peerID == id {
+			return nodeName, true
+		}
+	}
+	return "", false
+}
+
+func (t *EdgeTunnel) runRelayFinder(ddht *dual.DHT, peerSource chan peer.AddrInfo, period time.Duration) {
+	klog.Infof("Starting relay finder")
+	err := wait.PollUntil(period, func() (done bool, err error) {
+		closestPeers, err := ddht.WAN.GetClosestPeers(t.hostCtx, t.p2pHost.ID().String())
+		if err != nil {
+			if !IsNoFindPeerError(err) {
+				klog.Errorf("[Finder] Failed to get closest peers: %v", err)
+			}
+			return false, nil
+		}
+		for _, p := range closestPeers {
+			addrs := t.p2pHost.Peerstore().Addrs(p)
+			if len(addrs) == 0 {
+				continue
+			}
+			dhtPeer := peer.AddrInfo{ID: p, Addrs: addrs}
+			klog.Infoln("[Finder] find a relay:", dhtPeer)
+			select {
+			case peerSource <- dhtPeer:
+			case <-t.hostCtx.Done():
+				return
+			}
+			nodeName, exists := t.nodeNameFromPeerID(dhtPeer.ID)
+			if exists {
+				t.refreshRelayMap(nodeName, &dhtPeer)
+			}
+		}
 		return false, nil
 	}, t.stopCh)
 	if err != nil {
-		klog.Errorf("Heartbeat causes an unknown error %v", err)
+		klog.Errorf("[Finder] causes an error %v", err)
+	}
+}
+
+func (t *EdgeTunnel) refreshRelayMap(nodeName string, dhtPeer *peer.AddrInfo) {
+	// Will there be a problem when running on a private network?
+	// Still need to observe for a while
+	dhtPeer.Addrs = FilterPrivateMaddr(dhtPeer.Addrs)
+	dhtPeer.Addrs = FilterCircuitMaddr(dhtPeer.Addrs)
+
+	relayInfo, exists := t.relayMap[nodeName]
+	if !exists {
+		t.relayMap[nodeName] = dhtPeer
+		return
+	}
+
+	for _, maddr := range dhtPeer.Addrs {
+		relayInfo.Addrs = AppendMultiaddrs(relayInfo.Addrs, maddr)
+	}
+}
+
+func (t *EdgeTunnel) runHeartbeat() {
+	err := wait.PollUntil(time.Duration(t.Config.HeartbeatPeriod)*time.Second, func() (done bool, err error) {
+		t.connectToRelays()
+		// We make the return value of ConditionFunc, such as bool to return false,
+		// and err to return to nil, to ensure that we can continuously execute
+		// the ConditionFunc.
+		return false, nil
+	}, t.stopCh)
+	if err != nil {
+		klog.Errorf("[Heartbeat] causes an error %v", err)
 	}
 }
 
 func (t *EdgeTunnel) connectToRelays() {
 	wg := sync.WaitGroup{}
-	for _, relay := range t.relayPeers {
+	for _, relay := range t.relayMap {
 		wg.Add(1)
 		go func(relay *peer.AddrInfo) {
 			defer wg.Done()
@@ -375,18 +511,18 @@ func (t *EdgeTunnel) connectToRelay(relay *peer.AddrInfo) {
 		return
 	}
 
-	klog.V(0).Infof("Connection between relay %s is not established, try connect", relay)
+	klog.V(0).Infof("[Heartbeat] Connection between relay %s is not established, try connect", relay)
 	retryTime := 0
-	for retryTime < retryConnectTime {
+	for retryTime < RetryTime {
 		err := t.p2pHost.Connect(t.hostCtx, *relay)
 		if err != nil {
-			klog.Errorf("Failed to connect relay %s err: %v", relay, err)
-			time.Sleep(retryConnectInterval)
+			klog.Errorf("[Heartbeat] Failed to connect relay %s err: %v", relay, err)
+			time.Sleep(RetryInterval)
 			retryTime++
 			continue
 		}
 
-		klog.Infof("Success connected to relay %s", relay)
+		klog.Infof("[Heartbeat] Success connected to relay %s", relay)
 		break
 	}
 }
@@ -394,5 +530,5 @@ func (t *EdgeTunnel) connectToRelay(relay *peer.AddrInfo) {
 func (t *EdgeTunnel) Run() {
 	go t.runMdnsDiscovery()
 	go t.runDhtDiscovery()
-	t.Heartbeat()
+	t.runHeartbeat()
 }

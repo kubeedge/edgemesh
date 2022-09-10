@@ -207,6 +207,15 @@ type EdgeTunnelConfig struct {
 	// EnableIpfsLog open ipfs log info
 	// default false
 	EnableIpfsLog bool `json:"enableIpfsLog,omitempty"`
+	// MaxCandidates sets the number of relay candidates that we buffer.
+	// default 5
+	MaxCandidates int `json:"maxCandidates,omitempty"`
+	// HeartbeatPeriod indicates the heartbeat period to keep connected with the relay peers (unit second)
+	// default 120
+	HeartbeatPeriod int `json:"heartbeatPeriod,omitempty"`
+	// FinderPeriod indicates the execution period of the relay finder (unit second)
+	// default 60
+	FinderPeriod int `json:"finderPeriod,omitempty"`
 }
 
 type RelayNode struct {

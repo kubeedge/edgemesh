@@ -3,7 +3,7 @@ package libp2p
 import (
 	"net"
 
-	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p/core/network"
 )
 
 // StreamAddr implements the net.Addr interface
