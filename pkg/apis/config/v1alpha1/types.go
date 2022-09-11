@@ -6,16 +6,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EdgeMeshAgentConfig indicates the config of edgeMeshAgent which get from edgeMeshAgent config file
+// EdgeMeshAgentConfig indicates the config of EdgeMeshAgent which get from EdgeMeshAgent config file
 type EdgeMeshAgentConfig struct {
 	metav1.TypeMeta
-	// KubeAPIConfig indicates the kubernetes cluster info which edgeMeshAgent will connected
+	// KubeAPIConfig indicates the kubernetes cluster info which EdgeMeshAgent will connect
 	// +Required
 	KubeAPIConfig *v1alpha1.KubeAPIConfig `json:"kubeAPIConfig,omitempty"`
 	// CommonConfig indicates common config for all modules
 	// +Required
 	CommonConfig *CommonConfig `json:"commonConfig,omitempty"`
-	// Modules indicates edgeMeshAgent modules config
+	// Modules indicates EdgeMeshAgent modules config
 	// +Required
 	Modules *Modules `json:"modules,omitempty"`
 }
@@ -34,7 +34,7 @@ type CommonConfig struct {
 	DummyDeviceIP string `json:"dummyDeviceIP,omitempty"`
 }
 
-// Modules indicates the modules of edgeMeshAgent will be use
+// Modules indicates the modules of EdgeMeshAgent will be use
 type Modules struct {
 	// EdgeDNSConfig indicates edgedns module config
 	EdgeDNSConfig *EdgeDNSConfig `json:"edgeDNS,omitempty"`
@@ -216,6 +216,8 @@ type EdgeTunnelConfig struct {
 	// FinderPeriod indicates the execution period of the relay finder (unit second)
 	// default 60
 	FinderPeriod int `json:"finderPeriod,omitempty"`
+	// PSK configures libp2p to use the given private network protector.
+	PSK *PSK `json:"psk,omitempty"`
 }
 
 type RelayNode struct {
@@ -223,4 +225,13 @@ type RelayNode struct {
 	NodeName string `json:"nodeName,omitempty"`
 	// AdvertiseAddress sets the IP address for the relay node to advertise
 	AdvertiseAddress []string `json:"advertiseAddress,omitempty"`
+}
+
+type PSK struct {
+	// Enable indicates whether libp2p pnet is enabled.
+	// default true
+	Enable bool `json:"enable,omitempty"`
+	// Path indicates the psk file path.
+	// default /etc/edgemesh/psk
+	Path string `json:"path,omitempty"`
 }

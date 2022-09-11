@@ -11,6 +11,7 @@ import (
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	p2phost "github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/pnet"
 	"github.com/libp2p/go-libp2p/core/routing"
 	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
@@ -118,6 +119,19 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 		),
 		libp2p.EnableNATService(),
 		libp2p.EnableHolePunching(),
+	}
+
+	// configures libp2p to use the given private network protector
+	if c.PSK.Enable {
+		pskReader, err := GeneratePSKReader(c.PSK.Path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate psk reader: %w", err)
+		}
+		psk, err := pnet.DecodeV1PSK(pskReader)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode v1 psk: %w", err)
+		}
+		opts = append(opts, libp2p.PrivateNetwork(psk))
 	}
 
 	// If this host is a relay node, we need to append its advertiseAddress

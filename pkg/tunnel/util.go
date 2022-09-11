@@ -3,9 +3,12 @@ package tunnel
 import (
 	"bytes"
 	"crypto/md5"
+	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"io"
+	"io/ioutil"
 	mrand "math/rand"
 	"net"
 	"strings"
@@ -110,7 +113,7 @@ func GenerateTransportOption(protocol string) libp2p.Option {
 	var opt libp2p.Option
 	switch protocol {
 	case TCP:
-		libp2p.Transport(tcp.NewTCPTransport)
+		opt = libp2p.Transport(tcp.NewTCPTransport)
 	case Websocket:
 		opt = libp2p.Transport(ws.New)
 	case Quic:
@@ -198,4 +201,24 @@ func FilterCircuitMaddr(maddrs []ma.Multiaddr) []ma.Multiaddr {
 
 func IsNoFindPeerError(err error) bool {
 	return strings.HasSuffix(err.Error(), "failed to find any peer in table")
+}
+
+func GeneratePSKReader(path string) (io.Reader, error) {
+	// write header
+	buf := &bytes.Buffer{}
+	buf.WriteString("/key/swarm/psk/1.0.0/") // pathPSKv1
+	buf.WriteString("\n")
+	buf.WriteString("/base64/")
+	buf.WriteString("\n")
+
+	// write encryption data
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	m := sha256.New()
+	m.Write(data)
+	key := hex.EncodeToString(m.Sum(nil))
+	buf.Write([]byte(key))
+	return buf, nil
 }

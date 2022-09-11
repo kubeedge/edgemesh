@@ -81,11 +81,15 @@ func NewDefaultEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 				ListenPort:      20006,
 				EnableHolePunch: true,
 				Transport:       "tcp",
-				Rendezvous:      "EDGEMESH_PLAYGOUND",
+				Rendezvous:      defaults.Rendezvous,
 				EnableIpfsLog:   false,
 				MaxCandidates:   5,
 				HeartbeatPeriod: 120,
 				FinderPeriod:    60,
+				PSK: &PSK{
+					Enable: true,
+					Path:   defaults.PSKPath,
+				},
 			},
 		},
 	}
