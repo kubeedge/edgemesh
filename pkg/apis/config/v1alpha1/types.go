@@ -1,9 +1,10 @@
 package v1alpha1
 
 import (
-	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 )
 
 // EdgeMeshAgentConfig indicates the config of EdgeMeshAgent which get from EdgeMeshAgent config file
@@ -17,58 +18,82 @@ type EdgeMeshAgentConfig struct {
 	CommonConfig *CommonConfig `json:"commonConfig,omitempty"`
 	// Modules indicates EdgeMeshAgent modules config
 	// +Required
-	Modules *Modules `json:"modules,omitempty"`
+	Modules *AgentModules `json:"modules,omitempty"`
+}
+
+// AgentModules indicates the modules of EdgeMeshAgent will be use
+type AgentModules struct {
+	// EdgeDNSConfig indicates EdgeDNS module config
+	EdgeDNSConfig *EdgeDNSConfig `json:"edgeDNS,omitempty"`
+	// EdgeProxyConfig indicates EdgeProxy module config
+	EdgeProxyConfig *EdgeProxyConfig `json:"edgeProxy,omitempty"`
+	// EdgeTunnelConfig indicates EdgeTunnel module config
+	EdgeTunnelConfig *EdgeTunnelConfig `json:"edgeTunnel,omitempty"`
+}
+
+// EdgeMeshGatewayConfig indicates the config of EdgeMeshGateway which get from EdgeMeshGateway config file
+type EdgeMeshGatewayConfig struct {
+	metav1.TypeMeta
+	// KubeAPIConfig indicates the kubernetes cluster info which EdgeMeshGateway will connect
+	// +Required
+	KubeAPIConfig *v1alpha1.KubeAPIConfig `json:"kubeAPIConfig,omitempty"`
+	// CommonConfig indicates common config for all modules
+	// +Required
+	CommonConfig *CommonConfig `json:"commonConfig,omitempty"`
+	// Modules indicates EdgeMeshAgent modules config
+	// +Required
+	Modules *GatewayModules `json:"modules,omitempty"`
+}
+
+// GatewayModules indicates the modules of EdgeMeshGateway will be use
+type GatewayModules struct {
+	// EdgeGatewayConfig indicates EdgeGateway module config
+	EdgeGatewayConfig *EdgeGatewayConfig `json:"edgeGateway,omitempty"`
+	// EdgeTunnelConfig indicates EdgeTunnel module config
+	EdgeTunnelConfig *EdgeTunnelConfig `json:"edgeTunnel,omitempty"`
 }
 
 // CommonConfig defines some common configuration items
 type CommonConfig struct {
-	// Mode indicates the current running mode of edgemesh-agent
+	// Mode indicates the current running mode of container
 	// do not allow users to configure manually
-	// default "CloudMode"
-	Mode string `json:"mode,omitempty"`
-	// DummyDeviceName indicates the name of the dummy device will be created
+	// default "DebugMode"
+	Mode string
+	// MetaServerAddress indicates the EdgeCore's metaServer address
+	// default http://127.0.0.1:10550
+	MetaServerAddress string `json:"metaServerAddress,omitempty"`
+	// BridgeDeviceName indicates the name of the bridge device will be created
 	// default edgemesh0
-	DummyDeviceName string `json:"dummyDeviceName,omitempty"`
-	// DummyDeviceIP indicates the IP bound to the dummy device
+	BridgeDeviceName string `json:"bridgeDeviceName,omitempty"`
+	// BridgeDeviceIP indicates the IP bound to the bridge device
 	// default "169.254.96.16"
-	DummyDeviceIP string `json:"dummyDeviceIP,omitempty"`
+	BridgeDeviceIP string `json:"bridgeDeviceIP,omitempty"`
 }
 
-// Modules indicates the modules of EdgeMeshAgent will be use
-type Modules struct {
-	// EdgeDNSConfig indicates edgedns module config
-	EdgeDNSConfig *EdgeDNSConfig `json:"edgeDNS,omitempty"`
-	// EdgeProxyConfig indicates edgeproxy module config
-	EdgeProxyConfig *EdgeProxyConfig `json:"edgeProxy,omitempty"`
-	// EdgeGatewayConfig indicates edgegateway module config
-	EdgeGatewayConfig *EdgeGatewayConfig `json:"edgeGateway,omitempty"`
-	// EdgeTunnelConfig indicates tunnel module config
-	EdgeTunnelConfig *EdgeTunnelConfig `json:"tunnel,omitempty"`
-}
-
-// EdgeDNSConfig indicates the edgedns config
+// EdgeDNSConfig indicates the EdgeDNS config
 type EdgeDNSConfig struct {
-	// Enable indicates whether enable edgedns
+	// Enable indicates whether enable EdgeDNS
 	// default false
 	Enable bool `json:"enable,omitempty"`
-	// ListenInterface indicates the listen interface of edgedns
+	// ListenInterface indicates the listen interface of EdgeDNS
 	// do not allow users to configure manually
-	ListenInterface string `json:"listenInterface,omitempty"`
-	// ListenPort indicates the listen port of edgedns
+	ListenInterface string
+	// ListenPort indicates the listen port of EdgeDNS
 	// default 53
 	ListenPort int `json:"listenPort,omitempty"`
-	// Mode is equivalent to CommonConfig.Mode
+	// Mode indicates the current running mode of container
 	// do not allow users to configure manually
+	// default "DebugMode"
 	Mode string
 	// KubeAPIConfig is equivalent to EdgeMeshAgentConfig.KubeAPIConfig
 	// do not allow users to configure manually
 	KubeAPIConfig *v1alpha1.KubeAPIConfig
-	// CacheDNS indicates the nodelocal cache dns
+	// CacheDNS indicates the node local cache dns
 	CacheDNS *CacheDNS `json:"cacheDNS,omitempty"`
 }
 
 type CacheDNS struct {
-	// Enable indicates whether enable nodelocal cache dns
+	// Enable indicates whether enable node local cache dns
 	// default false
 	Enable bool `json:"enable,omitempty"`
 	// AutoDetect indicates whether to automatically detect the
@@ -82,14 +107,14 @@ type CacheDNS struct {
 	CacheTTL int `json:"cacheTTL,omitempty"`
 }
 
-// EdgeProxyConfig indicates the edgeproxy config
+// EdgeProxyConfig indicates the EdgeProxy config
 type EdgeProxyConfig struct {
-	// Enable indicates whether enable edgeproxy
+	// Enable indicates whether enable EdgeProxy
 	// default false
 	Enable bool `json:"enable,omitempty"`
-	// ListenInterface indicates the listen interface of edgeproxy
+	// ListenInterface indicates the listen interface of EdgeProxy
 	// do not allow users to configure manually
-	ListenInterface string `json:"listenInterface,omitempty"`
+	ListenInterface string
 	// Socks5Proxy indicates the socks5 proxy config
 	Socks5Proxy *Socks5Proxy `json:"socks5Proxy,omitempty"`
 }
@@ -103,12 +128,13 @@ type Socks5Proxy struct {
 	// default 10800
 	ListenPort int `json:"listenPort,omitempty"`
 	// NodeName indicates name of host
-	NodeName string `json:"nodeName,omitempty"`
+	// do not allow users to configure manually
+	NodeName string
 	// Namespace indicates namespace of host
 	Namespace string `json:"namespace,omitempty"`
 }
 
-// EdgeGatewayConfig indicates the edge gateway config
+// EdgeGatewayConfig indicates the EdgeGateway config
 type EdgeGatewayConfig struct {
 	// Enable indicates whether enable edge gateway
 	// default false
@@ -132,13 +158,13 @@ type EdgeGatewayConfig struct {
 
 // GoChassisConfig defines some configurations related to go-chassis
 type GoChassisConfig struct {
-	// Protocol indicates the network protocols config supported in edgemesh
+	// Protocol indicates the supported protocols
 	Protocol *Protocol `json:"protocol,omitempty"`
 	// LoadBalancer indicates the load balance strategy
 	LoadBalancer *LoadBalancer `json:"loadBalancer,omitempty"`
 }
 
-// Protocol indicates the network protocols config supported in edgemesh
+// Protocol indicates the supported protocols
 type Protocol struct {
 	// TCPBufferSize indicates 4-layer tcp buffer size
 	// default 8192
@@ -149,8 +175,9 @@ type Protocol struct {
 	// TCPReconnectTimes indicates 4-layer tcp reconnect times
 	// default 3
 	TCPReconnectTimes int `json:"tcpReconnectTimes,omitempty"`
-	// NodeName indicates the node name of edgemesh agent
-	NodeName string `json:"nodeName,omitempty"`
+	// NodeName indicates the node name of host
+	// do not allow users to configure manually
+	NodeName string
 }
 
 // LoadBalancer indicates the loadbalance strategy in edgemesh
@@ -186,16 +213,15 @@ type EdgeTunnelConfig struct {
 	// default false
 	Enable bool `json:"enable,omitempty"`
 	// Mode indicates EdgeTunnel running mode
+	// do not allow users to configure manually
 	// default ServerAndClient
-	Mode defaults.TunnelMode `json:"mode,omitempty"`
+	Mode defaults.TunnelMode
 	// NodeName indicates the node name of EdgeTunnel
-	NodeName string `json:"nodeName,omitempty"`
+	// do not allow users to configure manually
+	NodeName string
 	// ListenPort indicates the listen port of EdgeTunnel
 	// default 20006
 	ListenPort int `json:"listenPort,omitempty"`
-	// EnableHolePunch indicates whether p2p hole punching feature is enabled,
-	// default true
-	EnableHolePunch bool `json:"enableHolePunch,omitempty"`
 	// Transport indicates the transport protocol used by the p2p tunnel
 	// default tcp
 	Transport string `json:"transport,omitempty"`

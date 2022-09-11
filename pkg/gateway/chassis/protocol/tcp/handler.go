@@ -14,7 +14,6 @@ import (
 	"github.com/kubeedge/edgemesh/pkg/common/util"
 	"github.com/kubeedge/edgemesh/pkg/gateway/chassis/config"
 	"github.com/kubeedge/edgemesh/pkg/tunnel"
-	proxypb "github.com/kubeedge/edgemesh/pkg/tunnel/pb/proxy"
 )
 
 const (
@@ -94,7 +93,7 @@ func (h *L4ProxyHandler) Handle(chain *handler.Chain, i *invocation.Invocation, 
 			klog.Warningf("Callback err: %v", err)
 		}
 	} else {
-		proxyOpts := proxypb.ProxyOptions{
+		proxyOpts := tunnel.ProxyOptions{
 			Protocol: "tcp",
 			NodeName: targetNodeName,
 			IP:       targetIP,

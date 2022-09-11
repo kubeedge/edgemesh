@@ -23,8 +23,6 @@ import (
 
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
-	discoverypb "github.com/kubeedge/edgemesh/pkg/tunnel/pb/discovery"
-	proxypb "github.com/kubeedge/edgemesh/pkg/tunnel/pb/proxy"
 )
 
 var Agent *EdgeTunnel
@@ -75,6 +73,10 @@ func Register(c *v1alpha1.EdgeTunnelConfig) error {
 }
 
 func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
+	if !c.Enable {
+		return &EdgeTunnel{Config: c}, nil
+	}
+
 	ctx := context.Background()
 
 	if c.EnableIpfsLog {
@@ -212,8 +214,8 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 
 	// register stream handlers
 	if c.Mode == defaults.ServerClientMode {
-		h.SetStreamHandler(discoverypb.DiscoveryProtocol, edgeTunnel.discoveryStreamHandler)
-		h.SetStreamHandler(proxypb.ProxyProtocol, edgeTunnel.proxyStreamHandler)
+		h.SetStreamHandler(defaults.DiscoveryProtocol, edgeTunnel.discoveryStreamHandler)
+		h.SetStreamHandler(defaults.ProxyProtocol, edgeTunnel.proxyStreamHandler)
 	}
 	Agent = edgeTunnel // TODO convert var to func
 	return edgeTunnel, nil

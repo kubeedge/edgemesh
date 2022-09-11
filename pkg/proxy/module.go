@@ -48,31 +48,35 @@ func Register(c *v1alpha1.EdgeProxyConfig, ifm *informers.Manager) error {
 	return nil
 }
 
-func newEdgeProxy(c *v1alpha1.EdgeProxyConfig, ifm *informers.Manager) (proxy *EdgeProxy, err error) {
-	proxy = &EdgeProxy{Config: c}
+func newEdgeProxy(c *v1alpha1.EdgeProxyConfig, ifm *informers.Manager) (*EdgeProxy, error) {
 	if !c.Enable {
-		return proxy, nil
+		return &EdgeProxy{Config: c}, nil
 	}
 
 	// get proxy listen ip
-	listenIP, err := util.GetInterfaceIP(proxy.Config.ListenInterface)
+	listenIP, err := util.GetInterfaceIP(c.ListenInterface)
 	if err != nil {
-		return proxy, fmt.Errorf("get proxy listen ip err: %v", err)
+		return nil, fmt.Errorf("get proxy listen ip err: %v", err)
 	}
 
 	// new proxy server
-	proxy.ProxyServer, err = newProxyServer(NewDefaultKubeProxyConfiguration(listenIP.String()), false, ifm.GetKubeClient(), ifm.GetIstioClient())
+	proxyServer, err := newProxyServer(NewDefaultKubeProxyConfiguration(listenIP.String()), false, ifm.GetKubeClient(), ifm.GetIstioClient())
 	if err != nil {
-		return proxy, fmt.Errorf("new proxy server err: %v", err)
+		return nil, fmt.Errorf("new proxy server err: %v", err)
 	}
 
 	// new socks5 proxy
-	if proxy.Config.Socks5Proxy.Enable {
-		proxy.Socks5Proxy, err = NewSocks5Proxy(listenIP, proxy.Config.Socks5Proxy.ListenPort, ifm.GetKubeClient())
+	var socks5Proxy *Socks5Proxy
+	if c.Socks5Proxy.Enable {
+		socks5Proxy, err = NewSocks5Proxy(listenIP, c.Socks5Proxy.ListenPort, ifm.GetKubeClient())
 		if err != nil {
-			return proxy, fmt.Errorf("new socks5Proxy err: %w", err)
+			return nil, fmt.Errorf("new socks5Proxy err: %w", err)
 		}
 	}
 
-	return proxy, nil
+	return &EdgeProxy{
+		Config:      c,
+		ProxyServer: proxyServer,
+		Socks5Proxy: socks5Proxy,
+	}, nil
 }

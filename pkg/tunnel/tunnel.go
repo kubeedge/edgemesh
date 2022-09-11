@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 
-	"github.com/kubeedge/edgemesh/pkg/common/libp2p"
+	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/common/util"
 	discoverypb "github.com/kubeedge/edgemesh/pkg/tunnel/pb/discovery"
 	proxypb "github.com/kubeedge/edgemesh/pkg/tunnel/pb/proxy"
@@ -67,7 +67,7 @@ func initMDNS(host p2phost.Host, rendezvous string) (chan peer.AddrInfo, error) 
 
 func (t *EdgeTunnel) runMdnsDiscovery() {
 	for pi := range t.mdnsPeerChan {
-		t.discovery(discoverypb.MdnsDiscovery, pi)
+		t.discovery(defaults.MdnsDiscovery, pi)
 	}
 }
 
@@ -86,7 +86,7 @@ func initDHT(ctx context.Context, ddht *dual.DHT, rendezvous string) (<-chan pee
 
 func (t *EdgeTunnel) runDhtDiscovery() {
 	for pi := range t.dhtPeerChan {
-		t.discovery(discoverypb.DhtDiscovery, pi)
+		t.discovery(defaults.DhtDiscovery, pi)
 	}
 }
 
@@ -99,14 +99,14 @@ func (t *EdgeTunnel) isRelayPeer(id peer.ID) bool {
 	return false
 }
 
-func (t *EdgeTunnel) discovery(discoverType discoverypb.DiscoveryType, pi peer.AddrInfo) {
+func (t *EdgeTunnel) discovery(discoverType defaults.DiscoveryType, pi peer.AddrInfo) {
 	if pi.ID == t.p2pHost.ID() {
 		return
 	}
 
 	// If dht discovery finds a non-relay peer, add the circuit address to this peer.
 	// This is done to avoid delays in RESERVATION https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md.
-	if discoverType == discoverypb.DhtDiscovery && !t.isRelayPeer(pi.ID) {
+	if discoverType == defaults.DhtDiscovery && !t.isRelayPeer(pi.ID) {
 		addrInfo := peer.AddrInfo{ID: pi.ID, Addrs: []ma.Multiaddr{}}
 		err := AddCircuitAddrsToPeer(&addrInfo, t.relayMap)
 		if err != nil {
@@ -117,7 +117,7 @@ func (t *EdgeTunnel) discovery(discoverType discoverypb.DiscoveryType, pi peer.A
 	}
 
 	klog.Infof("[%s] Discovery found peer: %s", discoverType, t.p2pHost.Peerstore().PeerInfo(pi.ID))
-	stream, err := t.p2pHost.NewStream(network.WithUseTransient(t.hostCtx, "relay"), pi.ID, discoverypb.DiscoveryProtocol)
+	stream, err := t.p2pHost.NewStream(network.WithUseTransient(t.hostCtx, "relay"), pi.ID, defaults.DiscoveryProtocol)
 	if err != nil {
 		klog.Errorf("[%s] New stream between peer %s err: %v", discoverType, pi, err)
 		return
@@ -134,9 +134,9 @@ func (t *EdgeTunnel) discovery(discoverType discoverypb.DiscoveryType, pi peer.A
 	streamReader := protoio.NewDelimitedReader(stream, MaxReadSize) // TODO get maxSize from default
 
 	// handshake with dest peer
-	protocol := string(discoverypb.MdnsDiscovery)
-	if discoverType == discoverypb.DhtDiscovery {
-		protocol = string(discoverypb.DhtDiscovery)
+	protocol := string(defaults.MdnsDiscovery)
+	if discoverType == defaults.DhtDiscovery {
+		protocol = string(defaults.DhtDiscovery)
 	}
 	msg := &discoverypb.Discovery{
 		Type:     discoverypb.Discovery_CONNECT.Enum(),
@@ -206,7 +206,14 @@ func (t *EdgeTunnel) discoveryStreamHandler(stream network.Stream) {
 	t.nodePeerMap[nodeName] = remotePeer.ID
 }
 
-func (t *EdgeTunnel) GetProxyStream(opts proxypb.ProxyOptions) (*libp2p.StreamConn, error) {
+type ProxyOptions struct {
+	Protocol string
+	NodeName string
+	IP       string
+	Port     int32
+}
+
+func (t *EdgeTunnel) GetProxyStream(opts ProxyOptions) (*StreamConn, error) {
 	destName := opts.NodeName
 	destID, exists := t.nodePeerMap[destName]
 	if !exists {
@@ -226,7 +233,7 @@ func (t *EdgeTunnel) GetProxyStream(opts proxypb.ProxyOptions) (*libp2p.StreamCo
 		t.nodePeerMap[destName] = destID
 	}
 
-	stream, err := t.p2pHost.NewStream(network.WithUseTransient(t.hostCtx, "relay"), destID, proxypb.ProxyProtocol)
+	stream, err := t.p2pHost.NewStream(network.WithUseTransient(t.hostCtx, "relay"), destID, defaults.ProxyProtocol)
 	if err != nil {
 		return nil, fmt.Errorf("new stream between %s err: %w", destName, err)
 	}
@@ -272,7 +279,7 @@ func (t *EdgeTunnel) GetProxyStream(opts proxypb.ProxyOptions) (*libp2p.StreamCo
 	msg.Reset()
 	klog.V(4).Infof("libp2p dial %v success", opts)
 
-	return libp2p.NewStreamConn(stream), nil
+	return NewStreamConn(stream), nil
 }
 
 func (t *EdgeTunnel) proxyStreamHandler(stream network.Stream) {
@@ -323,7 +330,7 @@ func (t *EdgeTunnel) proxyStreamHandler(stream network.Stream) {
 	}
 	msg.Reset()
 
-	streamConn := libp2p.NewStreamConn(stream)
+	streamConn := NewStreamConn(stream)
 	switch targetProto {
 	case TCP:
 		go util.ProxyConn(streamConn, proxyConn)

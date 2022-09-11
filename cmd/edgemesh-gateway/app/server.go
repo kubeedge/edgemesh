@@ -16,25 +16,23 @@ import (
 	"k8s.io/component-base/term"
 	"k8s.io/klog/v2"
 
-	"github.com/kubeedge/edgemesh/cmd/edgemesh-agent/app/options"
+	"github.com/kubeedge/edgemesh/cmd/edgemesh-gateway/app/options"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
 	"github.com/kubeedge/edgemesh/pkg/common/informers"
-	"github.com/kubeedge/edgemesh/pkg/common/util"
-	"github.com/kubeedge/edgemesh/pkg/dns"
-	"github.com/kubeedge/edgemesh/pkg/proxy"
+	"github.com/kubeedge/edgemesh/pkg/gateway"
 	"github.com/kubeedge/edgemesh/pkg/tunnel"
 )
 
-func NewEdgeMeshAgentCommand() *cobra.Command {
-	opts := options.NewEdgeMeshAgentOptions()
+func NewEdgeMeshGatewayCommand() *cobra.Command {
+	opts := options.NewEdgeMeshGatewayOptions()
 	cmd := &cobra.Command{
-		Use:  "edgemesh-agent",
-		Long: `edgemesh-agent is the data plane component of EdgeMesh.`,
+		Use:  "edgemesh-gateway",
+		Long: `edgemesh-gateway is the ingress gateway component of EdgeMesh.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			verflag.PrintAndExitIfRequested()
-			flag.PrintMinConfigAndExitIfRequested(v1alpha1.NewDefaultEdgeMeshAgentConfig())
-			flag.PrintDefaultConfigAndExitIfRequested(v1alpha1.NewDefaultEdgeMeshAgentConfig())
+			flag.PrintMinConfigAndExitIfRequested(v1alpha1.NewDefaultEdgeMeshGatewayConfig())
+			flag.PrintDefaultConfigAndExitIfRequested(v1alpha1.NewDefaultEdgeMeshGatewayConfig())
 			flag.PrintFlags(cmd.Flags())
 
 			if errs := opts.Validate(); len(errs) > 0 {
@@ -46,13 +44,13 @@ func NewEdgeMeshAgentCommand() *cobra.Command {
 				klog.Exit(err)
 			}
 
-			if errs := v1alpha1.ValidateEdgeMeshAgentConfiguration(cfg); len(errs) > 0 {
+			if errs := v1alpha1.ValidateEdgeMeshGatewayConfiguration(cfg); len(errs) > 0 {
 				klog.Exit(kubeedgeutil.SpliceErrors(errs.ToAggregate().Errors()))
 			}
 
 			klog.Infof("Version: %+v", version.Get())
 			if err = Run(cfg); err != nil {
-				klog.Exit("run edgemesh-agent failed: ", err)
+				klog.Exit("run edgemesh-gateway failed: ", err)
 			}
 		},
 	}
@@ -80,15 +78,15 @@ func NewEdgeMeshAgentCommand() *cobra.Command {
 	return cmd
 }
 
-// Run runs edgemesh-agent
-func Run(cfg *v1alpha1.EdgeMeshAgentConfig) error {
+// Run runs edgemesh-gateway
+func Run(cfg *v1alpha1.EdgeMeshGatewayConfig) error {
 	trace := 1
 
-	klog.Infof("[%d] Prepare agent to run", trace)
+	klog.Infof("[%d] Prepare gateway to run", trace)
 	if err := prepareRun(cfg); err != nil {
 		return err
 	}
-	klog.Infof("edgemesh-agent running on %s", cfg.CommonConfig.Mode)
+	klog.Infof("edgemesh-gateway running on %s", cfg.CommonConfig.Mode)
 	trace++
 
 	klog.Infof("[%d] New informers manager", trace)
@@ -111,17 +109,14 @@ func Run(cfg *v1alpha1.EdgeMeshAgentConfig) error {
 	klog.Infof("[%d] Start all modules", trace)
 	core.Run()
 
-	klog.Infof("edgemesh-agent exited")
+	klog.Infof("edgemesh-gateway exited")
 	return nil
 }
 
-// registerModules register all the modules started in edgemesh-agent
-func registerModules(c *v1alpha1.EdgeMeshAgentConfig, ifm *informers.Manager) []error {
+// registerModules register all the modules started in edgemesh-gateway
+func registerModules(c *v1alpha1.EdgeMeshGatewayConfig, ifm *informers.Manager) []error {
 	var errs []error
-	if err := dns.Register(c.Modules.EdgeDNSConfig, ifm); err != nil {
-		errs = append(errs, err)
-	}
-	if err := proxy.Register(c.Modules.EdgeProxyConfig, ifm); err != nil {
+	if err := gateway.Register(c.Modules.EdgeGatewayConfig, ifm); err != nil {
 		errs = append(errs, err)
 	}
 	if err := tunnel.Register(c.Modules.EdgeTunnelConfig); err != nil {
@@ -130,8 +125,8 @@ func registerModules(c *v1alpha1.EdgeMeshAgentConfig, ifm *informers.Manager) []
 	return errs
 }
 
-// prepareRun prepares edgemesh-agent to run
-func prepareRun(c *v1alpha1.EdgeMeshAgentConfig) error {
+// prepareRun prepares edgemesh-gateway to run
+func prepareRun(c *v1alpha1.EdgeMeshGatewayConfig) error {
 	// If in the edge mode and the user does not configure KubeAPIConfig.Master,
 	// set KubeAPIConfig.Master to the value of CommonConfig.MetaServerAddress
 	if c.CommonConfig.Mode == defaults.EdgeMode && c.KubeAPIConfig.Master == defaults.MetaServerAddress {
@@ -145,33 +140,16 @@ func prepareRun(c *v1alpha1.EdgeMeshAgentConfig) error {
 		c.CommonConfig.Mode = defaults.DebugMode
 	}
 
-	// set dns and proxy modules listenInterface
-	err := util.CreateEdgeMeshDevice(c.CommonConfig.BridgeDeviceName, c.CommonConfig.BridgeDeviceIP)
-	if err != nil {
-		return fmt.Errorf("failed to create edgemesh device %s: %w", c.CommonConfig.BridgeDeviceName, err)
-	}
-	c.Modules.EdgeDNSConfig.ListenInterface = c.CommonConfig.BridgeDeviceName
-	c.Modules.EdgeProxyConfig.ListenInterface = c.CommonConfig.BridgeDeviceName
-
-	// set dns module mode and KubeAPIConfig
-	c.Modules.EdgeDNSConfig.Mode = c.CommonConfig.Mode
-	c.Modules.EdgeDNSConfig.KubeAPIConfig = c.KubeAPIConfig
-
-	// set node name and namespace
+	// set node name
 	nodeName, exists := os.LookupEnv("NODE_NAME")
 	if !exists {
 		return fmt.Errorf("env NODE_NAME not exist")
 	}
-	namespace, exists := os.LookupEnv("NAMESPACE")
-	if !exists {
-		return fmt.Errorf("env NAMESPACE not exist")
-	}
-	c.Modules.EdgeProxyConfig.Socks5Proxy.NodeName = nodeName
-	c.Modules.EdgeProxyConfig.Socks5Proxy.Namespace = namespace
+	c.Modules.EdgeGatewayConfig.GoChassisConfig.Protocol.NodeName = nodeName
 	c.Modules.EdgeTunnelConfig.NodeName = nodeName
 
 	// set tunnel module mode
-	c.Modules.EdgeTunnelConfig.Mode = defaults.ServerClientMode
+	c.Modules.EdgeTunnelConfig.Mode = defaults.ClientMode
 
 	return nil
 }

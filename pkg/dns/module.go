@@ -44,17 +44,16 @@ func Register(c *v1alpha1.EdgeDNSConfig, ifm *informers.Manager) error {
 	return nil
 }
 
-func newEdgeDNS(c *v1alpha1.EdgeDNSConfig, ifm *informers.Manager) (dns *EdgeDNS, err error) {
-	dns = &EdgeDNS{Config: c}
+func newEdgeDNS(c *v1alpha1.EdgeDNSConfig, ifm *informers.Manager) (*EdgeDNS, error) {
 	if !c.Enable {
-		return dns, nil
+		return &EdgeDNS{Config: c}, nil
 	}
 
 	// update Corefile for node-local dns
-	err = UpdateCorefile(c, ifm)
+	err := UpdateCorefile(c, ifm)
 	if err != nil {
-		return dns, fmt.Errorf("failed to update corefile, err: %w", err)
+		return nil, fmt.Errorf("failed to update corefile, err: %w", err)
 	}
 
-	return dns, nil
+	return &EdgeDNS{Config: c}, nil
 }

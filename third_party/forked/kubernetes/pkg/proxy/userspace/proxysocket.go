@@ -18,7 +18,6 @@ import (
 
 	"github.com/kubeedge/edgemesh/pkg/common/util"
 	"github.com/kubeedge/edgemesh/pkg/tunnel"
-	proxypb "github.com/kubeedge/edgemesh/pkg/tunnel/pb/proxy"
 )
 
 var myNodeName string
@@ -153,7 +152,7 @@ func dialEndpoint(protocol, endpoint string, dialTimeout time.Duration) (net.Con
 			time.Sleep(dialTimeout)
 			return nil, fmt.Errorf("invalid endpoint %s", endpoint)
 		}
-		proxyOpts := proxypb.ProxyOptions{Protocol: protocol, NodeName: targetNode, IP: targetIP, Port: int32(targetPort)}
+		proxyOpts := tunnel.ProxyOptions{Protocol: protocol, NodeName: targetNode, IP: targetIP, Port: int32(targetPort)}
 		streamConn, err := tunnel.Agent.GetProxyStream(proxyOpts)
 		if err != nil {
 			time.Sleep(dialTimeout)

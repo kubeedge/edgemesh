@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
 	"net"
 	"strings"
 
@@ -12,10 +11,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 
+	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
 	"github.com/kubeedge/edgemesh/pkg/common/util"
 	"github.com/kubeedge/edgemesh/pkg/proxy/protocol"
 	"github.com/kubeedge/edgemesh/pkg/tunnel"
-	proxypb "github.com/kubeedge/edgemesh/pkg/tunnel/pb/proxy"
 )
 
 const (
@@ -238,7 +237,7 @@ func (s *Socks5Proxy) HandleSocksProxy(conn net.Conn) {
 }
 
 func proxyConnectToRemote(host string, targetIP string, port int32, conn net.Conn) {
-	proxyOpts := proxypb.ProxyOptions{
+	proxyOpts := tunnel.ProxyOptions{
 		Protocol: string(protocol.TCP),
 		NodeName: host,
 		IP:       targetIP,

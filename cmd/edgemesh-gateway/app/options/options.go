@@ -15,23 +15,23 @@ import (
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
 )
 
-type EdgeMeshAgentOptions struct {
+type EdgeMeshGatewayOptions struct {
 	ConfigFile string
 }
 
-func NewEdgeMeshAgentOptions() *EdgeMeshAgentOptions {
-	return &EdgeMeshAgentOptions{
-		ConfigFile: path.Join(defaults.ConfigDir, defaults.EdgeMeshAgentConfigName),
+func NewEdgeMeshGatewayOptions() *EdgeMeshGatewayOptions {
+	return &EdgeMeshGatewayOptions{
+		ConfigFile: path.Join(defaults.ConfigDir, defaults.EdgeMeshGatewayConfigName),
 	}
 }
 
-func (o *EdgeMeshAgentOptions) Flags() (fss cliflag.NamedFlagSets) {
+func (o *EdgeMeshGatewayOptions) Flags() (fss cliflag.NamedFlagSets) {
 	fs := fss.FlagSet("global")
 	fs.StringVar(&o.ConfigFile, "config-file", o.ConfigFile, "The path to the configuration file. Flags override values in this file.")
 	return
 }
 
-func (o *EdgeMeshAgentOptions) Validate() []error {
+func (o *EdgeMeshGatewayOptions) Validate() []error {
 	var errs []error
 	if !validation.FileIsExist(o.ConfigFile) {
 		errs = append(errs, field.Required(field.NewPath("config-file"),
@@ -40,7 +40,7 @@ func (o *EdgeMeshAgentOptions) Validate() []error {
 	return errs
 }
 
-func (o *EdgeMeshAgentOptions) Parse(cfg *v1alpha1.EdgeMeshAgentConfig) error {
+func (o *EdgeMeshGatewayOptions) Parse(cfg *v1alpha1.EdgeMeshGatewayConfig) error {
 	data, err := ioutil.ReadFile(o.ConfigFile)
 	if err != nil {
 		klog.Errorf("Failed to read config file %s: %v", o.ConfigFile, err)
@@ -54,9 +54,9 @@ func (o *EdgeMeshAgentOptions) Parse(cfg *v1alpha1.EdgeMeshAgentConfig) error {
 	return nil
 }
 
-// Config generates *v1alpha1.EdgeMeshAgentConfig
-func (o *EdgeMeshAgentOptions) Config() (*v1alpha1.EdgeMeshAgentConfig, error) {
-	cfg := v1alpha1.NewDefaultEdgeMeshAgentConfig()
+// Config generates *v1alpha1.EdgeMeshGatewayConfig
+func (o *EdgeMeshGatewayOptions) Config() (*v1alpha1.EdgeMeshGatewayConfig, error) {
+	cfg := v1alpha1.NewDefaultEdgeMeshGatewayConfig()
 	if err := o.Parse(cfg); err != nil {
 		return nil, err
 	}

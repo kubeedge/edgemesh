@@ -46,10 +46,9 @@ func Register(c *v1alpha1.EdgeGatewayConfig, ifm *informers.Manager) error {
 	return nil
 }
 
-func newEdgeGateway(c *v1alpha1.EdgeGatewayConfig, ifm *informers.Manager) (gw *EdgeGateway, err error) {
-	gw = &EdgeGateway{Config: c}
+func newEdgeGateway(c *v1alpha1.EdgeGatewayConfig, ifm *informers.Manager) (*EdgeGateway, error) {
 	if !c.Enable {
-		return gw, nil
+		return &EdgeGateway{Config: c}, nil
 	}
 
 	chassis.Install(c.GoChassisConfig, ifm)
@@ -60,5 +59,5 @@ func newEdgeGateway(c *v1alpha1.EdgeGatewayConfig, ifm *informers.Manager) (gw *
 	// new gateway manager
 	manager.NewGatewayManager(c)
 
-	return gw, nil
+	return &EdgeGateway{Config: c}, nil
 }

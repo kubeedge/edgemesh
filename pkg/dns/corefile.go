@@ -78,7 +78,7 @@ func getKubernetesPluginStr(cfg *v1alpha1.EdgeDNSConfig) (string, error) {
 			apiServer = fmt.Sprintf("kubeconfig %s \"\"", cfg.KubeAPIConfig.KubeConfig)
 		}
 	} else if cfg.Mode == defaults.EdgeMode {
-		apiServer = fmt.Sprintf("endpoint %s", defaults.MetaServerAddress)
+		apiServer = fmt.Sprintf("endpoint %s", cfg.KubeAPIConfig.Master)
 	}
 
 	info := &KubernetesPluginInfo{
