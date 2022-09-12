@@ -151,5 +151,8 @@ func prepareRun(c *v1alpha1.EdgeMeshGatewayConfig) error {
 	// set tunnel module mode
 	c.Modules.EdgeTunnelConfig.Mode = defaults.ClientMode
 
+	// set loadbalancer caller
+	//c.Modules.EdgeGatewayConfig. .LoadBalancer.Caller = defaults.ProxyCaller
+
 	return nil
 }

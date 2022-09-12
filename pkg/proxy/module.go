@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/kubeedge/beehive/pkg/core"
-
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
 	"github.com/kubeedge/edgemesh/pkg/common/informers"
@@ -60,7 +59,7 @@ func newEdgeProxy(c *v1alpha1.EdgeProxyConfig, ifm *informers.Manager) (*EdgePro
 	}
 
 	// new proxy server
-	proxyServer, err := newProxyServer(NewDefaultKubeProxyConfiguration(listenIP.String()), false, ifm.GetKubeClient(), ifm.GetIstioClient())
+	proxyServer, err := newProxyServer(NewDefaultKubeProxyConfiguration(listenIP.String()), c.LoadBalancer, ifm.GetKubeClient(), ifm.GetIstioClient(), c.NodeName)
 	if err != nil {
 		return nil, fmt.Errorf("new proxy server err: %v", err)
 	}

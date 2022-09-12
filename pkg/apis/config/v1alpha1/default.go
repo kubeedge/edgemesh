@@ -12,6 +12,33 @@ import (
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 )
 
+var defaultEdgeTunnelConfig = &EdgeTunnelConfig{
+	Enable:          false,
+	Mode:            defaults.ServerClientMode,
+	ListenPort:      20006,
+	Transport:       "tcp",
+	Rendezvous:      defaults.Rendezvous,
+	EnableIpfsLog:   false,
+	MaxCandidates:   5,
+	HeartbeatPeriod: 120,
+	FinderPeriod:    60,
+	PSK: &PSK{
+		Enable: true,
+		Path:   defaults.PSKPath,
+	},
+}
+
+var defaultLoadBalancerConfig = &LoadBalancer{
+	Caller:                defaults.ProxyCaller,
+	DefaultLBStrategy:     "RoundRobin",
+	SupportedLBStrategies: []string{"RoundRobin", "Random", "ConsistentHash"},
+	ConsistentHash: &ConsistentHash{
+		PartitionCount:    100,
+		ReplicationFactor: 10,
+		Load:              1.25,
+	},
+}
+
 // NewDefaultEdgeMeshAgentConfig returns a full EdgeMeshAgentConfig object
 func NewDefaultEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 	c := &EdgeMeshAgentConfig{
@@ -48,22 +75,9 @@ func NewDefaultEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 					Enable:     false,
 					ListenPort: 10800,
 				},
+				LoadBalancer: defaultLoadBalancerConfig,
 			},
-			EdgeTunnelConfig: &EdgeTunnelConfig{
-				Enable:          false,
-				Mode:            defaults.ServerClientMode,
-				ListenPort:      20006,
-				Transport:       "tcp",
-				Rendezvous:      defaults.Rendezvous,
-				EnableIpfsLog:   false,
-				MaxCandidates:   5,
-				HeartbeatPeriod: 120,
-				FinderPeriod:    60,
-				PSK: &PSK{
-					Enable: true,
-					Path:   defaults.PSKPath,
-				},
-			},
+			EdgeTunnelConfig: defaultEdgeTunnelConfig,
 		},
 	}
 
@@ -101,31 +115,10 @@ func NewDefaultEdgeMeshGatewayConfig() *EdgeMeshGatewayConfig {
 						TCPClientTimeout:  2,
 						TCPReconnectTimes: 3,
 					},
-					LoadBalancer: &LoadBalancer{
-						DefaultLBStrategy:     "RoundRobin",
-						SupportedLBStrategies: []string{"RoundRobin", "Random", "ConsistentHash"},
-						ConsistentHash: &ConsistentHash{
-							PartitionCount:    100,
-							ReplicationFactor: 10,
-							Load:              1.25,
-						},
-					},
+					LoadBalancer: defaultLoadBalancerConfig,
 				},
 			},
-			EdgeTunnelConfig: &EdgeTunnelConfig{
-				Enable:          false,
-				ListenPort:      20006,
-				Transport:       "tcp",
-				Rendezvous:      defaults.Rendezvous,
-				EnableIpfsLog:   false,
-				MaxCandidates:   5,
-				HeartbeatPeriod: 120,
-				FinderPeriod:    60,
-				PSK: &PSK{
-					Enable: true,
-					Path:   defaults.PSKPath,
-				},
-			},
+			EdgeTunnelConfig: defaultEdgeTunnelConfig,
 		},
 	}
 

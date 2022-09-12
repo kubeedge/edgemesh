@@ -145,7 +145,7 @@ func prepareRun(c *v1alpha1.EdgeMeshAgentConfig) error {
 		c.CommonConfig.Mode = defaults.DebugMode
 	}
 
-	// set dns and proxy modules listenInterface
+	// Set dns and proxy modules listenInterface
 	err := util.CreateEdgeMeshDevice(c.CommonConfig.BridgeDeviceName, c.CommonConfig.BridgeDeviceIP)
 	if err != nil {
 		return fmt.Errorf("failed to create edgemesh device %s: %w", c.CommonConfig.BridgeDeviceName, err)
@@ -153,11 +153,11 @@ func prepareRun(c *v1alpha1.EdgeMeshAgentConfig) error {
 	c.Modules.EdgeDNSConfig.ListenInterface = c.CommonConfig.BridgeDeviceName
 	c.Modules.EdgeProxyConfig.ListenInterface = c.CommonConfig.BridgeDeviceName
 
-	// set dns module mode and KubeAPIConfig
+	// Set dns module mode and KubeAPIConfig
 	c.Modules.EdgeDNSConfig.Mode = c.CommonConfig.Mode
 	c.Modules.EdgeDNSConfig.KubeAPIConfig = c.KubeAPIConfig
 
-	// set node name and namespace
+	// Set node name and namespace
 	nodeName, exists := os.LookupEnv("NODE_NAME")
 	if !exists {
 		return fmt.Errorf("env NODE_NAME not exist")
@@ -166,12 +166,16 @@ func prepareRun(c *v1alpha1.EdgeMeshAgentConfig) error {
 	if !exists {
 		return fmt.Errorf("env NAMESPACE not exist")
 	}
+	c.Modules.EdgeProxyConfig.NodeName = nodeName
 	c.Modules.EdgeProxyConfig.Socks5Proxy.NodeName = nodeName
 	c.Modules.EdgeProxyConfig.Socks5Proxy.Namespace = namespace
 	c.Modules.EdgeTunnelConfig.NodeName = nodeName
 
-	// set tunnel module mode
+	// Set tunnel module mode
 	c.Modules.EdgeTunnelConfig.Mode = defaults.ServerClientMode
+
+	// Set loadbalancer caller
+	c.Modules.EdgeProxyConfig.LoadBalancer.Caller = defaults.ProxyCaller
 
 	return nil
 }

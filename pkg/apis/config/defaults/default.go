@@ -25,6 +25,16 @@ const (
 	CloudMode = "CloudMode" // detected running on the cloud
 	DebugMode = "DebugMode" // detected that user manually configured kubeAPIConfig
 
+	EmptyNodeName = "EMPTY_NODE_NAME"
+	EmptyPodName  = "EMPTY_POD_NAME"
+
+	// LabelEdgeMeshServiceProxyName indicates that an alternative service
+	// proxy will implement this Service.
+	LabelEdgeMeshServiceProxyName = "service.edgemesh.kubeedge.io/service-proxy-name"
+
+	ProxyCaller   = "ProxyCaller"
+	GatewayCaller = "GatewayCaller"
+
 	ClientMode       TunnelMode = "ClientOnly"
 	ServerClientMode TunnelMode = "ServerAndClient"
 

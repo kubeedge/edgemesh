@@ -1,5 +1,19 @@
-// This package is copied from Kubernetes project.
-// https://github.com/kubernetes/kubernetes/blob/v1.23.0/pkg/proxy/userspace/proxier.go
+/*
+Copyright 2014 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package userspace
 
 import (
@@ -13,7 +27,6 @@ import (
 	"time"
 
 	libcontaineruserns "github.com/opencontainers/runc/libcontainer/userns"
-	istioapi "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -93,6 +106,16 @@ func (info *ServiceInfo) setAlive(b bool) {
 
 func (info *ServiceInfo) IsAlive() bool {
 	return atomic.LoadInt32(&info.isAliveAtomic) != 0
+}
+
+func logTimeout(err error) bool {
+	if e, ok := err.(net.Error); ok {
+		if e.Timeout() {
+			klog.V(3).InfoS("Connection to endpoint closed due to inactivity")
+			return true
+		}
+	}
+	return false
 }
 
 // ProxySocketFunc is a function which constructs a ProxySocket from a protocol, ip, and port
@@ -684,32 +707,6 @@ func (proxier *Proxier) OnEndpointsSynced() {
 	go proxier.syncProxyRules()
 }
 
-// OnDestinationRuleAdd is called whenever creation of new destination rule
-// object is observed.
-func (proxier *Proxier) OnDestinationRuleAdd(dr *istioapi.DestinationRule) {
-	proxier.loadBalancer.OnDestinationRuleAdd(dr)
-}
-
-// OnDestinationRuleUpdate is called whenever modification of an existing
-// destination rule object is observed.
-func (proxier *Proxier) OnDestinationRuleUpdate(oldDr, dr *istioapi.DestinationRule) {
-	proxier.loadBalancer.OnDestinationRuleUpdate(oldDr, dr)
-}
-
-// OnDestinationRuleDelete is called whenever deletion of an existing
-// destination rule object is observed.
-func (proxier *Proxier) OnDestinationRuleDelete(dr *istioapi.DestinationRule) {
-	proxier.loadBalancer.OnDestinationRuleDelete(dr)
-}
-
-// OnDestinationRuleSynced is called once all the initial event handlers were
-// called and the state is fully propagated to local cache.
-func (proxier *Proxier) OnDestinationRuleSynced() {
-	klog.V(2).InfoS("Userspace OnDestinationRuleSynced")
-	proxier.loadBalancer.OnDestinationRuleSynced()
-	// TODO Mark destination rule as initialized
-}
-
 func sameConfig(info *ServiceInfo, service *v1.Service, port *v1.ServicePort) bool {
 	if info.protocol != port.Protocol || info.portal.port != int(port.Port) || info.nodePort != int(port.NodePort) {
 		return false
@@ -1017,13 +1014,13 @@ func (proxier *Proxier) closeNodePort(nodePort int, protocol v1.Protocol, proxyI
 
 // See comments in the *PortalArgs() functions for some details about why we
 // use two chains for portals.
-var iptablesContainerPortalChain iptables.Chain = "EDGEMESH-PORTALS-CONTAINER"
-var iptablesHostPortalChain iptables.Chain = "EDGEMESH-PORTALS-HOST"
+var iptablesContainerPortalChain iptables.Chain = "KUBE-PORTALS-CONTAINER"
+var iptablesHostPortalChain iptables.Chain = "KUBE-PORTALS-HOST"
 
 // Chains for NodePort services
-var iptablesContainerNodePortChain iptables.Chain = "EDGEMESH-NODEPORT-CONTAINER"
-var iptablesHostNodePortChain iptables.Chain = "EDGEMESH-NODEPORT-HOST"
-var iptablesNonLocalNodePortChain iptables.Chain = "EDGEMESH-NODEPORT-NON-LOCAL"
+var iptablesContainerNodePortChain iptables.Chain = "KUBE-NODEPORT-CONTAINER"
+var iptablesHostNodePortChain iptables.Chain = "KUBE-NODEPORT-HOST"
+var iptablesNonLocalNodePortChain iptables.Chain = "KUBE-NODEPORT-NON-LOCAL"
 
 // Ensure that the iptables infrastructure we use is set up.  This can safely be called periodically.
 func iptablesInit(ipt iptables.Interface) error {
@@ -1257,4 +1254,15 @@ func (proxier *Proxier) iptablesNonLocalNodePortArgs(nodePort int, protocol v1.P
 	args := iptablesCommonPortalArgs(nil, false, false, proxyPort, protocol, service)
 	args = append(args, "-m", "state", "--state", "NEW", "-j", "ACCEPT")
 	return args
+}
+
+func isTooManyFDsError(err error) bool {
+	return strings.Contains(err.Error(), "too many open files")
+}
+
+func isClosedError(err error) bool {
+	// A brief discussion about handling closed error here:
+	// https://code.google.com/p/go/issues/detail?id=4373#c14
+	// TODO: maybe create a stoppable TCP listener that returns a StoppedError
+	return strings.HasSuffix(err.Error(), "use of closed network connection")
 }

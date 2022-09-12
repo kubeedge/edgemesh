@@ -1,4 +1,4 @@
-package userspace
+package loadbalancer
 
 import (
 	"bufio"
@@ -10,7 +10,7 @@ import (
 
 	"github.com/buraksezer/consistent"
 	"github.com/cespare/xxhash/v2"
-	apiv1alpha3 "istio.io/api/networking/v1alpha3"
+	istiov1alpha3 "istio.io/api/networking/v1alpha3"
 	istioapi "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"k8s.io/klog/v2"
 )
@@ -20,11 +20,11 @@ const (
 	Random         = "RANDOM"
 	ConsistentHash = "CONSISTENT_HASH"
 
-	EmptyNodeName = "EMPTY_NODE_NAME"
-	EmptyPodName  = "EMPTY_POD_NAME"
+	HttpHeader   = "HTTP_HEADER"
+	UserSourceIP = "USER_SOURCE_IP"
 )
 
-type LoadBalancerStrategy interface {
+type Policy interface {
 	Name() string
 	Update(oldDr, dr *istioapi.DestinationRule)
 	Pick(endpoints []string, srcAddr net.Addr, tcpConn net.Conn) (string, *http.Request, error)
@@ -32,83 +32,54 @@ type LoadBalancerStrategy interface {
 	Release()
 }
 
-func getNamespaceName(dr *istioapi.DestinationRule) string {
-	return fmt.Sprintf("%s/%s", dr.Namespace, dr.Name)
+// RoundRobinPolicy is a default policy.
+type RoundRobinPolicy struct {
 }
 
-// getStrategyName gets strategy name from a DestinationRule object.
-func getStrategyName(dr *istioapi.DestinationRule) string {
-	if dr.Spec.TrafficPolicy == nil {
-		klog.Errorf("destination rule object %s .Spec.TrafficPolicy is nil", getNamespaceName(dr))
-		return ""
-	}
-	if dr.Spec.TrafficPolicy.LoadBalancer == nil {
-		klog.Errorf("destination rule object %s .Spec.TrafficPolicy.LoadBalancer is nil", getNamespaceName(dr))
-		return ""
-	}
-	if dr.Spec.TrafficPolicy.LoadBalancer.LbPolicy == nil {
-		klog.Errorf("destination rule object %s .Spec.TrafficPolicy.LoadBalancer.LbPolicy is nil", getNamespaceName(dr))
-		return ""
-	}
-	switch lbPolicy := dr.Spec.TrafficPolicy.LoadBalancer.LbPolicy.(type) {
-	case *apiv1alpha3.LoadBalancerSettings_Simple:
-		return lbPolicy.Simple.String()
-	case *apiv1alpha3.LoadBalancerSettings_ConsistentHash:
-		return ConsistentHash
-	default:
-		klog.Errorf("unsupported load balancer policy %v", lbPolicy)
-		return ""
-	}
+func NewRoundRobinPolicy() *RoundRobinPolicy {
+	return &RoundRobinPolicy{}
 }
 
-// RoundRobinStrategy is a default strategy.
-type RoundRobinStrategy struct {
-}
-
-func NewRoundRobinStrategy() *RoundRobinStrategy {
-	return &RoundRobinStrategy{}
-}
-
-func (*RoundRobinStrategy) Name() string {
+func (*RoundRobinPolicy) Name() string {
 	return RoundRobin
 }
 
-func (*RoundRobinStrategy) Update(oldDr, dr *istioapi.DestinationRule) {}
+func (*RoundRobinPolicy) Update(oldDr, dr *istioapi.DestinationRule) {}
 
-func (*RoundRobinStrategy) Pick(endpoints []string, srcAddr net.Addr, netConn net.Conn) (string, *http.Request, error) {
-	// RoundRobinStrategy is an empty implementation and we won't use it,
-	// the outer round-robin strategy will be used next.
-	return "", nil, fmt.Errorf("call RoundRobinStrategy is forbidden")
+func (*RoundRobinPolicy) Pick(endpoints []string, srcAddr net.Addr, netConn net.Conn) (string, *http.Request, error) {
+	// RoundRobinPolicy is an empty implementation and we won't use it,
+	// the outer round-robin policy will be used next.
+	return "", nil, fmt.Errorf("call RoundRobinPolicy is forbidden")
 }
 
-func (*RoundRobinStrategy) Sync(endpoints []string) {}
+func (*RoundRobinPolicy) Sync(endpoints []string) {}
 
-func (*RoundRobinStrategy) Release() {}
+func (*RoundRobinPolicy) Release() {}
 
-type RandomStrategy struct {
+type RandomPolicy struct {
 	lock sync.Mutex
 }
 
-func NewRandomStrategy() *RandomStrategy {
-	return &RandomStrategy{}
+func NewRandomPolicy() *RandomPolicy {
+	return &RandomPolicy{}
 }
 
-func (rd *RandomStrategy) Name() string {
+func (rd *RandomPolicy) Name() string {
 	return Random
 }
 
-func (rd *RandomStrategy) Update(oldDr, dr *istioapi.DestinationRule) {}
+func (rd *RandomPolicy) Update(oldDr, dr *istioapi.DestinationRule) {}
 
-func (rd *RandomStrategy) Pick(endpoints []string, srcAddr net.Addr, netConn net.Conn) (string, *http.Request, error) {
+func (rd *RandomPolicy) Pick(endpoints []string, srcAddr net.Addr, netConn net.Conn) (string, *http.Request, error) {
 	rd.lock.Lock()
 	k := rand.Int() % len(endpoints)
 	rd.lock.Unlock()
 	return endpoints[k], nil, nil
 }
 
-func (rd *RandomStrategy) Sync(endpoints []string) {}
+func (rd *RandomPolicy) Sync(endpoints []string) {}
 
-func (rd *RandomStrategy) Release() {}
+func (rd *RandomPolicy) Release() {}
 
 type defaultHasher struct{}
 
@@ -164,45 +135,6 @@ func updateHashRing(hr *consistent.Consistent, endpoints []string) {
 	}
 }
 
-// sliceCompare finds the difference between two string slice.
-func sliceCompare(src []string, dest []string) ([]string, []string) {
-	msrc := make(map[string]byte) // source array set
-	mall := make(map[string]byte) // union set
-	var set []string              // intersection set
-
-	// 1.Create a map for the source array.
-	for _, v := range src {
-		msrc[v] = 0
-		mall[v] = 0
-	}
-	// 2.Elements that cannot be stored in the destination array are duplicate elements.
-	for _, v := range dest {
-		l := len(mall)
-		mall[v] = 1
-		if l != len(mall) {
-			l = len(mall)
-		} else {
-			set = append(set, v)
-		}
-	}
-	// 3.union - intersection = all variable elements
-	for _, v := range set {
-		delete(mall, v)
-	}
-	// 4.Now, mall is a complement set, then we use mall to traverse the source array.
-	// The element that can be found is the deleted element, and the element that cannot be found is the added element.
-	var added, deleted []string
-	for v := range mall {
-		_, exist := msrc[v]
-		if exist {
-			deleted = append(deleted, v)
-		} else {
-			added = append(added, v)
-		}
-	}
-	return added, deleted
-}
-
 func clearHashRing(hr *consistent.Consistent) {
 	if hr == nil {
 		return
@@ -213,12 +145,6 @@ func clearHashRing(hr *consistent.Consistent) {
 	// Reference count is 0, waiting for GC to clean up?
 	hr = nil
 }
-
-const (
-	// supported consistent hash keys
-	HttpHeader   = "HTTP_HEADER"
-	UserSourceIP = "USER_SOURCE_IP"
-)
 
 type HashKey struct {
 	Type string
@@ -241,10 +167,10 @@ func getConsistentHashKey(dr *istioapi.DestinationRule) HashKey {
 	}
 
 	switch lbPolicy := dr.Spec.TrafficPolicy.LoadBalancer.LbPolicy.(type) {
-	case *apiv1alpha3.LoadBalancerSettings_Simple:
+	case *istiov1alpha3.LoadBalancerSettings_Simple:
 		klog.Errorf("hash key can't get in LoadBalancerSettings_Simple")
 		return HashKey{}
-	case *apiv1alpha3.LoadBalancerSettings_ConsistentHash:
+	case *istiov1alpha3.LoadBalancerSettings_ConsistentHash:
 		if lbPolicy.ConsistentHash == nil {
 			klog.Errorf("destination rule object %s .Spec.TrafficPolicy.LoadBalancer.LbPolicy.ConsistentHash is nil", getNamespaceName(dr))
 			return HashKey{}
@@ -254,12 +180,12 @@ func getConsistentHashKey(dr *istioapi.DestinationRule) HashKey {
 			return HashKey{}
 		}
 		switch consistentHashLb := lbPolicy.ConsistentHash.HashKey.(type) {
-		case *apiv1alpha3.LoadBalancerSettings_ConsistentHashLB_HttpHeaderName:
+		case *istiov1alpha3.LoadBalancerSettings_ConsistentHashLB_HttpHeaderName:
 			return HashKey{Type: HttpHeader, Key: consistentHashLb.HttpHeaderName}
-		case *apiv1alpha3.LoadBalancerSettings_ConsistentHashLB_HttpCookie:
+		case *istiov1alpha3.LoadBalancerSettings_ConsistentHashLB_HttpCookie:
 			klog.Errorf("http cookie is not supported as a hash key")
 			return HashKey{}
-		case *apiv1alpha3.LoadBalancerSettings_ConsistentHashLB_UseSourceIp:
+		case *istiov1alpha3.LoadBalancerSettings_ConsistentHashLB_UseSourceIp:
 			return HashKey{Type: UserSourceIP, Key: ""}
 		default:
 			klog.Errorf("%s unsupported ConsistentHash fields", getNamespaceName(dr))
@@ -271,30 +197,30 @@ func getConsistentHashKey(dr *istioapi.DestinationRule) HashKey {
 	}
 }
 
-type ConsistentHashStrategy struct {
+type ConsistentHashPolicy struct {
 	lock     sync.Mutex
 	hashRing *consistent.Consistent
 	hashKey  HashKey
 }
 
-func NewConsistentHashStrategy(dr *istioapi.DestinationRule, endpoints []string) *ConsistentHashStrategy {
-	return &ConsistentHashStrategy{
+func NewConsistentHashPolicy(dr *istioapi.DestinationRule, endpoints []string) *ConsistentHashPolicy {
+	return &ConsistentHashPolicy{
 		hashRing: newHashRing(endpoints),
 		hashKey:  getConsistentHashKey(dr),
 	}
 }
 
-func (ch *ConsistentHashStrategy) Name() string {
+func (ch *ConsistentHashPolicy) Name() string {
 	return ConsistentHash
 }
 
-func (ch *ConsistentHashStrategy) Update(oldDr, dr *istioapi.DestinationRule) {
+func (ch *ConsistentHashPolicy) Update(oldDr, dr *istioapi.DestinationRule) {
 	ch.lock.Lock()
 	ch.hashKey = getConsistentHashKey(dr)
 	ch.lock.Unlock()
 }
 
-func (ch *ConsistentHashStrategy) Pick(endpoints []string, srcAddr net.Addr, netConn net.Conn) (endpoint string, req *http.Request, err error) {
+func (ch *ConsistentHashPolicy) Pick(endpoints []string, srcAddr net.Addr, netConn net.Conn) (endpoint string, req *http.Request, err error) {
 	ch.lock.Lock()
 	defer ch.lock.Unlock()
 
@@ -326,7 +252,7 @@ func (ch *ConsistentHashStrategy) Pick(endpoints []string, srcAddr net.Addr, net
 	return member.String(), req, nil
 }
 
-func (ch *ConsistentHashStrategy) Sync(endpoints []string) {
+func (ch *ConsistentHashPolicy) Sync(endpoints []string) {
 	ch.lock.Lock()
 	if ch.hashRing == nil {
 		ch.hashRing = newHashRing(endpoints)
@@ -336,7 +262,7 @@ func (ch *ConsistentHashStrategy) Sync(endpoints []string) {
 	ch.lock.Unlock()
 }
 
-func (ch *ConsistentHashStrategy) Release() {
+func (ch *ConsistentHashPolicy) Release() {
 	ch.lock.Lock()
 	clearHashRing(ch.hashRing)
 	ch.lock.Unlock()

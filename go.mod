@@ -20,17 +20,13 @@ require (
 	github.com/multiformats/go-multiaddr v0.6.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.16.0
-	github.com/opencontainers/runc v1.0.2
 	github.com/spf13/cobra v1.2.1
 	github.com/vishvananda/netlink v1.1.0
-	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab
 	istio.io/api v0.0.0-20220124163811-3adce9124ae7
 	istio.io/client-go v1.12.3
 	k8s.io/api v0.23.1
 	k8s.io/apimachinery v0.23.1
-	k8s.io/apiserver v0.23.0
 	k8s.io/client-go v0.23.1
-	k8s.io/cloud-provider v0.23.0
 	k8s.io/component-base v0.23.0
 	k8s.io/klog/v2 v2.40.1
 	k8s.io/kubernetes v1.23.0

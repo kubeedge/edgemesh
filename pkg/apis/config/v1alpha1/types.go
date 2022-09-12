@@ -57,7 +57,7 @@ type GatewayModules struct {
 type CommonConfig struct {
 	// Mode indicates the current running mode of container
 	// do not allow users to configure manually
-	// default "DebugMode"
+	// options DebugMode, CloudMode and EdgeMode
 	Mode string
 	// MetaServerAddress indicates the EdgeCore's metaServer address
 	// default http://127.0.0.1:10550
@@ -83,7 +83,7 @@ type EdgeDNSConfig struct {
 	ListenPort int `json:"listenPort,omitempty"`
 	// Mode indicates the current running mode of container
 	// do not allow users to configure manually
-	// default "DebugMode"
+	// options DebugMode, CloudMode and EdgeMode
 	Mode string
 	// KubeAPIConfig is equivalent to EdgeMeshAgentConfig.KubeAPIConfig
 	// do not allow users to configure manually
@@ -112,11 +112,16 @@ type EdgeProxyConfig struct {
 	// Enable indicates whether enable EdgeProxy
 	// default false
 	Enable bool `json:"enable,omitempty"`
+	// NodeName indicates name of host
+	// do not allow users to configure manually
+	NodeName string
 	// ListenInterface indicates the listen interface of EdgeProxy
 	// do not allow users to configure manually
 	ListenInterface string
 	// Socks5Proxy indicates the socks5 proxy config
 	Socks5Proxy *Socks5Proxy `json:"socks5Proxy,omitempty"`
+	// LoadBalancer indicates the load balance strategy
+	LoadBalancer *LoadBalancer `json:"loadBalancer,omitempty"`
 }
 
 // Socks5Proxy indicates the socks5 proxy config
@@ -182,6 +187,10 @@ type Protocol struct {
 
 // LoadBalancer indicates the loadbalance strategy in edgemesh
 type LoadBalancer struct {
+	// Caller indicates the module using LoadBalancer
+	// do not allow users to configure manually
+	// options: ProxyCaller, GatewayCaller
+	Caller string
 	// DefaultLBStrategy indicates default load balance strategy name
 	// default "RoundRobin"
 	DefaultLBStrategy string `json:"defaultLBStrategy,omitempty"`
@@ -214,7 +223,7 @@ type EdgeTunnelConfig struct {
 	Enable bool `json:"enable,omitempty"`
 	// Mode indicates EdgeTunnel running mode
 	// do not allow users to configure manually
-	// default ServerAndClient
+	// options: ServerAndClient, ClientOnly
 	Mode defaults.TunnelMode
 	// NodeName indicates the node name of EdgeTunnel
 	// do not allow users to configure manually
