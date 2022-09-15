@@ -25,16 +25,16 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
-	"github.com/kubeedge/edgemesh/pkg/common/util"
 	discoverypb "github.com/kubeedge/edgemesh/pkg/tunnel/pb/discovery"
 	proxypb "github.com/kubeedge/edgemesh/pkg/tunnel/pb/proxy"
+	netutil "github.com/kubeedge/edgemesh/pkg/util/net"
 )
 
 const (
 	MaxReadSize = 4096
 
 	DailRetryTime = 3
-	DailSleepTime = 200 * time.Microsecond
+	DailSleepTime = 500 * time.Microsecond
 
 	RetryTime     = 3
 	RetryInterval = 2 * time.Second
@@ -333,9 +333,9 @@ func (t *EdgeTunnel) proxyStreamHandler(stream network.Stream) {
 	streamConn := NewStreamConn(stream)
 	switch targetProto {
 	case TCP:
-		go util.ProxyConn(streamConn, proxyConn)
+		go netutil.ProxyConn(streamConn, proxyConn)
 	case UDP:
-		go util.ProxyConnUDP(streamConn, proxyConn.(*net.UDPConn))
+		go netutil.ProxyConnUDP(streamConn, proxyConn.(*net.UDPConn))
 	}
 	klog.Infof("Success proxy for {%s %s %s}", targetProto, targetNode, targetAddr)
 }

@@ -1,16 +1,37 @@
 package v1alpha1
 
 import (
-	"os"
 	"path"
 
 	"github.com/kubeedge/kubeedge/common/constants"
-	"github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1"
+	cloudcorev1alpha1 "github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
+	"github.com/kubeedge/edgemesh/pkg/util"
 )
+
+var defaultKubeConfig = &KubeAPIConfig{
+	KubeAPIConfig: cloudcorev1alpha1.KubeAPIConfig{
+		Master:      "",
+		ContentType: runtime.ContentTypeProtobuf,
+		QPS:         constants.DefaultKubeQPS,
+		Burst:       constants.DefaultKubeBurst,
+		KubeConfig:  "",
+	},
+	Mode:              defaults.DebugMode,
+	MetaServerAddress: defaults.MetaServerAddress,
+}
+
+var defaultLoadBalancerConfig = &LoadBalancer{
+	Caller: defaults.ProxyCaller,
+	ConsistentHash: &ConsistentHash{
+		PartitionCount:    100,
+		ReplicationFactor: 10,
+		Load:              1.25,
+	},
+}
 
 var defaultEdgeTunnelConfig = &EdgeTunnelConfig{
 	Enable:          false,
@@ -28,17 +49,6 @@ var defaultEdgeTunnelConfig = &EdgeTunnelConfig{
 	},
 }
 
-var defaultLoadBalancerConfig = &LoadBalancer{
-	Caller:                defaults.ProxyCaller,
-	DefaultLBStrategy:     "RoundRobin",
-	SupportedLBStrategies: []string{"RoundRobin", "Random", "ConsistentHash"},
-	ConsistentHash: &ConsistentHash{
-		PartitionCount:    100,
-		ReplicationFactor: 10,
-		Load:              1.25,
-	},
-}
-
 // NewDefaultEdgeMeshAgentConfig returns a full EdgeMeshAgentConfig object
 func NewDefaultEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 	c := &EdgeMeshAgentConfig{
@@ -46,18 +56,10 @@ func NewDefaultEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 			Kind:       "EdgeMeshAgent",
 			APIVersion: path.Join("agent.edgemesh.config.kubeedge.io", "v1alpha1"),
 		},
-		KubeAPIConfig: &v1alpha1.KubeAPIConfig{
-			Master:      "",
-			ContentType: runtime.ContentTypeProtobuf,
-			QPS:         constants.DefaultKubeQPS,
-			Burst:       constants.DefaultKubeBurst,
-			KubeConfig:  "",
-		},
+		KubeAPIConfig: defaultKubeConfig,
 		CommonConfig: &CommonConfig{
-			Mode:              defaults.DebugMode,
-			MetaServerAddress: defaults.MetaServerAddress,
-			BridgeDeviceName:  defaults.BridgeDeviceName,
-			BridgeDeviceIP:    defaults.BridgeDeviceIP,
+			BridgeDeviceName: defaults.BridgeDeviceName,
+			BridgeDeviceIP:   defaults.BridgeDeviceIP,
 		},
 		Modules: &AgentModules{
 			EdgeDNSConfig: &EdgeDNSConfig{
@@ -81,7 +83,7 @@ func NewDefaultEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 		},
 	}
 
-	preConfigAgent(c, detectRunningMode())
+	preConfigAgent(c, util.DetectRunningMode())
 	return c
 }
 
@@ -92,55 +94,26 @@ func NewDefaultEdgeMeshGatewayConfig() *EdgeMeshGatewayConfig {
 			Kind:       "EdgeMeshGateway",
 			APIVersion: path.Join("gateway.edgemesh.config.kubeedge.io", "v1alpha1"),
 		},
-		KubeAPIConfig: &v1alpha1.KubeAPIConfig{
-			Master:      "",
-			ContentType: runtime.ContentTypeProtobuf,
-			QPS:         constants.DefaultKubeQPS,
-			Burst:       constants.DefaultKubeBurst,
-			KubeConfig:  "",
-		},
-		CommonConfig: &CommonConfig{
-			Mode:              defaults.DebugMode,
-			MetaServerAddress: defaults.MetaServerAddress,
-		},
+		KubeAPIConfig: defaultKubeConfig,
 		Modules: &GatewayModules{
 			EdgeGatewayConfig: &EdgeGatewayConfig{
-				Enable:    false,
-				NIC:       "*",
-				IncludeIP: "*",
-				ExcludeIP: "*",
-				GoChassisConfig: &GoChassisConfig{
-					Protocol: &Protocol{
-						TCPBufferSize:     8192,
-						TCPClientTimeout:  2,
-						TCPReconnectTimes: 3,
-					},
-					LoadBalancer: defaultLoadBalancerConfig,
-				},
+				Enable:       false,
+				NIC:          "*",
+				IncludeIP:    "*",
+				ExcludeIP:    "*",
+				LoadBalancer: defaultLoadBalancerConfig,
 			},
 			EdgeTunnelConfig: defaultEdgeTunnelConfig,
 		},
 	}
 
-	preConfigGateway(c, detectRunningMode())
+	preConfigGateway(c, util.DetectRunningMode())
 	return c
 }
 
-// detectRunningMode detects whether the container is running on cloud node or edge node.
-// It will recognize whether there is KUBERNETES_PORT in the container environment variable, because
-// edged will not inject KUBERNETES_PORT environment variable into the container, but kubelet will.
-// What is edged: https://kubeedge.io/en/docs/architecture/edge/edged/
-func detectRunningMode() string {
-	_, exist := os.LookupEnv("KUBERNETES_PORT")
-	if exist {
-		return defaults.CloudMode
-	}
-	return defaults.EdgeMode
-}
-
 // preConfigAgent will init the edgemesh-agent configuration according to the mode.
-func preConfigAgent(c *EdgeMeshAgentConfig, mode string) {
-	c.CommonConfig.Mode = mode
+func preConfigAgent(c *EdgeMeshAgentConfig, mode defaults.RunningMode) {
+	c.KubeAPIConfig.Mode = mode
 
 	if mode == defaults.EdgeMode {
 		// edgemesh-agent relies on the local apiserver function of KubeEdge when it runs at the edge node.
@@ -165,8 +138,8 @@ func preConfigAgent(c *EdgeMeshAgentConfig, mode string) {
 }
 
 // preConfigGateway will init the edgemesh-gateway configuration according to the mode.
-func preConfigGateway(c *EdgeMeshGatewayConfig, mode string) {
-	c.CommonConfig.Mode = mode
+func preConfigGateway(c *EdgeMeshGatewayConfig, mode defaults.RunningMode) {
+	c.KubeAPIConfig.Mode = mode
 
 	if mode == defaults.EdgeMode {
 		c.KubeAPIConfig.Master = defaults.MetaServerAddress

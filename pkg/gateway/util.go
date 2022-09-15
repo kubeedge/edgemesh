@@ -1,4 +1,4 @@
-package util
+package gateway
 
 import (
 	"net"
@@ -23,7 +23,7 @@ func GetIPsNeedListen(c *v1alpha1.EdgeGatewayConfig) ([]net.IP, error) {
 			klog.Errorf("GetAllIPs failed, err: %v.", err)
 			return nil, err
 		}
-		klog.V(4).Infof("ips is %+v.", ips)
+		klog.V(4).Infof("ListenIPs is %+v.", ips)
 	} else {
 		// case 2: env "NIC" is set. get all network cards, for example "lo,eth0"
 		netList := strings.Split(netCards, ",")
@@ -35,7 +35,7 @@ func GetIPsNeedListen(c *v1alpha1.EdgeGatewayConfig) ([]net.IP, error) {
 			}
 			ips = append(ips, ipsByName...)
 		}
-		klog.V(4).Infof("ips is %+v.", ips)
+		klog.V(4).Infof("ListenIPs is %+v.", ips)
 	}
 
 	// step 2 :get ips include. by env "INCLUDE_IP"
@@ -69,7 +69,7 @@ func GetAllIPs() ([]net.IP, error) {
 
 	interfaces, err := net.Interfaces()
 	if err != nil {
-		klog.Errorf("get Interfaces failed, err: %v", err)
+		klog.Errorf("Get Interfaces failed, err: %v", err)
 		return nil, err
 	}
 
@@ -89,12 +89,12 @@ func GetIPsByName(name string) ([]net.IP, error) {
 	ips := make([]net.IP, 0)
 	interfaceInfo, err := net.InterfaceByName(name)
 	if err != nil {
-		klog.Errorf("get InterfaceByName failed, err: %v", err)
+		klog.Errorf("Get InterfaceByName failed, err: %v", err)
 		return nil, err
 	}
 	addresses, err := interfaceInfo.Addrs()
 	if err != nil {
-		klog.Errorf("get addrs failed, err: %v", err)
+		klog.Errorf("Get addrs failed, err: %v", err)
 		return nil, err
 	}
 	for _, v := range addresses {
@@ -108,7 +108,7 @@ func GetIPsByName(name string) ([]net.IP, error) {
 
 // get ipList and ipSegmentList.
 func getIPAndSegment(IPList []string) ([]string, []string) {
-	klog.V(4).Infof("start getIPAndSegment, IPList is %+v.", IPList)
+	klog.V(4).Infof("Start getIPAndSegment, IPList is %+v.", IPList)
 	ipList := make([]string, 0)
 	ipSegmentList := make([]string, 0)
 	for _, val := range IPList {
@@ -118,29 +118,29 @@ func getIPAndSegment(IPList []string) ([]string, []string) {
 		}
 		ipList = append(ipList, val)
 	}
-	klog.V(4).Infof("after getIPAndSegment, ipList is %+v. ipSegmentList is %v.", ipList, ipSegmentList)
+	klog.V(4).Infof("After getIPAndSegment, ipList is %+v. ipSegmentList is %v.", ipList, ipSegmentList)
 	return ipList, ipSegmentList
 }
 
 func excludeIPsFromIPs(allIPList []net.IP, excludeIPList []string) []net.IP {
-	klog.V(4).Infof("start excludeIPsFromIPs, allIPList is %+v.", allIPList)
+	klog.V(4).Infof("Start excludeIPsFromIPs, allIPList is %+v.", allIPList)
 	for i := 0; i < len(allIPList); i++ {
 		for _, ex := range excludeIPList {
-			klog.V(4).Infof("allIPList[i] : %s, excludeIP : %s.", allIPList[i].String(), ex)
+			klog.V(4).Infof("allIPList[%d] : %s, excludeIP : %s.", i, allIPList[i].String(), ex)
 			if allIPList[i].String() == ex {
-				klog.V(4).Infof("allIPList[i] and excludeIP equal.")
+				klog.V(4).Infof("allIPList[%d] and excludeIP equal.", i)
 				allIPList = append(allIPList[:i], allIPList[i+1:]...)
 				i--
 				break
 			}
 		}
 	}
-	klog.V(4).Infof("after excludeIPsFromIPs, allIPList is %+v.", allIPList)
+	klog.V(4).Infof("After excludeIPsFromIPs, allIPList is %+v.", allIPList)
 	return allIPList
 }
 
 func excludeIPSegmentsFromIPs(allIPList []net.IP, excludeIPSegmentList []string) []net.IP {
-	klog.V(4).Infof("start excludeIPSegmentsFromIPs, allIPList is %+v.", allIPList)
+	klog.V(4).Infof("Start excludeIPSegmentsFromIPs, allIPList is %+v.", allIPList)
 	for i := 0; i < len(allIPList); i++ {
 		for _, ex := range excludeIPSegmentList {
 			_, ipnet, err := net.ParseCIDR(ex)
@@ -155,12 +155,12 @@ func excludeIPSegmentsFromIPs(allIPList []net.IP, excludeIPSegmentList []string)
 			}
 		}
 	}
-	klog.V(4).Infof("after excludeIPSegmentsFromIPs, allIPList is %+v.", allIPList)
+	klog.V(4).Infof("After excludeIPSegmentsFromIPs, allIPList is %+v.", allIPList)
 	return allIPList
 }
 
 func includeIPsFromIPs(allIPList []net.IP, includeIPList []string, includeIPSegmentList []string) []net.IP {
-	klog.V(4).Infof("start includeIPsFromIPs, allIPList is %+v.", allIPList)
+	klog.V(4).Infof("Start includeIPsFromIPs, allIPList is %+v.", allIPList)
 	res := make([]net.IP, 0)
 	for i := 0; i < len(allIPList); i++ {
 		match := false
@@ -188,6 +188,6 @@ func includeIPsFromIPs(allIPList []net.IP, includeIPList []string, includeIPSegm
 			}
 		}
 	}
-	klog.V(4).Infof("after includeIPsFromIPs, res is %+v.", res)
+	klog.V(4).Infof("After includeIPsFromIPs, res is %+v.", res)
 	return res
 }

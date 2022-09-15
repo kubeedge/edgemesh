@@ -1,4 +1,4 @@
-package manager
+package gateway
 
 import (
 	"crypto/tls"
@@ -9,14 +9,22 @@ import (
 	"sync"
 
 	istioapi "istio.io/client-go/pkg/apis/networking/v1alpha3"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
 
-	"github.com/kubeedge/edgemesh/pkg/gateway/chassis/protocol"
-	"github.com/kubeedge/edgemesh/pkg/gateway/chassis/protocol/http"
-	"github.com/kubeedge/edgemesh/pkg/gateway/chassis/protocol/tcp"
-	"github.com/kubeedge/edgemesh/pkg/gateway/controller"
+	"github.com/kubeedge/edgemesh/pkg/gateway/cache"
+	"github.com/kubeedge/edgemesh/pkg/loadbalancer"
 )
+
+var (
+	once                 sync.Once
+	internalLoadBalancer *loadbalancer.LoadBalancer
+)
+
+func initLoadBalancer(loadbalancer *loadbalancer.LoadBalancer) {
+	once.Do(func() {
+		internalLoadBalancer = loadbalancer
+	})
+}
 
 // Server is gateway server
 type Server struct {
@@ -79,10 +87,10 @@ func (srv *Server) serve() {
 			// tls
 			if srv.options.CredentialName != "" {
 				klog.Infof("tls required")
-				key := fmt.Sprintf("%s.%s", srv.options.Namespace, srv.options.CredentialName)
-				s, err := controller.APIConn.GetSecretLister().Secrets(srv.options.Namespace).Get(srv.options.CredentialName)
-				if err != nil {
-					klog.Errorf("can't find secret %s, reason: %v", key, err)
+				key := cache.KeyFormat(srv.options.Namespace, srv.options.CredentialName)
+				s, ok := cache.GetSecret(key)
+				if !ok {
+					klog.Errorf("can't find k8s secret %s in cache", key)
 					err = conn.Close()
 					if err != nil {
 						klog.Errorf("close conn err: %v", err)
@@ -146,25 +154,25 @@ func (srv *Server) serve() {
 	}
 }
 
-func (srv *Server) newProto(conn net.Conn) (protocol.Protocol, error) {
-	// ingress traffic
+func (srv *Server) newProto(conn net.Conn) (Protocol, error) {
 	if srv.options.Exposed {
-		// find all virtual services that bound to the gateway
+		// external traffic
 		var vss []*istioapi.VirtualService
-		vsList, err := controller.APIConn.GetVsLister().VirtualServices(srv.options.Namespace).List(labels.Everything())
-		if err != nil {
-			return nil, fmt.Errorf("list virtual service error %v", err)
-		}
-		for _, vs := range vsList {
-			if vs.Spec.Gateways[0] == srv.options.GwName && reflect.DeepEqual(vs.Spec.Hosts, srv.options.Hosts) {
-				vss = append(vss, vs)
+		// find all virtual services that bound to the gateway
+		fn := func(key, value interface{}) bool {
+			if vs, ok := value.(*istioapi.VirtualService); ok {
+				if vs.Spec.Gateways[0] == srv.options.GwName &&
+					reflect.DeepEqual(vs.Spec.Hosts, srv.options.Hosts) {
+					vss = append(vss, vs)
+				}
 			}
+			return true
 		}
-
-		// get protocol
+		cache.RangeVirtualServices(fn)
+		// http
 		if srv.options.Protocol == "HTTP" || srv.options.Protocol == "HTTPS" {
 			for _, vs := range vss {
-				proto := &http.HTTP{
+				proto := &HTTP{
 					Conn:           conn,
 					VirtualService: vs,
 				}
@@ -173,13 +181,13 @@ func (srv *Server) newProto(conn net.Conn) (protocol.Protocol, error) {
 			return nil, fmt.Errorf("no match virtual service")
 		} else if srv.options.Protocol == "TCP" {
 			for _, vs := range vss {
-				// TODO: currently only one tcp route for a virtual service@Porunga
+				// currently only one tcp route for a virtual service
 				if len(vs.Spec.Tcp) == 1 && len(vs.Spec.Tcp[0].Route) == 1 {
-					proto := &tcp.TCP{
+					proto := &TCP{
 						Conn:         conn,
 						SvcNamespace: srv.options.Namespace,
 						SvcName:      vs.Spec.Tcp[0].Route[0].Destination.Host,
-						Port:         int(vs.Spec.Tcp[0].Route[0].Destination.Port.Number),
+						SvcPort:      int(vs.Spec.Tcp[0].Route[0].Destination.Port.Number),
 					}
 					return proto, nil
 				}
@@ -197,7 +205,7 @@ func (srv *Server) Stop() {
 	close(srv.stop)
 	err := srv.listener.Close()
 	if err != nil {
-		klog.Errorf("close Server err: %v", err)
+		klog.Errorf("close listener err: %v", err)
 	}
 	srv.wg.Wait()
 }

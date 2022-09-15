@@ -1,7 +1,7 @@
 package v1alpha1
 
 import (
-	"github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1"
+	cloudcorev1alpha1 "github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
@@ -12,7 +12,7 @@ type EdgeMeshAgentConfig struct {
 	metav1.TypeMeta
 	// KubeAPIConfig indicates the kubernetes cluster info which EdgeMeshAgent will connect
 	// +Required
-	KubeAPIConfig *v1alpha1.KubeAPIConfig `json:"kubeAPIConfig,omitempty"`
+	KubeAPIConfig *KubeAPIConfig `json:"kubeAPIConfig,omitempty"`
 	// CommonConfig indicates common config for all modules
 	// +Required
 	CommonConfig *CommonConfig `json:"commonConfig,omitempty"`
@@ -36,10 +36,7 @@ type EdgeMeshGatewayConfig struct {
 	metav1.TypeMeta
 	// KubeAPIConfig indicates the kubernetes cluster info which EdgeMeshGateway will connect
 	// +Required
-	KubeAPIConfig *v1alpha1.KubeAPIConfig `json:"kubeAPIConfig,omitempty"`
-	// CommonConfig indicates common config for all modules
-	// +Required
-	CommonConfig *CommonConfig `json:"commonConfig,omitempty"`
+	KubeAPIConfig *KubeAPIConfig `json:"kubeAPIConfig,omitempty"`
 	// Modules indicates EdgeMeshAgent modules config
 	// +Required
 	Modules *GatewayModules `json:"modules,omitempty"`
@@ -53,15 +50,20 @@ type GatewayModules struct {
 	EdgeTunnelConfig *EdgeTunnelConfig `json:"edgeTunnel,omitempty"`
 }
 
-// CommonConfig defines some common configuration items
-type CommonConfig struct {
+// KubeAPIConfig indicates the configuration for interacting with k8s server
+type KubeAPIConfig struct {
+	cloudcorev1alpha1.KubeAPIConfig
 	// Mode indicates the current running mode of container
 	// do not allow users to configure manually
 	// options DebugMode, CloudMode and EdgeMode
-	Mode string
+	Mode defaults.RunningMode
 	// MetaServerAddress indicates the EdgeCore's metaServer address
 	// default http://127.0.0.1:10550
 	MetaServerAddress string `json:"metaServerAddress,omitempty"`
+}
+
+// CommonConfig defines some common configuration items
+type CommonConfig struct {
 	// BridgeDeviceName indicates the name of the bridge device will be created
 	// default edgemesh0
 	BridgeDeviceName string `json:"bridgeDeviceName,omitempty"`
@@ -75,19 +77,15 @@ type EdgeDNSConfig struct {
 	// Enable indicates whether enable EdgeDNS
 	// default false
 	Enable bool `json:"enable,omitempty"`
+	// KubeAPIConfig is equivalent to EdgeMeshAgentConfig.KubeAPIConfig
+	// do not allow users to configure manually
+	KubeAPIConfig *KubeAPIConfig
 	// ListenInterface indicates the listen interface of EdgeDNS
 	// do not allow users to configure manually
 	ListenInterface string
 	// ListenPort indicates the listen port of EdgeDNS
 	// default 53
 	ListenPort int `json:"listenPort,omitempty"`
-	// Mode indicates the current running mode of container
-	// do not allow users to configure manually
-	// options DebugMode, CloudMode and EdgeMode
-	Mode string
-	// KubeAPIConfig is equivalent to EdgeMeshAgentConfig.KubeAPIConfig
-	// do not allow users to configure manually
-	KubeAPIConfig *v1alpha1.KubeAPIConfig
 	// CacheDNS indicates the node local cache dns
 	CacheDNS *CacheDNS `json:"cacheDNS,omitempty"`
 }
@@ -112,9 +110,6 @@ type EdgeProxyConfig struct {
 	// Enable indicates whether enable EdgeProxy
 	// default false
 	Enable bool `json:"enable,omitempty"`
-	// NodeName indicates name of host
-	// do not allow users to configure manually
-	NodeName string
 	// ListenInterface indicates the listen interface of EdgeProxy
 	// do not allow users to configure manually
 	ListenInterface string
@@ -156,47 +151,22 @@ type EdgeGatewayConfig struct {
 	// empty or "*" stands for not exclude any ip. You can also specify ips such as "192.168.1.56,10.3.2.1"
 	// default "*"
 	ExcludeIP string `json:"excludeIP,omitempty"`
-	// GoChassisConfig defines some configurations related to go-chassis
-	// +Required
-	GoChassisConfig *GoChassisConfig `json:"goChassisConfig,omitempty"`
-}
-
-// GoChassisConfig defines some configurations related to go-chassis
-type GoChassisConfig struct {
-	// Protocol indicates the supported protocols
-	Protocol *Protocol `json:"protocol,omitempty"`
+	//// GoChassisConfig defines some configurations related to go-chassis
+	//// +Required
+	//GoChassisConfig *GoChassisConfig `json:"goChassisConfig,omitempty"`
 	// LoadBalancer indicates the load balance strategy
 	LoadBalancer *LoadBalancer `json:"loadBalancer,omitempty"`
 }
 
-// Protocol indicates the supported protocols
-type Protocol struct {
-	// TCPBufferSize indicates 4-layer tcp buffer size
-	// default 8192
-	TCPBufferSize int `json:"tcpBufferSize,omitempty"`
-	// TCPClientTimeout indicates 4-layer tcp client timeout, the unit is second.
-	// default 2
-	TCPClientTimeout int `json:"tcpClientTimeout,omitempty"`
-	// TCPReconnectTimes indicates 4-layer tcp reconnect times
-	// default 3
-	TCPReconnectTimes int `json:"tcpReconnectTimes,omitempty"`
-	// NodeName indicates the node name of host
-	// do not allow users to configure manually
-	NodeName string
-}
-
 // LoadBalancer indicates the loadbalance strategy in edgemesh
 type LoadBalancer struct {
-	// Caller indicates the module using LoadBalancer
+	// Caller indicates which module using LoadBalancer
 	// do not allow users to configure manually
 	// options: ProxyCaller, GatewayCaller
-	Caller string
-	// DefaultLBStrategy indicates default load balance strategy name
-	// default "RoundRobin"
-	DefaultLBStrategy string `json:"defaultLBStrategy,omitempty"`
-	// SupportedLBStrategies indicates supported load balance strategies name
-	// default []string{"RoundRobin", "Random", "ConsistentHash"}
-	SupportedLBStrategies []string `json:"supportLBStrategies,omitempty"`
+	Caller defaults.LoadBalancerCaller
+	// NodeName indicates name of host
+	// do not allow users to configure manually
+	NodeName string
 	// ConsistentHash indicates the extension of the go-chassis loadbalancer
 	ConsistentHash *ConsistentHash `json:"consistentHash,omitempty"`
 }

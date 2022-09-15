@@ -4,6 +4,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
+type RunningMode string
+type LoadBalancerCaller string
 type TunnelMode string
 type DiscoveryType string
 
@@ -21,19 +23,18 @@ const (
 	BridgeDeviceIP    = "169.254.96.16"
 	MetaServerAddress = "http://127.0.0.1:10550"
 
-	EdgeMode  = "EdgeMode"  // detected running on the edge
-	CloudMode = "CloudMode" // detected running on the cloud
-	DebugMode = "DebugMode" // detected that user manually configured kubeAPIConfig
+	EdgeMode  RunningMode = "EdgeMode"  // detected running on the edge
+	CloudMode RunningMode = "CloudMode" // detected running on the cloud
+	DebugMode RunningMode = "DebugMode" // detected that user manually configured kubeAPIConfig
 
 	EmptyNodeName = "EMPTY_NODE_NAME"
 	EmptyPodName  = "EMPTY_POD_NAME"
 
-	// LabelEdgeMeshServiceProxyName indicates that an alternative service
-	// proxy will implement this Service.
+	// LabelEdgeMeshServiceProxyName indicates that an alternative service proxy will implement this Service.
 	LabelEdgeMeshServiceProxyName = "service.edgemesh.kubeedge.io/service-proxy-name"
 
-	ProxyCaller   = "ProxyCaller"
-	GatewayCaller = "GatewayCaller"
+	ProxyCaller   LoadBalancerCaller = "ProxyCaller"
+	GatewayCaller LoadBalancerCaller = "GatewayCaller"
 
 	ClientMode       TunnelMode = "ClientOnly"
 	ServerClientMode TunnelMode = "ServerAndClient"

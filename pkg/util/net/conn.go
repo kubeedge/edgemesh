@@ -6,7 +6,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -26,7 +25,6 @@ func HttpRequestToBytes(req *http.Request) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// Copy and update from https://github.com/kubernetes/kubernetes/blob/v1.23.0/pkg/proxy/userspace/proxysocket.go#L154
 // ProxyConn proxies data bi-directionally between in and out.
 func ProxyConn(in, out net.Conn) {
 	var wg sync.WaitGroup
@@ -38,7 +36,6 @@ func ProxyConn(in, out net.Conn) {
 	wg.Wait()
 }
 
-// Copy and update from https://github.com/kubernetes/kubernetes/blob/v1.23.0/pkg/proxy/userspace/proxysocket.go#L164
 func copyBytes(direction string, dest, src net.Conn, wg *sync.WaitGroup) {
 	defer wg.Done()
 	klog.V(4).InfoS("Copying remote address bytes", "direction", direction, "sourceRemoteAddress", src.RemoteAddr(), "destinationRemoteAddress", dest.RemoteAddr())
@@ -72,7 +69,7 @@ func ProxyConnUDP(inConn net.Conn, udpConn *net.UDPConn) {
 		go copyDatagram(udpConn, inConn)
 		_, err = udpConn.Write(buffer[0:n])
 		if err != nil {
-			if !LogTimeout(err) {
+			if !IsTimeoutError(err) {
 				klog.ErrorS(err, "Write failed")
 			}
 			continue
@@ -91,7 +88,7 @@ func copyDatagram(udpConn *net.UDPConn, outConn net.Conn) {
 	for {
 		n, _, err := udpConn.ReadFromUDP(buffer[0:])
 		if err != nil {
-			if !LogTimeout(err) && !IsEOFError(err) {
+			if !IsTimeoutError(err) && !IsEOFError(err) {
 				klog.ErrorS(err, "Read failed")
 			}
 			break
@@ -103,42 +100,10 @@ func copyDatagram(udpConn *net.UDPConn, outConn net.Conn) {
 		}
 		_, err = outConn.Write(buffer[0:n])
 		if err != nil {
-			if !LogTimeout(err) {
+			if !IsTimeoutError(err) {
 				klog.ErrorS(err, "WriteTo failed")
 			}
 			break
 		}
 	}
-}
-
-// Copy and paste from https://github.com/kubernetes/kubernetes/blob/v1.23.0/pkg/proxy/userspace/proxier.go#L1259
-func IsTooManyFDsError(err error) bool {
-	return strings.Contains(err.Error(), "too many open files")
-}
-
-// Copy and paste from https://github.com/kubernetes/kubernetes/blob/v1.23.0/pkg/proxy/userspace/proxier.go#L1263
-func IsClosedError(err error) bool {
-	// A brief discussion about handling closed error here:
-	// https://code.google.com/p/go/issues/detail?id=4373#c14
-	// TODO: maybe create a stoppable TCP listener that returns a StoppedError
-	return strings.HasSuffix(err.Error(), "use of closed network connection")
-}
-
-func IsStreamResetError(err error) bool {
-	return strings.HasSuffix(err.Error(), "stream reset")
-}
-
-func IsEOFError(err error) bool {
-	return strings.HasSuffix(err.Error(), "EOF")
-}
-
-// Copy and paste from https://github.com/kubernetes/kubernetes/blob/v1.23.0/pkg/proxy/userspace/proxier.go#L111
-func LogTimeout(err error) bool {
-	if e, ok := err.(net.Error); ok {
-		if e.Timeout() {
-			klog.V(3).InfoS("Connection to endpoint closed due to inactivity")
-			return true
-		}
-	}
-	return false
 }

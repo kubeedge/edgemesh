@@ -63,8 +63,7 @@ func newProxyServer(
 	config *proxyconfigapi.KubeProxyConfiguration,
 	lbConfig *v1alpha1.LoadBalancer,
 	client clientset.Interface,
-	istioClient istioclientset.Interface,
-	nodeName string) (*ProxyServer, error) {
+	istioClient istioclientset.Interface) (*ProxyServer, error) {
 
 	klog.V(0).Info("Using userspace Proxier.")
 
@@ -72,11 +71,12 @@ func newProxyServer(
 	execer := exec.New()
 	iptInterface := utiliptables.New(execer, utiliptables.ProtocolIPv4)
 
-	myLoadBalancer := loadbalancer.New(lbConfig, client, istioClient, config.ConfigSyncPeriod.Duration)
-	initProxySocket(nodeName, myLoadBalancer)
+	// Initialize a loadBalancer
+	loadBalancer := loadbalancer.New(lbConfig, client, istioClient, config.ConfigSyncPeriod.Duration)
+	initLoadBalancer(loadBalancer)
 
 	proxier, err := userspace.NewCustomProxier(
-		myLoadBalancer,
+		loadBalancer,
 		netutils.ParseIPSloppy(config.BindAddress),
 		iptInterface,
 		execer,
@@ -98,7 +98,7 @@ func newProxyServer(
 		execer:           execer,
 		Proxier:          proxier,
 		ConfigSyncPeriod: config.ConfigSyncPeriod.Duration,
-		loadBalancer:     myLoadBalancer,
+		loadBalancer:     loadBalancer,
 	}, nil
 }
 
@@ -144,7 +144,8 @@ func (s *ProxyServer) Run() error {
 	// functions must configure their shared informer event handlers first.
 	informerFactory.Start(wait.NeverStop)
 
-	// run loadBalancer
+	// Run loadBalancer
+	s.loadBalancer.Config.Caller = defaults.ProxyCaller
 	err = s.loadBalancer.Run()
 	if err != nil {
 		return fmt.Errorf("failed to run loadBalancer: %w", err)

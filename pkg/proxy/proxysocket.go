@@ -14,21 +14,17 @@ import (
 	"k8s.io/kubernetes/pkg/proxy"
 	"k8s.io/kubernetes/pkg/proxy/userspace"
 
-	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
-	"github.com/kubeedge/edgemesh/pkg/common/util"
 	"github.com/kubeedge/edgemesh/pkg/loadbalancer"
-	"github.com/kubeedge/edgemesh/pkg/tunnel"
+	netutil "github.com/kubeedge/edgemesh/pkg/util/net"
 )
 
 var (
 	once                 sync.Once
-	localHostname        string
 	internalLoadBalancer *loadbalancer.LoadBalancer
 )
 
-func initProxySocket(nodeName string, loadbalancer *loadbalancer.LoadBalancer) {
+func initLoadBalancer(loadbalancer *loadbalancer.LoadBalancer) {
 	once.Do(func() {
-		localHostname = nodeName
 		internalLoadBalancer = loadbalancer
 	})
 }
@@ -73,85 +69,6 @@ func (tcp *tcpProxySocket) ListenPort() int {
 	return tcp.port
 }
 
-// TryConnectEndpoints attempts to connect to the next available endpoint for the given service, cycling
-// through until it is able to successfully connect, or it has tried with all timeouts in EndpointDialTimeouts.
-func TryConnectEndpoints(service proxy.ServicePortName, srcAddr net.Addr, protocol string, loadBalancer userspace.LoadBalancer, netConn net.Conn) (out net.Conn, err error) {
-	sessionAffinityReset := false
-	for _, dialTimeout := range userspace.EndpointDialTimeouts {
-		endpoint, req, err := internalLoadBalancer.NextEndpointWithConn(service, srcAddr, sessionAffinityReset, netConn)
-		if err != nil {
-			klog.ErrorS(err, "Couldn't find an endpoint for service", "service", service)
-			return nil, err
-		}
-		klog.V(3).InfoS("Mapped service to endpoint", "service", service, "endpoint", endpoint)
-		// NOTE: outConn can be a net.Conn(golang) or network.Stream(libp2p)
-		outConn, err := dialEndpoint(protocol, endpoint, dialTimeout)
-		if err != nil {
-			if util.IsTooManyFDsError(err) {
-				panic("Dial failed: " + err.Error())
-			}
-			klog.ErrorS(err, "Dial failed")
-			sessionAffinityReset = true
-			continue
-		}
-		if req != nil {
-			reqBytes, err := util.HttpRequestToBytes(req)
-			if err == nil {
-				outConn.Write(reqBytes)
-			}
-		}
-		return outConn, nil
-	}
-	return nil, fmt.Errorf("failed to connect to an endpoint")
-}
-
-// parseEndpoint parse an endpoint like "nodeName:podName:ip:port"
-// style strings, nodeName and podName can be empty.
-func parseEndpoint(endpoint string) (node, pod, ip, port string, ok bool) {
-	endpointInfo := strings.Split(endpoint, ":")
-	if len(endpointInfo) != 4 {
-		return "", "", "", "", false
-	}
-	// TODO check IP and port
-	return endpointInfo[0], endpointInfo[1], endpointInfo[2], endpointInfo[3], true
-}
-
-// dialEndpoint If the endpoint contains node name then try to dial stream conn
-// or try to dial net conn.
-func dialEndpoint(protocol, endpoint string, dialTimeout time.Duration) (net.Conn, error) {
-	targetNode, targetPod, targetIP, targetPort, ok := parseEndpoint(endpoint)
-	if !ok {
-		time.Sleep(dialTimeout)
-		return nil, fmt.Errorf("invalid endpoint %s", endpoint)
-	}
-
-	switch targetNode {
-	case defaults.EmptyNodeName, localHostname:
-		// TODO: This could spin up a new goroutine to make the outbound connection,
-		// and keep accepting inbound traffic.
-		outConn, err := net.DialTimeout(protocol, net.JoinHostPort(targetIP, targetPort), dialTimeout)
-		if err != nil {
-			return nil, err
-		}
-		klog.Infof("Dial legacy network between %s - {%s %s %s:%s}", targetPod, protocol, targetNode, targetIP, targetPort)
-		return outConn, nil
-	default:
-		targetPort, err := strconv.ParseInt(targetPort, 10, 32)
-		if err != nil {
-			time.Sleep(dialTimeout)
-			return nil, fmt.Errorf("invalid endpoint %s", endpoint)
-		}
-		proxyOpts := tunnel.ProxyOptions{Protocol: protocol, NodeName: targetNode, IP: targetIP, Port: int32(targetPort)}
-		streamConn, err := tunnel.Agent.GetProxyStream(proxyOpts)
-		if err != nil {
-			time.Sleep(dialTimeout)
-			return nil, fmt.Errorf("get proxy stream from %s error: %v", targetNode, err)
-		}
-		klog.Infof("Dial libp2p network between %s - {%s %s %s:%d}", targetPod, protocol, targetNode, targetIP, targetPort)
-		return streamConn, nil
-	}
-}
-
 func (tcp *tcpProxySocket) ProxyLoop(service proxy.ServicePortName, myInfo *userspace.ServiceInfo, loadBalancer userspace.LoadBalancer) {
 	for {
 		if !myInfo.IsAlive() {
@@ -161,11 +78,11 @@ func (tcp *tcpProxySocket) ProxyLoop(service proxy.ServicePortName, myInfo *user
 		// Block until a connection is made.
 		inConn, err := tcp.Accept()
 		if err != nil {
-			if util.IsTooManyFDsError(err) {
+			if netutil.IsTooManyFDsError(err) {
 				panic("Accept failed: " + err.Error())
 			}
 
-			if util.IsClosedError(err) {
+			if netutil.IsClosedError(err) {
 				return
 			}
 			if !myInfo.IsAlive() {
@@ -176,14 +93,14 @@ func (tcp *tcpProxySocket) ProxyLoop(service proxy.ServicePortName, myInfo *user
 			continue
 		}
 		klog.V(3).InfoS("Accepted TCP connection from remote", "remoteAddress", inConn.RemoteAddr(), "localAddress", inConn.LocalAddr())
-		outConn, err := TryConnectEndpoints(service, inConn.RemoteAddr(), "tcp", loadBalancer, inConn)
+		outConn, err := internalLoadBalancer.TryConnectEndpoints(service, inConn.RemoteAddr(), "tcp", inConn)
 		if err != nil {
 			klog.ErrorS(err, "Failed to connect to balancer")
 			inConn.Close()
 			continue
 		}
 		// Spin up an async copy loop.
-		go util.ProxyConn(inConn, outConn)
+		go netutil.ProxyConn(inConn, outConn)
 	}
 }
 
@@ -201,10 +118,6 @@ func (udp *udpProxySocket) ListenPort() int {
 
 func (udp *udpProxySocket) Addr() net.Addr {
 	return udp.LocalAddr()
-}
-
-func newClientCache() *userspace.ClientCache {
-	return &userspace.ClientCache{Clients: map[string]net.Conn{}}
 }
 
 func (udp *udpProxySocket) ProxyLoop(service proxy.ServicePortName, myInfo *userspace.ServiceInfo, loadBalancer userspace.LoadBalancer) {
@@ -225,13 +138,13 @@ func (udp *udpProxySocket) ProxyLoop(service proxy.ServicePortName, myInfo *user
 					continue
 				}
 			}
-			if !util.IsClosedError(err) && !util.IsStreamResetError(err) {
+			if !netutil.IsClosedError(err) && !netutil.IsStreamResetError(err) {
 				klog.ErrorS(err, "ReadFrom failed, exiting ProxyLoop")
 			}
 			break
 		}
 		// If this is a client we know already, reuse the connection and goroutine.
-		svrConn, err := udp.getBackendConn(myInfo.ActiveClients, cliAddr, loadBalancer, service, myInfo.Timeout)
+		svrConn, err := udp.getBackendConn(myInfo.ActiveClients, cliAddr, service, myInfo.Timeout)
 		if err != nil {
 			continue
 		}
@@ -239,7 +152,7 @@ func (udp *udpProxySocket) ProxyLoop(service proxy.ServicePortName, myInfo *user
 		// really want to copy the buffer.  We could do a pool of buffers or something.
 		_, err = svrConn.Write(buffer[0:n])
 		if err != nil {
-			if !util.LogTimeout(err) {
+			if !netutil.IsTimeoutError(err) {
 				klog.ErrorS(err, "Write failed")
 				// TODO: Maybe tear down the goroutine for this client/server pair?
 			}
@@ -253,7 +166,7 @@ func (udp *udpProxySocket) ProxyLoop(service proxy.ServicePortName, myInfo *user
 	}
 }
 
-func (udp *udpProxySocket) getBackendConn(activeClients *userspace.ClientCache, cliAddr net.Addr, loadBalancer userspace.LoadBalancer, service proxy.ServicePortName, timeout time.Duration) (net.Conn, error) {
+func (udp *udpProxySocket) getBackendConn(activeClients *userspace.ClientCache, cliAddr net.Addr, service proxy.ServicePortName, timeout time.Duration) (net.Conn, error) {
 	activeClients.Mu.Lock()
 	defer activeClients.Mu.Unlock()
 
@@ -262,8 +175,7 @@ func (udp *udpProxySocket) getBackendConn(activeClients *userspace.ClientCache, 
 		// TODO: This could spin up a new goroutine to make the outbound connection,
 		// and keep accepting inbound traffic.
 		klog.V(3).InfoS("New UDP connection from client", "address", cliAddr)
-		var err error
-		svrConn, err = TryConnectEndpoints(service, cliAddr, "udp", loadBalancer, nil)
+		svrConn, err := internalLoadBalancer.TryConnectEndpoints(service, cliAddr, "udp", nil)
 		if err != nil {
 			return nil, err
 		}
@@ -288,7 +200,7 @@ func (udp *udpProxySocket) proxyClient(cliAddr net.Addr, svrConn net.Conn, activ
 	for {
 		n, err := svrConn.Read(buffer[0:])
 		if err != nil {
-			if !util.LogTimeout(err) && !util.IsEOFError(err) {
+			if !netutil.IsTimeoutError(err) && !netutil.IsEOFError(err) {
 				klog.ErrorS(err, "Read failed")
 			}
 			break
@@ -300,7 +212,7 @@ func (udp *udpProxySocket) proxyClient(cliAddr net.Addr, svrConn net.Conn, activ
 		}
 		_, err = udp.WriteTo(buffer[0:n], cliAddr)
 		if err != nil {
-			if !util.LogTimeout(err) {
+			if !netutil.IsTimeoutError(err) {
 				klog.ErrorS(err, "WriteTo failed")
 			}
 			break

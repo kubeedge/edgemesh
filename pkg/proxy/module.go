@@ -6,8 +6,8 @@ import (
 	"github.com/kubeedge/beehive/pkg/core"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
-	"github.com/kubeedge/edgemesh/pkg/common/informers"
-	"github.com/kubeedge/edgemesh/pkg/common/util"
+	"github.com/kubeedge/edgemesh/pkg/clients"
+	netutil "github.com/kubeedge/edgemesh/pkg/util/net"
 )
 
 // EdgeProxy is used for traffic proxy
@@ -38,8 +38,8 @@ func (proxy *EdgeProxy) Start() {
 }
 
 // Register register edgeproxy to beehive modules
-func Register(c *v1alpha1.EdgeProxyConfig, ifm *informers.Manager) error {
-	proxy, err := newEdgeProxy(c, ifm)
+func Register(c *v1alpha1.EdgeProxyConfig, cli *clients.Clients) error {
+	proxy, err := newEdgeProxy(c, cli)
 	if err != nil {
 		return fmt.Errorf("register module edgeproxy error: %v", err)
 	}
@@ -47,19 +47,19 @@ func Register(c *v1alpha1.EdgeProxyConfig, ifm *informers.Manager) error {
 	return nil
 }
 
-func newEdgeProxy(c *v1alpha1.EdgeProxyConfig, ifm *informers.Manager) (*EdgeProxy, error) {
+func newEdgeProxy(c *v1alpha1.EdgeProxyConfig, cli *clients.Clients) (*EdgeProxy, error) {
 	if !c.Enable {
 		return &EdgeProxy{Config: c}, nil
 	}
 
 	// get proxy listen ip
-	listenIP, err := util.GetInterfaceIP(c.ListenInterface)
+	listenIP, err := netutil.GetInterfaceIP(c.ListenInterface)
 	if err != nil {
 		return nil, fmt.Errorf("get proxy listen ip err: %v", err)
 	}
 
 	// new proxy server
-	proxyServer, err := newProxyServer(NewDefaultKubeProxyConfiguration(listenIP.String()), c.LoadBalancer, ifm.GetKubeClient(), ifm.GetIstioClient(), c.NodeName)
+	proxyServer, err := newProxyServer(NewDefaultKubeProxyConfiguration(listenIP.String()), c.LoadBalancer, cli.GetKubeClient(), cli.GetIstioClient())
 	if err != nil {
 		return nil, fmt.Errorf("new proxy server err: %v", err)
 	}
@@ -67,7 +67,7 @@ func newEdgeProxy(c *v1alpha1.EdgeProxyConfig, ifm *informers.Manager) (*EdgePro
 	// new socks5 proxy
 	var socks5Proxy *Socks5Proxy
 	if c.Socks5Proxy.Enable {
-		socks5Proxy, err = NewSocks5Proxy(listenIP, c.Socks5Proxy.ListenPort, ifm.GetKubeClient())
+		socks5Proxy, err = NewSocks5Proxy(c.Socks5Proxy, listenIP, cli.GetKubeClient())
 		if err != nil {
 			return nil, fmt.Errorf("new socks5Proxy err: %w", err)
 		}

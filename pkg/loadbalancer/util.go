@@ -5,6 +5,7 @@ import (
 	"net"
 	"sort"
 	"strconv"
+	"strings"
 
 	istiov1alpha3 "istio.io/api/networking/v1alpha3"
 	istioapi "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -16,6 +17,24 @@ import (
 
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 )
+
+const (
+	nodeIndex = iota
+	podIndex
+	ipIndex
+	portIndex
+	endpointLen
+)
+
+// parseEndpoint parse an endpoint like "nodeName:podName:ip:port" style strings
+func parseEndpoint(endpoint string) (string, string, string, string, bool) {
+	info := strings.Split(endpoint, ":")
+	if len(info) != endpointLen {
+		return "", "", "", "", false
+	}
+	// TODO check IP and port
+	return info[nodeIndex], info[podIndex], info[ipIndex], info[portIndex], true
+}
 
 // isValidEndpoint checks that the given host / port pair are valid endpoint
 func isValidEndpoint(host string, port int) bool {

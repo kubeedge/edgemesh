@@ -8,9 +8,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// NetifManager copy from https://github.com/kubernetes/dns/blob/1.21.0/pkg/netif/netif.go
-// Since the EulerOS cannot create a dummy device, the bridge device is used to replace it
-// Issue: https://github.com/kubeedge/edgemesh/issues/163 (Poorunga)
+// NetifManager copy and update from https://github.com/kubernetes/dns/blob/1.21.0/pkg/netif/netif.go
 type NetifManager struct {
 	netlink.Handle
 	Addrs []*netlink.Addr

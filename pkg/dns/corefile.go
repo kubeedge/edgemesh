@@ -17,8 +17,7 @@ import (
 
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
-	"github.com/kubeedge/edgemesh/pkg/common/informers"
-	"github.com/kubeedge/edgemesh/pkg/common/util"
+	netutil "github.com/kubeedge/edgemesh/pkg/util/net"
 )
 
 // copy from https://github.com/kubernetes/dns/blob/1.21.0/cmd/node-cache/app/configmap.go and update
@@ -69,7 +68,7 @@ type KubernetesPluginInfo struct {
 
 func getKubernetesPluginStr(cfg *v1alpha1.EdgeDNSConfig) (string, error) {
 	var apiServer string
-	if cfg.Mode == defaults.DebugMode {
+	if cfg.KubeAPIConfig.Mode == defaults.DebugMode {
 		if cfg.KubeAPIConfig.Master != "" {
 			apiServer = fmt.Sprintf("endpoint %s", cfg.KubeAPIConfig.Master)
 		}
@@ -77,7 +76,7 @@ func getKubernetesPluginStr(cfg *v1alpha1.EdgeDNSConfig) (string, error) {
 		if cfg.KubeAPIConfig.KubeConfig != "" {
 			apiServer = fmt.Sprintf("kubeconfig %s \"\"", cfg.KubeAPIConfig.KubeConfig)
 		}
-	} else if cfg.Mode == defaults.EdgeMode {
+	} else if cfg.KubeAPIConfig.Mode == defaults.EdgeMode {
 		apiServer = fmt.Sprintf("endpoint %s", cfg.KubeAPIConfig.Master)
 	}
 
@@ -114,9 +113,9 @@ func getStubDomainStr(stubDomainMap map[string][]string, info *stubDomainInfo) (
 }
 
 // copy from https://github.com/kubernetes/dns/blob/1.21.0/cmd/node-cache/app/configmap.go and update
-func UpdateCorefile(cfg *v1alpha1.EdgeDNSConfig, ifm *informers.Manager) error {
+func UpdateCorefile(cfg *v1alpha1.EdgeDNSConfig, kubeClient kubernetes.Interface) error {
 	// get listen ip
-	ListenIP, err := util.GetInterfaceIP(cfg.ListenInterface)
+	ListenIP, err := netutil.GetInterfaceIP(cfg.ListenInterface)
 	if err != nil {
 		return err
 	}
@@ -132,7 +131,7 @@ func UpdateCorefile(cfg *v1alpha1.EdgeDNSConfig, ifm *informers.Manager) error {
 		// Reset upstream server
 		upstreamServers = []string{}
 		if cfg.CacheDNS.AutoDetect {
-			upstreamServers = append(upstreamServers, detectClusterDNS(ifm.GetKubeClient())...)
+			upstreamServers = append(upstreamServers, detectClusterDNS(kubeClient)...)
 		}
 		for _, server := range cfg.CacheDNS.UpstreamServers {
 			server = strings.TrimSpace(server)

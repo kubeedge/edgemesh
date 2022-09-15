@@ -12,9 +12,8 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
-	"github.com/kubeedge/edgemesh/pkg/common/util"
-	"github.com/kubeedge/edgemesh/pkg/proxy/protocol"
 	"github.com/kubeedge/edgemesh/pkg/tunnel"
+	netutil "github.com/kubeedge/edgemesh/pkg/util/net"
 )
 
 const (
@@ -43,7 +42,7 @@ const (
 // DefaultResponse is Socks5 returns data by default
 var DefaultResponse = []byte{Version, Success, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 
-// copy form https://github.com/txthinking/socks5/blob/e03c1217a50bd1363a2aaf58290da622256704fa/socks5.go#from L86 and update
+// Request copy form https://github.com/txthinking/socks5/blob/e03c1217a50bd1363a2aaf58290da622256704fa/socks5.go#from L86 and update
 type Request struct {
 	Version     byte
 	Command     byte
@@ -59,7 +58,7 @@ type SocksHandle struct {
 
 type Socks5Proxy struct {
 	Config      *v1alpha1.Socks5Proxy
-	TCPProxy    *protocol.TCPProxy
+	listener    *net.TCPListener
 	kubeClient  kubernetes.Interface
 	SocksHandle *SocksHandle
 }
@@ -166,42 +165,45 @@ func (s *SocksHandle) NewRequest(conn net.Conn) (err error) {
 	}
 
 	s.Request = &Request{
-		data[0],
-		data[1],
-		data[2],
-		data[3],
-		host,
-		int32(binary.BigEndian.Uint16(port)),
+		Version:     data[0],
+		Command:     data[1],
+		Rsv:         data[2],
+		AddressType: data[3],
+		DstAddr:     host,
+		DstPort:     int32(binary.BigEndian.Uint16(port)),
 	}
 	return nil
 }
 
 func (s *Socks5Proxy) Start() {
-	go func() {
-		for {
-			conn, err := s.TCPProxy.Listener.Accept()
-			if err != nil {
-				klog.Warningf("get socks5 tcp conn error: %v", err)
-				continue
-			}
-			go s.HandleSocksProxy(conn)
+	for {
+		conn, err := s.listener.Accept()
+		if err != nil {
+			klog.Warningf("get socks5 tcp conn error: %v", err)
+			continue
 		}
-	}()
+		go s.HandleSocksProxy(conn)
+	}
 }
 
-func NewSocks5Proxy(ip net.IP, port int, kubeClient kubernetes.Interface) (socks5Proxy *Socks5Proxy, err error) {
-	socks := &Socks5Proxy{
+func NewSocks5Proxy(config *v1alpha1.Socks5Proxy, ip net.IP, kubeClient kubernetes.Interface) (socks5Proxy *Socks5Proxy, err error) {
+	addr := &net.TCPAddr{
+		IP:   ip,
+		Port: config.ListenPort,
+	}
+	listener, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Socks5Proxy{
+		Config:     config,
+		listener:   listener,
 		kubeClient: kubeClient,
-		TCPProxy:   &protocol.TCPProxy{Name: protocol.TCP},
 		SocksHandle: &SocksHandle{
 			Request: &Request{},
 		},
-	}
-
-	if err := socks.TCPProxy.SetListener(ip, port); err != nil {
-		return socks, fmt.Errorf("set socks5 proxy err: %v, host: %s, port: %d", err, ip, port)
-	}
-	return socks, nil
+	}, nil
 }
 
 func (s *Socks5Proxy) HandleSocksProxy(conn net.Conn) {
@@ -238,7 +240,7 @@ func (s *Socks5Proxy) HandleSocksProxy(conn net.Conn) {
 
 func proxyConnectToRemote(host string, targetIP string, port int32, conn net.Conn) {
 	proxyOpts := tunnel.ProxyOptions{
-		Protocol: string(protocol.TCP),
+		Protocol: "tcp",
 		NodeName: host,
 		IP:       targetIP,
 		Port:     port,
@@ -255,7 +257,7 @@ func proxyConnectToRemote(host string, targetIP string, port int32, conn net.Con
 		klog.Errorf("return corresponding data error: %v", err)
 	}
 
-	util.ProxyConn(stream, conn)
+	netutil.ProxyConn(stream, conn)
 
 	klog.Infof("Success proxy to %v", host)
 }

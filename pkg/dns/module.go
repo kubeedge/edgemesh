@@ -6,7 +6,7 @@ import (
 	"github.com/kubeedge/beehive/pkg/core"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
-	"github.com/kubeedge/edgemesh/pkg/common/informers"
+	"github.com/kubeedge/edgemesh/pkg/clients"
 )
 
 // EdgeDNS is a node-level dns resolver
@@ -35,8 +35,8 @@ func (d *EdgeDNS) Start() {
 }
 
 // Register register edgedns to beehive modules
-func Register(c *v1alpha1.EdgeDNSConfig, ifm *informers.Manager) error {
-	dns, err := newEdgeDNS(c, ifm)
+func Register(c *v1alpha1.EdgeDNSConfig, cli *clients.Clients) error {
+	dns, err := newEdgeDNS(c, cli)
 	if err != nil {
 		return fmt.Errorf("register module edgedns error: %v", err)
 	}
@@ -44,13 +44,13 @@ func Register(c *v1alpha1.EdgeDNSConfig, ifm *informers.Manager) error {
 	return nil
 }
 
-func newEdgeDNS(c *v1alpha1.EdgeDNSConfig, ifm *informers.Manager) (*EdgeDNS, error) {
+func newEdgeDNS(c *v1alpha1.EdgeDNSConfig, cli *clients.Clients) (*EdgeDNS, error) {
 	if !c.Enable {
 		return &EdgeDNS{Config: c}, nil
 	}
 
 	// update Corefile for node-local dns
-	err := UpdateCorefile(c, ifm)
+	err := UpdateCorefile(c, cli.GetKubeClient())
 	if err != nil {
 		return nil, fmt.Errorf("failed to update corefile, err: %w", err)
 	}

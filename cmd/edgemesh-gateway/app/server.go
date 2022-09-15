@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1/validation"
 	"os"
 
 	"github.com/kubeedge/beehive/pkg/core"
@@ -10,7 +11,6 @@ import (
 	"github.com/kubeedge/kubeedge/pkg/version"
 	"github.com/kubeedge/kubeedge/pkg/version/verflag"
 	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/util/wait"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/cli/globalflag"
 	"k8s.io/component-base/term"
@@ -19,7 +19,7 @@ import (
 	"github.com/kubeedge/edgemesh/cmd/edgemesh-gateway/app/options"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
-	"github.com/kubeedge/edgemesh/pkg/common/informers"
+	"github.com/kubeedge/edgemesh/pkg/clients"
 	"github.com/kubeedge/edgemesh/pkg/gateway"
 	"github.com/kubeedge/edgemesh/pkg/tunnel"
 )
@@ -44,7 +44,7 @@ func NewEdgeMeshGatewayCommand() *cobra.Command {
 				klog.Exit(err)
 			}
 
-			if errs := v1alpha1.ValidateEdgeMeshGatewayConfiguration(cfg); len(errs) > 0 {
+			if errs := validation.ValidateEdgeMeshGatewayConfiguration(cfg); len(errs) > 0 {
 				klog.Exit(kubeedgeutil.SpliceErrors(errs.ToAggregate().Errors()))
 			}
 
@@ -86,24 +86,20 @@ func Run(cfg *v1alpha1.EdgeMeshGatewayConfig) error {
 	if err := prepareRun(cfg); err != nil {
 		return err
 	}
-	klog.Infof("edgemesh-gateway running on %s", cfg.CommonConfig.Mode)
+	klog.Infof("edgemesh-gateway running on %s", cfg.KubeAPIConfig.Mode)
 	trace++
 
-	klog.Infof("[%d] New informers manager", trace)
-	ifm, err := informers.NewManager(cfg.KubeAPIConfig)
+	klog.Infof("[%d] New clients", trace)
+	cli, err := clients.NewClients(cfg.KubeAPIConfig)
 	if err != nil {
 		return err
 	}
 	trace++
 
 	klog.Infof("[%d] Register beehive modules", trace)
-	if errs := registerModules(cfg, ifm); len(errs) > 0 {
+	if errs := registerModules(cfg, cli); len(errs) > 0 {
 		return fmt.Errorf(kubeedgeutil.SpliceErrors(errs))
 	}
-	trace++
-
-	klog.Infof("[%d] Start informers manager", trace)
-	ifm.Start(wait.NeverStop)
 	trace++
 
 	klog.Infof("[%d] Start all modules", trace)
@@ -114,9 +110,9 @@ func Run(cfg *v1alpha1.EdgeMeshGatewayConfig) error {
 }
 
 // registerModules register all the modules started in edgemesh-gateway
-func registerModules(c *v1alpha1.EdgeMeshGatewayConfig, ifm *informers.Manager) []error {
+func registerModules(c *v1alpha1.EdgeMeshGatewayConfig, cli *clients.Clients) []error {
 	var errs []error
-	if err := gateway.Register(c.Modules.EdgeGatewayConfig, ifm); err != nil {
+	if err := gateway.Register(c.Modules.EdgeGatewayConfig, cli); err != nil {
 		errs = append(errs, err)
 	}
 	if err := tunnel.Register(c.Modules.EdgeTunnelConfig); err != nil {
@@ -129,15 +125,15 @@ func registerModules(c *v1alpha1.EdgeMeshGatewayConfig, ifm *informers.Manager) 
 func prepareRun(c *v1alpha1.EdgeMeshGatewayConfig) error {
 	// If in the edge mode and the user does not configure KubeAPIConfig.Master,
 	// set KubeAPIConfig.Master to the value of CommonConfig.MetaServerAddress
-	if c.CommonConfig.Mode == defaults.EdgeMode && c.KubeAPIConfig.Master == defaults.MetaServerAddress {
-		c.KubeAPIConfig.Master = c.CommonConfig.MetaServerAddress
+	if c.KubeAPIConfig.Mode == defaults.EdgeMode && c.KubeAPIConfig.Master == defaults.MetaServerAddress {
+		c.KubeAPIConfig.Master = c.KubeAPIConfig.MetaServerAddress
 	}
 
 	// If the user sets KubeConfig or Master and Master is not equal to
 	// EdgeCore's metaServer address, then enter the debug mode
 	if c.KubeAPIConfig.KubeConfig != "" || c.KubeAPIConfig.Master != "" &&
-		c.KubeAPIConfig.Master != c.CommonConfig.MetaServerAddress {
-		c.CommonConfig.Mode = defaults.DebugMode
+		c.KubeAPIConfig.Master != c.KubeAPIConfig.MetaServerAddress {
+		c.KubeAPIConfig.Mode = defaults.DebugMode
 	}
 
 	// set node name
@@ -145,14 +141,11 @@ func prepareRun(c *v1alpha1.EdgeMeshGatewayConfig) error {
 	if !exists {
 		return fmt.Errorf("env NODE_NAME not exist")
 	}
-	c.Modules.EdgeGatewayConfig.GoChassisConfig.Protocol.NodeName = nodeName
+	c.Modules.EdgeGatewayConfig.LoadBalancer.NodeName = nodeName
 	c.Modules.EdgeTunnelConfig.NodeName = nodeName
 
 	// set tunnel module mode
 	c.Modules.EdgeTunnelConfig.Mode = defaults.ClientMode
-
-	// set loadbalancer caller
-	//c.Modules.EdgeGatewayConfig. .LoadBalancer.Caller = defaults.ProxyCaller
 
 	return nil
 }

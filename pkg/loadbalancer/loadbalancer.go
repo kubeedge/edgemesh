@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -11,9 +12,6 @@ import (
 	istio "istio.io/client-go/pkg/clientset/versioned"
 	istioinformers "istio.io/client-go/pkg/informers/externalversions"
 	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -22,24 +20,20 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/proxy"
-	"k8s.io/kubernetes/pkg/proxy/apis"
 	"k8s.io/kubernetes/pkg/proxy/userspace"
-	"k8s.io/kubernetes/pkg/proxy/util"
 	utilproxy "k8s.io/kubernetes/pkg/proxy/util"
 	netutils "k8s.io/utils/net"
 	stringslices "k8s.io/utils/strings/slices"
 
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
+	"github.com/kubeedge/edgemesh/pkg/tunnel"
+	netutil "github.com/kubeedge/edgemesh/pkg/util/net"
 )
 
-type socket struct {
-	ip   net.IP
-	port int
-}
-
 type ServiceObject struct {
-	socket              socket
+	ip                  net.IP
+	port                int
 	protocol            v1.Protocol
 	nodePort            int
 	loadBalancerStatus  v1.LoadBalancerStatus
@@ -81,17 +75,13 @@ type LoadBalancer struct {
 	kubeClient  kubernetes.Interface
 	istioClient istio.Interface
 	syncPeriod  time.Duration
-
-	mu         sync.Mutex // protects serviceMap
-	serviceMap map[proxy.ServicePortName]*ServiceObject
-
-	lock     sync.RWMutex
-	services map[proxy.ServicePortName]*balancerState
-
-	policyMapLock sync.Mutex
-	policyMap     map[proxy.ServicePortName]Policy
-
-	stopCh chan struct{}
+	mu          sync.Mutex // protects serviceMap
+	serviceMap  map[proxy.ServicePortName]*ServiceObject
+	lock        sync.RWMutex // protects services
+	services    map[proxy.ServicePortName]*balancerState
+	policyMutex sync.Mutex // protects policyMap
+	policyMap   map[proxy.ServicePortName]Policy
+	stopCh      chan struct{}
 }
 
 func New(config *v1alpha1.LoadBalancer, kubeClient kubernetes.Interface, istioClient istio.Interface, syncPeriod time.Duration) *LoadBalancer {
@@ -108,30 +98,8 @@ func New(config *v1alpha1.LoadBalancer, kubeClient kubernetes.Interface, istioCl
 }
 
 func (lb *LoadBalancer) Run() error {
-	noProxyName, err := labels.NewRequirement(apis.LabelServiceProxyName, selection.DoesNotExist, nil)
-	if err != nil {
-		return err
-	}
-
-	noEdgeMeshProxyName, err := labels.NewRequirement(defaults.LabelEdgeMeshServiceProxyName, selection.DoesNotExist, nil)
-	if err != nil {
-		return err
-	}
-
-	noHeadlessEndpoints, err := labels.NewRequirement(v1.IsHeadlessService, selection.DoesNotExist, nil)
-	if err != nil {
-		return err
-	}
-
-	labelSelector := labels.NewSelector()
-	labelSelector = labelSelector.Add(*noProxyName, *noEdgeMeshProxyName, *noHeadlessEndpoints)
-
 	if lb.Config.Caller == defaults.GatewayCaller {
-		kubeInformerFactory := informers.NewSharedInformerFactoryWithOptions(lb.kubeClient, lb.syncPeriod,
-			informers.WithTweakListOptions(func(options *metav1.ListOptions) {
-				options.LabelSelector = labelSelector.String()
-			}))
-
+		kubeInformerFactory := informers.NewSharedInformerFactory(lb.kubeClient, lb.syncPeriod)
 		serviceInformer := kubeInformerFactory.Core().V1().Services()
 		serviceInformer.Informer().AddEventHandlerWithResyncPeriod(
 			cache.ResourceEventHandlerFuncs{
@@ -141,7 +109,7 @@ func (lb *LoadBalancer) Run() error {
 			},
 			lb.syncPeriod,
 		)
-		go lb.runService(lb.stopCh, serviceInformer.Informer().HasSynced)
+		go lb.runService(serviceInformer.Informer().HasSynced, lb.stopCh)
 		endpointsInformer := kubeInformerFactory.Core().V1().Endpoints()
 		endpointsInformer.Informer().AddEventHandlerWithResyncPeriod(
 			cache.ResourceEventHandlerFuncs{
@@ -151,7 +119,7 @@ func (lb *LoadBalancer) Run() error {
 			},
 			lb.syncPeriod,
 		)
-		go lb.runEndpoints(lb.stopCh, endpointsInformer.Informer().HasSynced)
+		go lb.runEndpoints(endpointsInformer.Informer().HasSynced, lb.stopCh)
 		kubeInformerFactory.Start(lb.stopCh)
 	}
 
@@ -165,13 +133,13 @@ func (lb *LoadBalancer) Run() error {
 		},
 		lb.syncPeriod,
 	)
-	go lb.runDestinationRule(lb.stopCh, drInformer.Informer().HasSynced)
+	go lb.runDestinationRule(drInformer.Informer().HasSynced, lb.stopCh)
 	istioInformerFactory.Start(lb.stopCh)
 
 	return nil
 }
 
-func (lb *LoadBalancer) runService(stopCh <-chan struct{}, listerSynced cache.InformerSynced) {
+func (lb *LoadBalancer) runService(listerSynced cache.InformerSynced, stopCh <-chan struct{}) {
 	klog.InfoS("Starting loadBalancer service controller")
 
 	if !cache.WaitForNamedCacheSync("loadBalancer service", stopCh, listerSynced) {
@@ -219,7 +187,7 @@ func (lb *LoadBalancer) handleDeleteService(obj interface{}) {
 	lb.OnServiceDelete(service)
 }
 
-func (lb *LoadBalancer) runEndpoints(stopCh <-chan struct{}, listerSynced cache.InformerSynced) {
+func (lb *LoadBalancer) runEndpoints(listerSynced cache.InformerSynced, stopCh <-chan struct{}) {
 	klog.InfoS("Starting loadBalancer endpoints controller")
 
 	if !cache.WaitForNamedCacheSync("loadBalancer endpoints", stopCh, listerSynced) {
@@ -267,7 +235,7 @@ func (lb *LoadBalancer) handleDeleteEndpoints(obj interface{}) {
 	lb.OnEndpointsDelete(endpoints)
 }
 
-func (lb *LoadBalancer) runDestinationRule(stopCh <-chan struct{}, listerSynced cache.InformerSynced) {
+func (lb *LoadBalancer) runDestinationRule(listerSynced cache.InformerSynced, stopCh <-chan struct{}) {
 	klog.InfoS("Starting loadBalancer destinationRule controller")
 
 	if !cache.WaitForNamedCacheSync("loadBalancer destinationRule", stopCh, listerSynced) {
@@ -332,20 +300,18 @@ func (lb *LoadBalancer) newServiceObject(service *v1.Service) {
 		if service.Spec.SessionAffinity == v1.ServiceAffinityClientIP {
 			stickyMaxAgeSeconds = int(*service.Spec.SessionAffinityConfig.ClientIP.TimeoutSeconds)
 		}
-		svcObj := &ServiceObject{
-			socket: socket{
-				ip:   serviceIP,
-				port: int(servicePort.Port),
-			},
+		so := &ServiceObject{
+			ip:                  serviceIP,
+			port:                int(servicePort.Port),
 			protocol:            servicePort.Protocol,
 			nodePort:            int(servicePort.NodePort),
 			loadBalancerStatus:  *service.Status.LoadBalancer.DeepCopy(),
 			serviceAffinityType: v1.ServiceAffinityNone,
 			stickyMaxAgeSeconds: stickyMaxAgeSeconds,
 		}
-		lb.serviceMap[serviceName] = svcObj
+		lb.serviceMap[serviceName] = so
 
-		err := lb.NewService(serviceName, svcObj.serviceAffinityType, svcObj.stickyMaxAgeSeconds)
+		err := lb.NewService(serviceName, so.serviceAffinityType, so.stickyMaxAgeSeconds)
 		if err != nil {
 			klog.ErrorS(err, "Failed to new service", "serviceName", serviceName)
 		}
@@ -357,6 +323,7 @@ func (lb *LoadBalancer) OnServiceAdd(service *v1.Service) {
 	defer lb.mu.Unlock()
 
 	lb.newServiceObject(service)
+	lb.cleanupStaleStickySessions()
 }
 
 func (lb *LoadBalancer) OnServiceUpdate(oldService, service *v1.Service) {
@@ -364,6 +331,7 @@ func (lb *LoadBalancer) OnServiceUpdate(oldService, service *v1.Service) {
 	defer lb.mu.Unlock()
 
 	lb.newServiceObject(service)
+	lb.cleanupStaleStickySessions()
 }
 
 func (lb *LoadBalancer) OnServiceDelete(service *v1.Service) {
@@ -383,6 +351,7 @@ func (lb *LoadBalancer) OnServiceDelete(service *v1.Service) {
 		delete(lb.serviceMap, serviceName)
 		lb.DeleteService(serviceName)
 	}
+	lb.cleanupStaleStickySessions()
 }
 
 func (lb *LoadBalancer) OnServiceSynced() {
@@ -432,18 +401,20 @@ func (lb *LoadBalancer) OnEndpointsAdd(endpoints *v1.Endpoints) {
 		if !exists || state == nil || len(newEndpoints) > 0 {
 			klog.V(1).InfoS("Setting endpoints service", "servicePortName", svcPort, "endpoints", newEndpoints)
 			// OnEndpointsAdd can be called without NewService being called externally.
-			// To be safe we will call it here.  A new service will only be created
+			// To be safe we will call it here. A new service will only be created
 			// if one does not already exist.
 			state = lb.newServiceInternal(svcPort, v1.ServiceAffinity(""), 0)
-			state.endpoints = util.ShuffleStrings(newEndpoints)
+			state.endpoints = utilproxy.ShuffleStrings(newEndpoints)
 
 			// Reset the round-robin index.
 			state.index = 0
 
-			// Sync the load-balance policy.
-			if _, exists := lb.policyMap[svcPort]; exists {
-				lb.policyMap[svcPort].Sync(newEndpoints)
+			// Sync the backend loadBalancer policy.
+			lb.policyMutex.Lock()
+			if policy, exists := lb.policyMap[svcPort]; exists {
+				policy.Sync(newEndpoints)
 			}
+			lb.policyMutex.Unlock()
 		}
 	}
 }
@@ -475,15 +446,17 @@ func (lb *LoadBalancer) OnEndpointsUpdate(oldEndpoints *v1.Endpoints, endpoints 
 			// if one does not already exist.  The affinity will be updated
 			// later, once NewService is called.
 			state = lb.newServiceInternal(svcPort, v1.ServiceAffinity(""), 0)
-			state.endpoints = util.ShuffleStrings(newEndpoints)
+			state.endpoints = utilproxy.ShuffleStrings(newEndpoints)
 
 			// Reset the round-robin index.
 			state.index = 0
 
-			// Sync the load-balance policy.
-			if _, exists := lb.policyMap[svcPort]; exists {
-				lb.policyMap[svcPort].Sync(newEndpoints)
+			// Sync the backend loadBalancer policy.
+			lb.policyMutex.Lock()
+			if policy, exists := lb.policyMap[svcPort]; exists {
+				policy.Sync(newEndpoints)
 			}
+			lb.policyMutex.Unlock()
 		}
 		registeredEndpoints[svcPort] = true
 	}
@@ -494,10 +467,12 @@ func (lb *LoadBalancer) OnEndpointsUpdate(oldEndpoints *v1.Endpoints, endpoints 
 		if _, exists := registeredEndpoints[svcPort]; !exists {
 			lb.resetService(svcPort)
 
-			// Sync the load-balance policy.
-			if _, exists := lb.policyMap[svcPort]; exists {
-				lb.policyMap[svcPort].Sync(nil)
+			// Sync the backend loadBalancer policy.
+			lb.policyMutex.Lock()
+			if policy, exists := lb.policyMap[svcPort]; exists {
+				policy.Sync(nil)
 			}
+			lb.policyMutex.Unlock()
 		}
 	}
 }
@@ -524,10 +499,12 @@ func (lb *LoadBalancer) OnEndpointsDelete(endpoints *v1.Endpoints) {
 		svcPort := proxy.ServicePortName{NamespacedName: types.NamespacedName{Namespace: endpoints.Namespace, Name: endpoints.Name}, Port: portname}
 		lb.resetService(svcPort)
 
-		// Sync the load-balance policy.
-		if _, exists := lb.policyMap[svcPort]; exists {
-			lb.policyMap[svcPort].Sync(nil)
+		// Sync the backend loadBalancer policy.
+		lb.policyMutex.Lock()
+		if policy, exists := lb.policyMap[svcPort]; exists {
+			policy.Sync(nil)
 		}
+		lb.policyMutex.Unlock()
 	}
 }
 
@@ -535,34 +512,37 @@ func (lb *LoadBalancer) OnEndpointsSynced() {
 }
 
 func (lb *LoadBalancer) OnDestinationRuleAdd(dr *istioapi.DestinationRule) {
-	lb.lock.Lock()
-	defer lb.lock.Unlock()
+	lb.lock.RLock()
+	defer lb.lock.RUnlock()
 
 	policyName := getPolicyName(dr)
 	for svcPort, state := range lb.services {
 		if !isNamespacedNameEqual(dr, &svcPort.NamespacedName) {
 			continue
 		}
+		lb.policyMutex.Lock()
 		lb.setLoadBalancerPolicy(dr, policyName, svcPort, state.endpoints)
+		lb.policyMutex.Unlock()
 	}
 }
 
 func (lb *LoadBalancer) OnDestinationRuleUpdate(oldDr, dr *istioapi.DestinationRule) {
-	lb.lock.Lock()
-	defer lb.lock.Unlock()
+	lb.lock.RLock()
+	defer lb.lock.RUnlock()
+
 	policyName := getPolicyName(dr)
 	for svcPort, state := range lb.services {
 		if !isNamespacedNameEqual(dr, &svcPort.NamespacedName) {
 			continue
 		}
-		if _, exists := lb.policyMap[svcPort]; !exists {
-			lb.setLoadBalancerPolicy(dr, policyName, svcPort, state.endpoints)
-			lb.policyMap[svcPort].Update(oldDr, dr)
-		} else if policyName != "" && lb.policyMap[svcPort].Name() != policyName {
-			lb.policyMap[svcPort].Release()                                    // release old
-			lb.setLoadBalancerPolicy(dr, policyName, svcPort, state.endpoints) // set new
-			lb.policyMap[svcPort].Update(oldDr, dr)
+		lb.policyMutex.Lock()
+		if policy, exists := lb.policyMap[svcPort]; exists && policy.Name() != policyName {
+			lb.policyMap[svcPort].Release()
+			delete(lb.policyMap, svcPort)
 		}
+		lb.setLoadBalancerPolicy(dr, policyName, svcPort, state.endpoints)
+		lb.policyMap[svcPort].Update(oldDr, dr)
+		lb.policyMutex.Unlock()
 	}
 }
 
@@ -574,8 +554,10 @@ func (lb *LoadBalancer) OnDestinationRuleDelete(dr *istioapi.DestinationRule) {
 		if !isNamespacedNameEqual(dr, &svcPort.NamespacedName) {
 			continue
 		}
+		lb.policyMutex.Lock()
 		lb.policyMap[svcPort].Release()
 		delete(lb.policyMap, svcPort)
+		lb.policyMutex.Unlock()
 	}
 }
 
@@ -583,25 +565,26 @@ func (lb *LoadBalancer) OnDestinationRuleSynced() {
 }
 
 // setLoadBalancerPolicy new load-balance policy by policy name,
-// this assumes that lb.lock is already held.
+// this assumes that lb.policyMapLock is already held.
 func (lb *LoadBalancer) setLoadBalancerPolicy(dr *istioapi.DestinationRule, policyName string, svcPort proxy.ServicePortName, endpoints []string) {
-	if _, exists := lb.policyMap[svcPort]; !exists {
-		switch policyName {
-		case RoundRobin:
-			lb.policyMap[svcPort] = NewRoundRobinPolicy()
-		case Random:
-			lb.policyMap[svcPort] = NewRandomPolicy()
-		case ConsistentHash:
-			lb.policyMap[svcPort] = NewConsistentHashPolicy(dr, endpoints)
-		default:
-			klog.Errorf("unsupported or empty load-balance policy %s", policyName)
-			return
-		}
+	switch policyName {
+	case RoundRobin:
+		lb.policyMap[svcPort] = NewRoundRobinPolicy()
+	case Random:
+		lb.policyMap[svcPort] = NewRandomPolicy()
+	case ConsistentHash:
+		lb.policyMap[svcPort] = NewConsistentHashPolicy(lb.Config.ConsistentHash, dr, endpoints)
+	default:
+		klog.Errorf("unsupported loadBalance policy %s", policyName)
+		return
 	}
 }
 
 // TryPickEndpoint try to pick a service endpoint from load-balance strategy.
-func (lb *LoadBalancer) TryPickEndpoint(svcPort proxy.ServicePortName, sessionAffinityEnabled bool, endpoints []string, srcAddr net.Addr, netConn net.Conn) (string, *http.Request, bool) {
+func (lb *LoadBalancer) tryPickEndpoint(svcPort proxy.ServicePortName, sessionAffinityEnabled bool, endpoints []string, srcAddr net.Addr, netConn net.Conn) (string, *http.Request, bool) {
+	lb.policyMutex.Lock()
+	defer lb.policyMutex.Unlock()
+
 	policy, exists := lb.policyMap[svcPort]
 	if !exists {
 		return "", nil, false
@@ -617,8 +600,8 @@ func (lb *LoadBalancer) TryPickEndpoint(svcPort proxy.ServicePortName, sessionAf
 	return endpoint, req, true
 }
 
-func (lb *LoadBalancer) NextEndpointWithConn(svcPort proxy.ServicePortName, srcAddr net.Addr, sessionAffinityReset bool, netConn net.Conn) (string, *http.Request, error) {
-	// Coarse locking is simple.  We can get more fine-grained if/when we
+func (lb *LoadBalancer) nextEndpointWithConn(svcPort proxy.ServicePortName, srcAddr net.Addr, sessionAffinityReset bool, netConn net.Conn) (string, *http.Request, error) {
+	// Coarse locking is simple. We can get more fine-grained if/when we
 	// can prove it matters.
 	lb.lock.Lock()
 	defer lb.lock.Unlock()
@@ -634,9 +617,9 @@ func (lb *LoadBalancer) NextEndpointWithConn(svcPort proxy.ServicePortName, srcA
 
 	sessionAffinityEnabled := isSessionAffinity(&state.affinity)
 
-	// Note: because load-balance strategy may have read http.Request from inConn,
+	// Note: because loadBalance strategy may have read http.Request from inConn,
 	// so here we need to return it to outConn!
-	endpoint, req, picked := lb.TryPickEndpoint(svcPort, sessionAffinityEnabled, state.endpoints, srcAddr, netConn)
+	endpoint, req, picked := lb.tryPickEndpoint(svcPort, sessionAffinityEnabled, state.endpoints, srcAddr, netConn)
 	if picked {
 		return endpoint, req, nil
 	}
@@ -678,6 +661,73 @@ func (lb *LoadBalancer) NextEndpointWithConn(svcPort proxy.ServicePortName, srcA
 	}
 
 	return endpoint, req, nil
+}
+
+// TryConnectEndpoints attempts to connect to the next available endpoint for the given service, cycling
+// through until it is able to successfully connect, or it has tried with all timeouts in EndpointDialTimeouts.
+func (lb *LoadBalancer) TryConnectEndpoints(service proxy.ServicePortName, srcAddr net.Addr, protocol string, netConn net.Conn) (out net.Conn, err error) {
+	sessionAffinityReset := false
+	for _, dialTimeout := range userspace.EndpointDialTimeouts {
+		endpoint, req, err := lb.nextEndpointWithConn(service, srcAddr, sessionAffinityReset, netConn)
+		if err != nil {
+			klog.ErrorS(err, "Couldn't find an endpoint for service", "service", service)
+			return nil, err
+		}
+		klog.V(3).InfoS("Mapped service to endpoint", "service", service, "endpoint", endpoint)
+		// NOTE: outConn can be a net.Conn(golang) or network.Stream(libp2p)
+		outConn, err := lb.dialEndpoint(protocol, endpoint, dialTimeout)
+		if err != nil {
+			if netutil.IsTooManyFDsError(err) {
+				panic("Dial failed: " + err.Error())
+			}
+			klog.ErrorS(err, "Dial failed")
+			sessionAffinityReset = true
+			continue
+		}
+		if req != nil {
+			reqBytes, err := netutil.HttpRequestToBytes(req)
+			if err == nil {
+				outConn.Write(reqBytes)
+			}
+		}
+		return outConn, nil
+	}
+	return nil, fmt.Errorf("failed to connect to an endpoint")
+}
+
+// dialEndpoint If the endpoint contains node name then try to dial stream conn or try to dial net conn.
+func (lb *LoadBalancer) dialEndpoint(protocol, endpoint string, dialTimeout time.Duration) (net.Conn, error) {
+	targetNode, targetPod, targetIP, targetPort, ok := parseEndpoint(endpoint)
+	if !ok {
+		time.Sleep(dialTimeout)
+		return nil, fmt.Errorf("invalid endpoint %s", endpoint)
+	}
+
+	switch targetNode {
+	case defaults.EmptyNodeName, lb.Config.NodeName:
+		// TODO: This could spin up a new goroutine to make the outbound connection,
+		// and keep accepting inbound traffic.
+		outConn, err := net.DialTimeout(protocol, net.JoinHostPort(targetIP, targetPort), dialTimeout)
+		if err != nil {
+			return nil, err
+		}
+		klog.Infof("Dial legacy network between %s - {%s %s %s:%s}", targetPod, protocol, targetNode, targetIP, targetPort)
+		return outConn, nil
+	default:
+		targetPort, err := strconv.ParseInt(targetPort, 10, 32)
+		if err != nil {
+			time.Sleep(dialTimeout)
+			return nil, fmt.Errorf("invalid endpoint %s", endpoint)
+		}
+		proxyOpts := tunnel.ProxyOptions{Protocol: protocol, NodeName: targetNode, IP: targetIP, Port: int32(targetPort)}
+		streamConn, err := tunnel.Agent.GetProxyStream(proxyOpts)
+		if err != nil {
+			time.Sleep(dialTimeout)
+			return nil, fmt.Errorf("get proxy stream from %s error: %v", targetNode, err)
+		}
+		klog.Infof("Dial libp2p network between %s - {%s %s %s:%d}", targetPod, protocol, targetNode, targetIP, targetPort)
+		return streamConn, nil
+	}
 }
 
 func (lb *LoadBalancer) NextEndpoint(svcPort proxy.ServicePortName, srcAddr net.Addr, sessionAffinityReset bool) (string, error) {
@@ -737,4 +787,16 @@ func (lb *LoadBalancer) ServiceHasEndpoints(svcPort proxy.ServicePortName) bool 
 	// TODO: while nothing ever assigns nil to the map, *some* of the code using the map
 	// checks for it.  The code should all follow the same convention.
 	return exists && state != nil && len(state.endpoints) > 0
+}
+
+func (lb *LoadBalancer) GetServicePortName(namespacedName types.NamespacedName, port int) (proxy.ServicePortName, bool) {
+	lb.mu.Lock()
+	defer lb.mu.Unlock()
+
+	for svcPort, so := range lb.serviceMap {
+		if svcPort.NamespacedName == namespacedName && so.port == port {
+			return svcPort, true
+		}
+	}
+	return proxy.ServicePortName{}, false
 }

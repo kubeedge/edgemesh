@@ -9,7 +9,7 @@ import (
 func (proxy *EdgeProxy) Run() {
 	// start sock5 proxy
 	if proxy.Config.Socks5Proxy.Enable {
-		proxy.Socks5Proxy.Start()
+		go proxy.Socks5Proxy.Start()
 	}
 
 	// run proxy server

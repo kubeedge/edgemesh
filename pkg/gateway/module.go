@@ -2,19 +2,33 @@ package gateway
 
 import (
 	"fmt"
-	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
+	"net"
+	"sync"
+	"time"
 
 	"github.com/kubeedge/beehive/pkg/core"
+	beehiveContext "github.com/kubeedge/beehive/pkg/core/context"
+	istio "istio.io/client-go/pkg/clientset/versioned"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
+
+	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
-	"github.com/kubeedge/edgemesh/pkg/common/informers"
-	"github.com/kubeedge/edgemesh/pkg/gateway/chassis"
-	"github.com/kubeedge/edgemesh/pkg/gateway/controller"
-	"github.com/kubeedge/edgemesh/pkg/gateway/manager"
+	"github.com/kubeedge/edgemesh/pkg/clients"
+	"github.com/kubeedge/edgemesh/pkg/loadbalancer"
 )
 
-// EdgeGateway is a edge ingress gateway
+// EdgeGateway is an edge ingress gateway
 type EdgeGateway struct {
-	Config *v1alpha1.EdgeGatewayConfig
+	Config           *v1alpha1.EdgeGatewayConfig
+	listenIPs        []net.IP
+	lock             sync.Mutex           // protect serversByGateway
+	serversByGateway map[string][]*Server // gatewayNamespace.gatewayName --> servers
+	kubeClient       kubernetes.Interface
+	istioClient      istio.Interface
+	loadBalancer     *loadbalancer.LoadBalancer
+	syncPeriod       time.Duration
+	stopCh           chan struct{}
 }
 
 // Name of edgegateway
@@ -34,11 +48,19 @@ func (gw *EdgeGateway) Enable() bool {
 
 // Start edgegateway
 func (gw *EdgeGateway) Start() {
+	err := gw.Run()
+	if err != nil {
+		klog.Errorf("Failed to run EdgeGateway error: %v", err)
+		return
+	}
+
+	// TODO graceful shutdown
+	<-beehiveContext.Done()
 }
 
 // Register register edgegateway to beehive modules
-func Register(c *v1alpha1.EdgeGatewayConfig, ifm *informers.Manager) error {
-	gw, err := newEdgeGateway(c, ifm)
+func Register(c *v1alpha1.EdgeGatewayConfig, cli *clients.Clients) error {
+	gw, err := newEdgeGateway(c, cli)
 	if err != nil {
 		return fmt.Errorf("register module %s error: %v", defaults.EdgeGatewayModuleName, err)
 	}
@@ -46,18 +68,32 @@ func Register(c *v1alpha1.EdgeGatewayConfig, ifm *informers.Manager) error {
 	return nil
 }
 
-func newEdgeGateway(c *v1alpha1.EdgeGatewayConfig, ifm *informers.Manager) (*EdgeGateway, error) {
+func newEdgeGateway(c *v1alpha1.EdgeGatewayConfig, cli *clients.Clients) (*EdgeGateway, error) {
 	if !c.Enable {
 		return &EdgeGateway{Config: c}, nil
 	}
 
-	chassis.Install(c.GoChassisConfig, ifm)
+	klog.V(4).Infof("Start get ips which need listen...")
+	listenIPs, err := GetIPsNeedListen(c)
+	if err != nil {
+		return nil, fmt.Errorf("get GetIPsNeedListen err: %w", err)
+	}
+	klog.Infof("Gateway listen ips: %+v", listenIPs)
 
-	// new controller
-	controller.Init(ifm, c)
+	kubeClient := cli.GetKubeClient()
+	istioClient := cli.GetIstioClient()
+	syncPeriod := 15 * time.Minute // TODO get from config
+	loadBalancer := loadbalancer.New(c.LoadBalancer, kubeClient, istioClient, syncPeriod)
+	initLoadBalancer(loadBalancer)
 
-	// new gateway manager
-	manager.NewGatewayManager(c)
-
-	return &EdgeGateway{Config: c}, nil
+	return &EdgeGateway{
+		Config:           c,
+		listenIPs:        listenIPs,
+		serversByGateway: make(map[string][]*Server),
+		kubeClient:       kubeClient,
+		istioClient:      istioClient,
+		loadBalancer:     loadBalancer,
+		syncPeriod:       syncPeriod,
+		stopCh:           make(chan struct{}),
+	}, nil
 }

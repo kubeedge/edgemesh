@@ -25,6 +25,7 @@ import (
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
 )
 
+// Agent expose the tunnel ability.  TODO convert var to func
 var Agent *EdgeTunnel
 
 // EdgeTunnel is used for solving cross subset communication
@@ -77,11 +78,13 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 		return &EdgeTunnel{Config: c}, nil
 	}
 
-	ctx := context.Background()
-
 	if c.EnableIpfsLog {
 		ipfslog.SetAllLoggers(ipfslog.LevelInfo)
 	}
+
+	ctx := context.Background()
+	opts := make([]libp2p.Option, 0) // libp2p options
+	peerSource := make(chan peer.AddrInfo, c.MaxCandidates)
 
 	privKey, err := GenerateKeyPairWithString(c.NodeName)
 	if err != nil {
@@ -96,13 +99,39 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 		return nil, fmt.Errorf("failed to new conn manager: %w", err)
 	}
 
-	var ddht *dual.DHT
-	relayMap := GenerateRelayMap(c.RelayNodes, c.Transport, c.ListenPort)
-	peerSource := make(chan peer.AddrInfo, c.MaxCandidates)
+	// Avoid using the same port
+	listenAddr := libp2p.ListenAddrStrings(GenerateMultiAddrString(c.Transport, "0.0.0.0", c.ListenPort))
+	if c.Mode == defaults.ClientMode {
+		listenAddr = libp2p.ListenAddrStrings(GenerateMultiAddrString(c.Transport, "0.0.0.0", c.ListenPort+1))
+	}
 
-	opts := []libp2p.Option{
+	// If this host is a relay node, we need to add its advertiseAddress
+	relayMap := GenerateRelayMap(c.RelayNodes, c.Transport, c.ListenPort)
+	myInfo, isRelay := relayMap[c.NodeName]
+	if isRelay && c.Mode == defaults.ServerClientMode {
+		opts = append(opts, libp2p.AddrsFactory(func(maddrs []ma.Multiaddr) []ma.Multiaddr {
+			maddrs = append(maddrs, myInfo.Addrs...)
+			return maddrs
+		}))
+	}
+
+	// configures libp2p to use the given private network protector
+	if c.PSK.Enable {
+		pskReader, err := GeneratePSKReader(c.PSK.Path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate psk reader: %w", err)
+		}
+		psk, err := pnet.DecodeV1PSK(pskReader)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode v1 psk: %w", err)
+		}
+		opts = append(opts, libp2p.PrivateNetwork(psk))
+	}
+
+	var ddht *dual.DHT
+	opts = append(opts, []libp2p.Option{
 		libp2p.Identity(privKey),
-		libp2p.ListenAddrStrings(GenerateMultiAddrString(c.Transport, "0.0.0.0", c.ListenPort)),
+		listenAddr,
 		libp2p.DefaultSecurity,
 		GenerateTransportOption(c.Transport),
 		libp2p.ConnectionManager(connMgr),
@@ -121,29 +150,7 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 		),
 		libp2p.EnableNATService(),
 		libp2p.EnableHolePunching(),
-	}
-
-	// configures libp2p to use the given private network protector
-	if c.PSK.Enable {
-		pskReader, err := GeneratePSKReader(c.PSK.Path)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate psk reader: %w", err)
-		}
-		psk, err := pnet.DecodeV1PSK(pskReader)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode v1 psk: %w", err)
-		}
-		opts = append(opts, libp2p.PrivateNetwork(psk))
-	}
-
-	// If this host is a relay node, we need to append its advertiseAddress
-	myInfo, isRelay := relayMap[c.NodeName]
-	if isRelay {
-		opts = append(opts, libp2p.AddrsFactory(func(maddrs []ma.Multiaddr) []ma.Multiaddr {
-			maddrs = append(maddrs, myInfo.Addrs...)
-			return maddrs
-		}))
-	}
+	}...)
 
 	h, err := libp2p.New(opts...)
 	if err != nil {
@@ -153,7 +160,7 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 
 	// If this host is a relay node, we need to run libp2p relayv2 service
 	var relayService *relayv2.Relay
-	if isRelay {
+	if isRelay && c.Mode == defaults.ServerClientMode {
 		relayService, err = relayv2.New(h) // TODO close relayService
 		if err != nil {
 			return nil, fmt.Errorf("run libp2p relayv2 service error: %w", err)
@@ -217,6 +224,6 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 		h.SetStreamHandler(defaults.DiscoveryProtocol, edgeTunnel.discoveryStreamHandler)
 		h.SetStreamHandler(defaults.ProxyProtocol, edgeTunnel.proxyStreamHandler)
 	}
-	Agent = edgeTunnel // TODO convert var to func
+	Agent = edgeTunnel
 	return edgeTunnel, nil
 }
