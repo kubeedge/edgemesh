@@ -18,14 +18,11 @@ package v1alpha1
 
 import (
 	"path"
-	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
-	componentbaseconfig "k8s.io/component-base/config"
 
 	"github.com/kubeedge/kubeedge/common/constants"
-	metaconfig "github.com/kubeedge/kubeedge/pkg/apis/componentconfig/meta/v1alpha1"
 )
 
 // NewDefaultCloudCoreConfig returns a full CloudCoreConfig object
@@ -37,12 +34,13 @@ func NewDefaultCloudCoreConfig() *CloudCoreConfig {
 			Kind:       Kind,
 			APIVersion: path.Join(GroupName, APIVersion),
 		},
+		CommonConfig: &CommonConfig{
+			TunnelPort: constants.ServerPort,
+		},
 		KubeAPIConfig: &KubeAPIConfig{
-			Master:      "",
 			ContentType: constants.DefaultKubeContentType,
 			QPS:         constants.DefaultKubeQPS,
 			Burst:       constants.DefaultKubeBurst,
-			KubeConfig:  constants.DefaultKubeConfig,
 		},
 		Modules: &Modules{
 			CloudHub: &CloudHub{
@@ -57,6 +55,7 @@ func NewDefaultCloudCoreConfig() *CloudCoreConfig {
 				AdvertiseAddress:        []string{advertiseAddress.String()},
 				DNSNames:                []string{""},
 				EdgeCertSigningDuration: 365,
+				TokenRefreshDuration:    12,
 				Quic: &CloudHubQUIC{
 					Enable:             false,
 					Address:            "0.0.0.0",
@@ -101,12 +100,7 @@ func NewDefaultCloudCoreConfig() *CloudCoreConfig {
 					QueryNode:                  constants.DefaultQueryNodeBuffer,
 					UpdateNode:                 constants.DefaultUpdateNodeBuffer,
 					DeletePod:                  constants.DefaultDeletePodBuffer,
-				},
-				Context: &ControllerContext{
-					SendModule:       metaconfig.ModuleNameCloudHub,
-					SendRouterModule: metaconfig.ModuleNameRouter,
-					ReceiveModule:    metaconfig.ModuleNameEdgeController,
-					ResponseModule:   metaconfig.ModuleNameCloudHub,
+					ServiceAccountToken:        constants.DefaultServiceAccountTokenBuffer,
 				},
 				Load: &EdgeControllerLoad{
 					UpdatePodStatusWorkers:            constants.DefaultUpdatePodStatusWorkers,
@@ -121,15 +115,12 @@ func NewDefaultCloudCoreConfig() *CloudCoreConfig {
 					QueryNodeWorkers:                  constants.DefaultQueryNodeWorkers,
 					UpdateNodeWorkers:                 constants.DefaultUpdateNodeWorkers,
 					DeletePodWorkers:                  constants.DefaultDeletePodWorkers,
+					UpdateRuleStatusWorkers:           constants.DefaultUpdateRuleStatusWorkers,
+					ServiceAccountTokenWorkers:        constants.DefaultServiceAccountTokenWorkers,
 				},
 			},
 			DeviceController: &DeviceController{
 				Enable: true,
-				Context: &ControllerContext{
-					SendModule:     metaconfig.ModuleNameCloudHub,
-					ReceiveModule:  metaconfig.ModuleNameDeviceController,
-					ResponseModule: metaconfig.ModuleNameCloudHub,
-				},
 				Buffer: &DeviceControllerBuffer{
 					UpdateDeviceStatus: constants.DefaultUpdateDeviceStatusBuffer,
 					DeviceEvent:        constants.DefaultDeviceEventBuffer,
@@ -162,15 +153,10 @@ func NewDefaultCloudCoreConfig() *CloudCoreConfig {
 				Port:        9443,
 				RestTimeout: 60,
 			},
-		},
-		LeaderElection: &componentbaseconfig.LeaderElectionConfiguration{
-			LeaderElect:       false,
-			LeaseDuration:     metav1.Duration{Duration: 15 * time.Second},
-			RenewDeadline:     metav1.Duration{Duration: 10 * time.Second},
-			RetryPeriod:       metav1.Duration{Duration: 2 * time.Second},
-			ResourceLock:      "endpointsleases",
-			ResourceNamespace: constants.KubeEdgeNameSpace,
-			ResourceName:      "cloudcorelease",
+			IptablesManager: &IptablesManager{
+				Enable: true,
+				Mode:   InternalMode,
+			},
 		},
 	}
 	return c
@@ -184,10 +170,6 @@ func NewMinCloudCoreConfig() *CloudCoreConfig {
 		TypeMeta: metav1.TypeMeta{
 			Kind:       Kind,
 			APIVersion: path.Join(GroupName, APIVersion),
-		},
-		KubeAPIConfig: &KubeAPIConfig{
-			Master:     "",
-			KubeConfig: constants.DefaultKubeConfig,
 		},
 		Modules: &Modules{
 			CloudHub: &CloudHub{
@@ -218,9 +200,10 @@ func NewMinCloudCoreConfig() *CloudCoreConfig {
 				Port:        9443,
 				RestTimeout: 60,
 			},
-		},
-		LeaderElection: &componentbaseconfig.LeaderElectionConfiguration{
-			LeaderElect: false,
+			IptablesManager: &IptablesManager{
+				Enable: true,
+				Mode:   InternalMode,
+			},
 		},
 	}
 }

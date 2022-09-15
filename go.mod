@@ -7,13 +7,11 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2
 	github.com/coredns/caddy v1.1.0
 	github.com/coredns/coredns v1.8.0
-	github.com/go-chassis/go-archaius v0.20.0
-	github.com/go-chassis/go-chassis v1.7.1
 	github.com/golang/protobuf v1.5.2
 	github.com/ipfs/go-datastore v0.5.1
 	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/kubeedge/beehive v0.0.0
-	github.com/kubeedge/kubeedge v1.6.2
+	github.com/kubeedge/kubeedge v1.11.1
 	github.com/libp2p/go-libp2p v0.22.0
 	github.com/libp2p/go-libp2p-kad-dht v0.18.0
 	github.com/libp2p/go-msgio v0.2.0
@@ -21,7 +19,7 @@ require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.16.0
 	github.com/spf13/cobra v1.2.1
-	github.com/vishvananda/netlink v1.1.0
+	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
 	istio.io/api v0.0.0-20220124163811-3adce9124ae7
 	istio.io/client-go v1.12.3
 	k8s.io/api v0.23.1
@@ -70,4 +68,5 @@ replace (
 	k8s.io/repo-infra v0.0.0 => k8s.io/repo-infra v0.23.0
 	k8s.io/sample-apiserver v0.0.0 => k8s.io/sample-apiserver v0.23.0
 	k8s.io/utils v0.0.0 => k8s.io/utils v0.23.0
+	sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.27
 )
