@@ -24,7 +24,5 @@ version: 0.1.0
 appVersion: latest
 
 dependencies:
-  - name: server
-    version: latest
   - name: agent
     version: latest

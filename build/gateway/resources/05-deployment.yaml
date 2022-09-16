@@ -23,10 +23,10 @@ spec:
         - name: edgemesh-gateway
           securityContext:
             privileged: true
-          image: kubeedge/edgemesh-agent:latest
+          image: kubeedge/edgemesh-gateway:latest
           imagePullPolicy: IfNotPresent
           env:
-            - name: MY_NODE_NAME
+            - name: NODE_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
@@ -39,12 +39,14 @@ spec:
               memory: 128Mi
           volumeMounts:
             - name: conf
-              mountPath: /etc/kubeedge/config
+              mountPath: /etc/edgemesh/config
             - name: resolv
               mountPath: /etc/resolv.conf
             - name: host-time
               mountPath: /etc/localtime
               readOnly: true
+            - name: psk
+              mountPath: /etc/edgemesh
       restartPolicy: Always
       serviceAccountName: edgemesh-gateway
       volumes:
@@ -57,3 +59,6 @@ spec:
         - name: host-time
           hostPath:
             path: /etc/localtime
+        - name: psk
+          configMap:
+            name: edgemesh-gateway-psk

@@ -25,10 +25,14 @@ spec:
         image: kubeedge/edgemesh-agent:latest
         imagePullPolicy: IfNotPresent
         env:
-        - name: MY_NODE_NAME
+        - name: NODE_NAME
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         resources:
           limits:
             cpu: 200m
@@ -38,16 +42,14 @@ spec:
             memory: 128Mi
         volumeMounts:
         - name: conf
-          mountPath: /etc/kubeedge/config
+          mountPath: /etc/edgemesh/config
         - name: resolv
           mountPath: /etc/resolv.conf
-        - name: edgemesh
-          mountPath: /etc/kubeedge/edgemesh
-        - name: ca-server-token
-          mountPath: /etc/kubeedge/cert
         - name: host-time
           mountPath: /etc/localtime
           readOnly: true
+        - name: psk
+          mountPath: /etc/edgemesh
       restartPolicy: Always
       serviceAccountName: edgemesh-agent
       volumes:
@@ -57,13 +59,9 @@ spec:
       - name: resolv
         hostPath:
           path: /etc/resolv.conf
-      - name: edgemesh
-        hostPath:
-          path: /etc/kubeedge/edgemesh
-          type: DirectoryOrCreate
-      - name: ca-server-token
-        secret:
-          secretName: tokensecret
       - name: host-time
         hostPath:
           path: /etc/localtime
+      - name: psk
+        configMap:
+          name: edgemesh-agent-psk
