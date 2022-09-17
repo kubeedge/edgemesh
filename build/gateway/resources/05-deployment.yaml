@@ -40,8 +40,6 @@ spec:
           volumeMounts:
             - name: conf
               mountPath: /etc/edgemesh/config
-            - name: resolv
-              mountPath: /etc/resolv.conf
             - name: host-time
               mountPath: /etc/localtime
               readOnly: true
@@ -53,9 +51,6 @@ spec:
         - name: conf
           configMap:
             name: edgemesh-gateway-cfg
-        - name: resolv
-          hostPath:
-            path: /etc/resolv.conf
         - name: host-time
           hostPath:
             path: /etc/localtime

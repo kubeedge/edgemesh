@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-agent-cfg
+  name: {{ .Release.Name }}-cfg
   namespace: {{ .Release.Namespace }}
   labels:
     k8s-app: kubeedge
-    kubeedge: edgemesh-agent
+    kubeedge: edgemesh-gateway
 data:
-  edgemesh-agent.yaml: |-
+  edgemesh-gateway.yaml: |-
     {{- if .Values.kubeAPIConfig }}
     kubeAPIConfig:
       {{- if .Values.kubeAPIConfig.burst }}
@@ -29,70 +29,34 @@ data:
       metaServerAddress: {{ .Values.kubeAPIConfig.metaServerAddress }}
       {{- end}}
     {{- end}}
-    {{- if .Values.commonConfig }}
-    commonConfig:
-      {{- if .Values.commonConfig.bridgeDeviceName }}
-      bridgeDeviceName: {{ .Values.commonConfig.bridgeDeviceName }}
-      {{- end}}
-      {{- if .Values.commonConfig.bridgeDeviceIP }}
-      bridgeDeviceIP: {{ .Values.commonConfig.bridgeDeviceIP }}
-      {{- end}}
-    {{- end}}
     {{- if .Values.modules }}
     modules:
-      {{- if .Values.modules.edgeDNS }}
-      edgeDNS:
-        {{- if .Values.modules.edgeDNS.enable }}
-        enable: {{ .Values.modules.edgeDNS.enable }}
-        {{- end}}
-        {{- if .Values.modules.edgeDNS.listenPort }}
-        listenPort: {{ .Values.modules.edgeDNS.listenPort }}
-        {{- end}}
-        {{- if .Values.modules.edgeDNS.cacheDNS }}
-        cacheDNS:
-          {{- if .Values.modules.edgeDNS.cacheDNS.enable }}
-          enable: {{ .Values.modules.edgeDNS.cacheDNS.enable }}
-          {{- end }}
-          {{- if .Values.modules.edgeDNS.cacheDNS.autoDetect }}
-          autoDetect: {{ .Values.modules.edgeDNS.cacheDNS.autoDetect }}
-          {{- end }}
-          {{- if .Values.modules.edgeDNS.cacheDNS.upstreamServers }}
-          upstreamServers:
-          {{- range .Values.modules.edgeDNS.cacheDNS.upstreamServers }}
-          - {{ . | title }}
-          {{- end }}
-          {{- end }}    
-          {{- if .Values.modules.edgeDNS.cacheDNS.cacheTTL }}
-          cacheTTL: {{ .Values.modules.edgeDNS.cacheDNS.cacheTTL }}
-          {{- end}}
-        {{- end}}
-      {{- end}}
-      {{- if .Values.modules.edgeProxy }}
-      edgeProxy:
-        {{- if .Values.modules.edgeProxy.enable }}
-        enable: {{ .Values.modules.edgeProxy.enable }}
+      {{- if .Values.modules.edgeGateway }}
+      edgeGateway:
+        {{- if .Values.modules.edgeGateway.enable }}
+        enable: {{ .Values.modules.edgeGateway.enable }}
         {{- end }}
-        {{- if .Values.modules.edgeProxy.socks5Proxy }}
-        socks5Proxy:
-          {{- if .Values.modules.edgeProxy.socks5Proxy.enable }}
-          enable: {{ .Values.modules.edgeProxy.socks5Proxy.enable }}
-          {{- end }}
-          {{- if .Values.modules.edgeProxy.socks5Proxy.listenPort }}
-          listenPort: {{ .Values.modules.edgeProxy.socks5Proxy.listenPort }}
-          {{- end }}
+        {{- if .Values.modules.edgeGateway.nic }}
+        nic: {{ .Values.modules.edgeGateway.nic | quote }}
         {{- end }}
-        {{- if .Values.modules.edgeProxy.loadBalancer }}
+        {{- if .Values.modules.edgeGateway.includeIP }}
+        includeIP: {{ .Values.modules.edgeGateway.includeIP | quote }}
+        {{- end }}
+        {{- if .Values.modules.edgeGateway.excludeIP }}
+        excludeIP: {{ .Values.modules.edgeGateway.excludeIP | quote }}
+        {{- end }}
+        {{- if .Values.modules.edgeGateway.loadBalancer }}
         loadBalancer:
-          {{- if .Values.modules.edgeProxy.loadBalancer.consistentHash }}
+          {{- if .Values.modules.edgeGateway.loadBalancer.consistentHash }}
           consistentHash:
-            {{- if .Values.modules.edgeProxy.loadBalancer.consistentHash.partitionCount }}
-            partitionCount: {{ .Values.modules.edgeProxy.loadBalancer.consistentHash.partitionCount }}
+            {{- if .Values.modules.edgeGateway.loadBalancer.consistentHash.partitionCount }}
+            partitionCount: {{ .Values.modules.edgeGateway.loadBalancer.consistentHash.partitionCount }}
             {{- end }}
-            {{- if .Values.modules.edgeProxy.loadBalancer.consistentHash.replicationFactor }}
-            replicationFactor: {{ .Values.modules.edgeProxy.loadBalancer.consistentHash.replicationFactor }}
+            {{- if .Values.modules.edgeGateway.loadBalancer.consistentHash.replicationFactor }}
+            replicationFactor: {{ .Values.modules.edgeGateway.loadBalancer.consistentHash.replicationFactor }}
             {{- end}}
-            {{- if .Values.modules.edgeProxy.loadBalancer.consistentHash.load }}
-            load: {{ .Values.modules.edgeProxy.loadBalancer.consistentHash.load }}
+            {{- if .Values.modules.edgeGateway.loadBalancer.consistentHash.load }}
+            load: {{ .Values.modules.edgeGateway.loadBalancer.consistentHash.load }}
             {{- end }}
           {{- end }}
         {{- end }}
@@ -114,7 +78,7 @@ data:
         {{- if .Values.modules.edgeTunnel.enableIpfsLog }}
         enableIpfsLog: {{ .Values.modules.edgeTunnel.enableIpfsLog }}
         {{- end }}
-        {{- if .Values.relayNodes }}
+        {{- if .Values.modules.edgeTunnel.relayNodes }}
         relayNodes:
         {{- range .Values.relayNodes }}
         - nodeName: {{ .nodeName }}
@@ -148,10 +112,10 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-agent-psk
+  name: {{ .Release.Name }}-psk
   namespace: {{ .Release.Namespace }}
   labels:
     k8s-app: kubeedge
-    kubeedge: edgemesh-agent
+    kubeedge: edgemesh-gateway
 data:
   psk: {{ .Values.psk }}

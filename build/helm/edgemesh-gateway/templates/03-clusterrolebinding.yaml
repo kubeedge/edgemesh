@@ -12,4 +12,4 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: {{ .Release.Name }}
-    namespace: kubeedge
+    namespace: {{ .Release.Namespace }}
