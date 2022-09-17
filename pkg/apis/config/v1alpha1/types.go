@@ -131,7 +131,8 @@ type Socks5Proxy struct {
 	// do not allow users to configure manually
 	NodeName string
 	// Namespace indicates namespace of host
-	Namespace string `json:"namespace,omitempty"`
+	// do not allow users to configure manually
+	Namespace string
 }
 
 // EdgeGatewayConfig indicates the EdgeGateway config

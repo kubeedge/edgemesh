@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	ds "github.com/ipfs/go-datastore"
@@ -372,36 +371,46 @@ func tryDialEndpoint(protocol, ip string, port int) (conn net.Conn, err error) {
 }
 
 func BootstrapConnect(ctx context.Context, ph p2phost.Host, bootstrapPeers RelayMap) error {
-	return wait.PollImmediate(10*time.Second, time.Minute, func() (bool, error) { // TODO get timeout from config
-		var count int32
+	var lock sync.Mutex
+	var badRelays []string
+	err := wait.PollImmediate(10*time.Second, time.Minute, func() (bool, error) { // TODO get timeout from config
+		badRelays = make([]string, 0)
 		var wg sync.WaitGroup
-		for _, p := range bootstrapPeers {
+		for n, p := range bootstrapPeers {
 			if p.ID == ph.ID() {
-				atomic.AddInt32(&count, 1)
 				continue
 			}
 
 			wg.Add(1)
-			go func(p *peer.AddrInfo) {
+			go func(n string, p *peer.AddrInfo) {
 				defer wg.Done()
-				klog.Infof("[Bootstrap] %s bootstrapping to %s", ph.ID(), p.ID)
+				klog.Infof("[Bootstrap] bootstrapping to %s", p.ID)
 
 				ph.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 				if err := ph.Connect(ctx, *p); err != nil {
 					klog.Errorf("[Bootstrap] failed to bootstrap with %s: %v", p, err)
+					lock.Lock()
+					badRelays = append(badRelays, n)
+					lock.Unlock()
 					return
 				}
 				klog.Infof("[Bootstrap] success bootstrapped with %s", p)
-				atomic.AddInt32(&count, 1)
-			}(p)
+			}(n, p)
 		}
 		wg.Wait()
-		if count != int32(len(bootstrapPeers)) {
+		if len(badRelays) > 0 {
 			klog.Errorf("[Bootstrap] Not all bootstrapDail connected, continue bootstrapDail...")
 			return false, nil
 		}
 		return true, nil
 	})
+
+	// delete bad relay from relayMap
+	for _, bad := range badRelays {
+		klog.Warningf("[Bootstrap] bootstrapping to %s : %s timeout, delete it from relayMap", bad, bootstrapPeers[bad])
+		delete(bootstrapPeers, bad)
+	}
+	return err
 }
 
 func newDHT(ctx context.Context, host p2phost.Host, relayPeers RelayMap) (*dual.DHT, error) {
