@@ -169,7 +169,7 @@ start_edgemesh() {
     --set agent.kubeAPIConfig.master=${KUBEAPI_PROXY_ADDR} \
     --set agent.modules.edgeDNS.cacheDNS.enable=true \
     --set agent.psk="edgemesh e2e test" \
-    --set agent.relayNodes[0].nodeName=${MASTER_NODENAME},agent.relayNodes[0].advertiseAddress={${HOST_IP}} \
+    --set agent.relayNodes[0].nodeName=${MASTER_NODENAME},agent.relayNodes[0].advertiseAddress={${MASTER_IP}} \
     ./build/helm/edgemesh
 
   kubectl wait --timeout=${TIMEOUT} --for=condition=Ready pod -l kubeedge=edgemesh-agent -n kubeedge
