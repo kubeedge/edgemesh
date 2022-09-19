@@ -175,7 +175,8 @@ func (udp *udpProxySocket) getBackendConn(activeClients *userspace.ClientCache, 
 		// TODO: This could spin up a new goroutine to make the outbound connection,
 		// and keep accepting inbound traffic.
 		klog.V(3).InfoS("New UDP connection from client", "address", cliAddr)
-		svrConn, err := internalLoadBalancer.TryConnectEndpoints(service, cliAddr, "udp", nil)
+		var err error
+		svrConn, err = internalLoadBalancer.TryConnectEndpoints(service, cliAddr, "udp", nil)
 		if err != nil {
 			return nil, err
 		}

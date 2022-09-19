@@ -152,7 +152,6 @@ build_component_image() {
 }
 
 load_images_to_master() {
-  kind load --name $CLUSTER_NAME docker-image $SERVER_IMAGE
   kind load --name $CLUSTER_NAME docker-image $AGENT_IMAGE
 }
 
@@ -165,15 +164,14 @@ prepare_k8s_env() {
 
 start_edgemesh() {
   echo "using helm to install edgemesh"
-  helm install edgemesh \
-    --set server.image=${SERVER_IMAGE} \
-    --set server.nodeName=${MASTER_NODENAME} \
+  helm install edgemesh --namespace kubeedge \
     --set agent.image=${AGENT_IMAGE} \
     --set agent.kubeAPIConfig.master=${KUBEAPI_PROXY_ADDR} \
     --set agent.modules.edgeDNS.cacheDNS.enable=true \
+    --set agent.psk="edgemesh e2e test" \
+    --set agent.relayNodes[0].nodeName=${MASTER_NODENAME},agent.relayNodes[0].advertiseAddress={${HOST_IP}} \
     ./build/helm/edgemesh
 
-  kubectl wait --timeout=${TIMEOUT} --for=condition=Ready pod -l kubeedge=edgemesh-server -n kubeedge
   kubectl wait --timeout=${TIMEOUT} --for=condition=Ready pod -l kubeedge=edgemesh-agent -n kubeedge
 
   add_debug_info "See edgemesh status: kubectl get pod -n $NAMESPACE"
@@ -267,7 +265,7 @@ do_up() {
 
   create_istio_crd
 
-  build_component_image agent server
+  build_component_image agent
   load_images_to_master
 
   start_edgemesh
