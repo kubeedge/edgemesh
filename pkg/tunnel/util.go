@@ -35,6 +35,9 @@ const (
 )
 
 func GenerateKeyPairWithString(s string) (crypto.PrivKey, error) {
+	if s == "" {
+		return nil, fmt.Errorf("empty string")
+	}
 	m := md5.New()
 	_, err := io.WriteString(m, s)
 	if err != nil {
