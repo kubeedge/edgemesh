@@ -15,32 +15,29 @@ EdgeMesh 的 SSH 代理提供了节点之间通过代理进行 SSH 登录访问�
 
 ### Helm 配置
 
+通过 Helm 的 `--set` 参数：
+
 ```shell
-$ helm install edgemesh \
---set server.nodeName=k8s-node1 \
---set "server.advertiseAddress={119.8.211.54}" \
---set agent.modules.edgeProxy.socks5Proxy.enable=true \
-https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
+$ helm install edgemesh --namespace kubeedge \
+--set agent.modules.edgeProxy.socks5Proxy.enable=true ...
 ```
 
 ### 手动配置
 
 ```shell
-$ vim build/agent/kubernetes/edgemesh-agent/04-configmap.yaml
+$ vim build/agent/resources/04-configmap.yaml
   modules:
-    ..
+    ...
     edgeProxy:
-      ..
+      ...
       socks5Proxy:
         enable: true
-        listenPort: 10800
-    ..
+    ...
 ```
 
 ::: warning
-更改后需要重新启动 edgemesh-agent
+更改后需要重新启动 edgemesh-agent。
 :::
-
 
 ## 使用
 

@@ -1,70 +1,40 @@
 # EdgeMesh Security
 
-The EdgeMesh service does not turn on security by default, and edgemesh-server establishes a connection with edgemesh-agent without any authentication. Here's the guide that how to turn on security (identity authentication, connection access, and communication encryption) for EdgeMesh services.
+EdgeMesh has high security. First, the communication between edgemesh-agent (including edgemesh-gateway) is encrypted transmission by default, and the PSK mechanism is used to ensure identity authentication and connection access. The PSK mechanism ensures that each edgemesh-agent (including edgemesh-gateway) can only establish a connection if it has the same "PSK cipher".
 
-## Configuration
+## Generate PSK cipher
 
-### Helm Configuration
-
-Supports Helm deployment to directly enable the security feature. The httpServer needs to fill in the specific certificate authority. The specific command for deployment is as follows:
+To generate a PSK cipher, you can use the following command to generate a random string to use as the PSK cipher, or you can customize a string to use as the PSK cipher.
 
 ```shell
-$ helm install edgemesh --set server.nodeName=dev-02 \
---set "server.advertiseAddress={109.8.58.38}" \
---set server.modules.tunnel.security.enable=true \
---set server.modules.tunnel.security.httpServer="https://ca-server-address" \
---set agent.modules.tunnel.security.enable=true \
---set agent.modules.tunnel.security.httpServer="https://ca-server-address" \
-https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
+$ openssl rand -base64 32
+JugH9HP1XBouyO5pWGeZa8LtipDURrf17EJvUHcJGuQ=
 ```
 
-:::tip
-CloudCore can act as a certificate authority, which requires KubeEdge version >= 1.8.2. Configuration example: httpServer="https://cloudcore-https-address:10002"
+:::warning
+Do not use the PSK cipher above directly, it will make the cluster unreliable. At the same time, it is recommended to change the PSK cipher frequently to ensure the high security of the cluster.
+:::
+
+## Use PSK cipher
+
+### Helm configuration
+
+When deploying EdgeMesh or EdgeMesh-Gateway through Helm, you can use the `--set` parameter to configure your own PSK cipher:
+
+```shell
+# When deploying EdgeMesh
+$ helm install edgemesh --namespace kubeedge --set agent.psk=<your psk cipher> ...
+
+# When deploying EdgeMesh-Gateway
+$ helm install edgemesh-gateway --namespace kubeedge --set psk=<your psk cipher> ...
+```
+
+:::warning
+EdgeMesh and EdgeMesh-Gateway in the same cluster need to use the same PSK cipher.
 :::
 
 ### Manual configuration
 
-1. config edgemesh-server's configmap
+When manually deploying EdgeMesh, you can directly edit the psk value in build/agent/resources/04-configmap.yaml.
 
-```yaml
-apiVersion: v1
-metadata:
-  name: edgemesh-server-cfg
-  ...
-data:
-  edgemesh-server.yaml: |
-    ...
-    modules:
-      tunnel:
-        # insert the following
-        security:
-          enable: true
-          httpServer: <https://ca-server-address>
-```
-
-Once the changes above have been made, we can redeploy edgemesh-server directly.
-
-2. config edgemesh-agent's configmap
-
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: edgemesh-agent-cfg
-  ...
-data:
-  edgemesh-agent.yaml: |
-    ...
-    modules:
-      tunnel:
-        # insert the following
-        security:
-          enable: true
-          httpServer: <https://ca-server-address>
-```
-
-Once the changes above have been made, we can redeploy edgemesh-agent directly.
-
-:::tip
-edgemesh-gateway enables the security feature in the same way as edgemesh-agent
-:::
+When manually deploying EdgeMesh-Gateway, you can directly edit the psk value in build/gateway/resources/04-configmap.yaml.

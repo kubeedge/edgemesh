@@ -4,7 +4,6 @@ const guide = {
   text: '指南',
   children: [
     '/zh/guide/README.md',
-    '/zh/guide/getting-started.md',
     '/zh/guide/test-case.md',
     '/zh/guide/edge-gateway.md',
     '/zh/guide/security.md',
@@ -22,8 +21,7 @@ const reference = {
 const advanced = {
   text: '深入',
   children: [
-    '/zh/advanced/architecture.md',
-    '/zh/advanced/hybirdnat.md',
+    '/zh/advanced/hybird-proxy.md',
   ],
 }
 

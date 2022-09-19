@@ -1,104 +1,169 @@
-# Introduction
+# Getting Started
 
-EdgeMesh, as the data plane component of the [KubeEdge](https://github.com/kubeedge/kubeedge) cluster, provides simple service discovery and traffic proxy functions for applications, thereby shielding the complex network structure in edge scenarios.
+## Dependencies
 
-## Background
+[KubeEdge Dependencies](https://kubeedge.io/en/docs/#dependencies)
 
-KubeEdge is build based on [Kubernetes](https://github.com/kubernetes/kubernetes), extending cloud-native containerized application orchestration capabilities to the edge. However, at the scenario of edge computer, the network topology is more complex. Edge nodes in different areas are often not interconnected, and the inter-communication of traffic between applications is the primary requirement of the business. For this scenairo, EdgeMesh offers a solution.
+[KubeEdge >= v1.7.0](https://github.com/kubeedge/kubeedge/releases)
 
-## Why EdgeMesh?
-EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge resources, unstable edge cloud network, complex network structure, etc.), that is, high availability, high reliability, and extreme lightweight:
+::: tip
+- EdgeMesh isn't really depending on KubeEdge, it interacts with standard Kubernetes APIs only
 
-- **High availability**
-  - Use the capabilities provided by LibP2P to connect the network between edge nodes
-  - Divide the communication between edge nodes into intra-LAN and cross-LAN
-    - Intra-LAN communication: direct access
-    - Cross-LAN communication: when the hole punching is successful, a connection channel is established between the Agents, otherwise it is forwarded through the Server relay
-- **High reliability (offline scenario)**
-  - Metadata is distributed through the KubeEdge edgehub/cloudhub tunnel, no need to access the cloud apiserver
-  - EdgeMesh integrates a lightweight node-level DNS server, service discovery no longer accesses the cloud CoreDNS
-- **Extreme lightweight**
-  - Each node has one and only one Agent, which saves edge resources
+- Regarding the fact that edge nodes may be isolated in different edge network, we are benefiting from "autonomic Kube-API endpoint" feature to simplify the setup
+:::
 
-**User value**
+## Prerequisites
+- **Step 1**: Remove the taint of the K8s master nodes
 
-- Enable users to have the ability to access edge-to-edge/edge-to-cloud/cloud-to-edge applications across different LANs
-- Compared to the mechanism of CoreDNS + Kube-Proxy + CNI service discovery, users only need to simply deploy an Agent to finish their goals
+```
+kubectl taint nodes --all node-role.kubernetes.io/master-
+```
+If the application that needs to be proxied is not deployed on the K8s master nodes, the above steps can be omitted.
 
-## Key Features
+- **Step 2**: Modify KubeEdge Configuration
 
-<table align="center">
-  <tr>
-    <th align="center">Feature</th>
-    <th align="center">Sub-Feature</th>
-    <th align="center">Realization Degree</th>
-  </tr>
-  <tr>
-    <td align="center">Service Discovery</td>
-    <td align="center">/</td>
-    <td align="center">✓</td>
-  </tr>
-  <tr>
-    <td rowspan="5" align="center">Traffic Governance</td>
-    <td align="center">HTTP</td>
-    <td align="center">✓</td>
-  </tr>
-  <tr>
-    <td align="center">TCP</td>
-    <td align="center">✓</td>
-  </tr>
-  <tr>
-    <td align="center">Websocket</td>
-    <td align="center">✓</td>
-  </tr>
-  <tr>
-    <td align="center">HTTPS</td>
-    <td align="center">✓</td>
-  </tr>
-  <tr>
-    <td align="center">UDP</td>
-    <td align="center">✓</td>
-  </tr>
-  <tr>
-    <td rowspan="3" align="center">Load Balance</td>
-    <td align="center">Random</td>
-    <td align="center">✓</td>
-  </tr>
-  <tr>
-    <td align="center">Round Robin</td>
-    <td align="center">✓</td>
-  </tr>
-  <tr>
-    <td align="center">Session Persistence</td>
-    <td align="center">✓</td>
-  </tr>
-  <tr>
-    <td rowspan="2" align="center">Edge Gateway</td>
-    <td align="center">External Access</td>
-    <td align="center">✓</td>
-  </tr>
-  <tr>
-    <td align="center">Multi-NIC Monitoring</td>
-    <td align="center">✓</td>
-  </tr>
-  <tr>
-    <td rowspan="2" align="center">Cross-Subnet Communication</td>
-    <td align="center">Cross-Cloud Communication</td>
-    <td align="center">✓</td>
-  </tr>
-  <tr>
-    <td align="center">Cross-LAN E2E Communication</td>
-    <td align="center">✓</td>
-  </tr>
-  <tr>
-    <td align="center">Edge CNI</td>
-    <td align="center">Cross-Subnet Pod Communication</td>
-    <td align="center">+</td>
-  </tr>
-</table>
+(1) Enable Local APIServer
 
-**Noting:**
+On the cloud, open the dynamicController module, and restart cloudcore
 
-- `✓` Features supported by the EdgeMesh version
-- `+` Features not available in the EdgeMesh version, but will be supported in subsequent versions
-- `-` Features not available in the EdgeMesh version, or deprecated features
+```shell
+$ vim /etc/kubeedge/config/cloudcore.yaml
+modules:
+  ..
+  dynamicController:
+    enable: true
+..
+```
+
+```shell
+# If cloudcore is not configured for systemd management, use the following command to restart (cloudcore < 1.10 is not configured for systemd management by default)
+$ pkill cloudcore ; nohup /usr/local/bin/cloudcore > /var/log/kubeedge/cloudcore.log 2>&1 &
+
+# If cloudcore is configured for systemd management, use the following command to restart
+$ systemctl restart cloudcore
+
+# If cloudcore uses containerized deployment, delete cloudcore's pods with `kubectl`
+$ kubectl -n kubeedge delete pod <your cloudcore pod name>
+```
+
+At the edge node, open metaServer module (if your KubeEdge < 1.8.0, you also need to close edgeMesh module)
+
+```shell
+$ vim /etc/kubeedge/config/edgecore.yaml
+modules:
+  ..
+  edgeMesh:
+    enable: false
+  ..
+  metaManager:
+    metaServer:
+      enable: true
+..
+```
+
+(2) Configure clusterDNS and clusterDomain
+
+At the edge node, configure clusterDNS, clusterDomain and restart edgecore
+
+```shell
+$ vim /etc/kubeedge/config/edgecore.yaml
+modules:
+  ..
+  edged:
+    clusterDNS: 169.254.96.16
+    clusterDomain: cluster.local
+..
+```
+
+```shell
+$ systemctl restart edgecore
+```
+
+::: tip
+The value '169.254.96.16' set by clusterDNS comes from the default value of bridgeDeviceIP in [commonConfig](../reference/config-items.md#table-1-2-commonconfig), if you need to modify it, please keep the two consistent.
+:::
+
+(3) Check it out
+
+At the edge node, check if Local APIServer works
+
+```shell
+$ curl 127.0.0.1:10550/api/v1/services
+{"apiVersion":"v1","items":[{"apiVersion":"v1","kind":"Service","metadata":{"creationTimestamp":"2021-04-14T06:30:05Z","labels":{"component":"apiserver","provider":"kubernetes"},"name":"kubernetes","namespace":"default","resourceVersion":"147","selfLink":"default/services/kubernetes","uid":"55eeebea-08cf-4d1a-8b04-e85f8ae112a9"},"spec":{"clusterIP":"10.96.0.1","ports":[{"name":"https","port":443,"protocol":"TCP","targetPort":6443}],"sessionAffinity":"None","type":"ClusterIP"},"status":{"loadBalancer":{}}},{"apiVersion":"v1","kind":"Service","metadata":{"annotations":{"prometheus.io/port":"9153","prometheus.io/scrape":"true"},"creationTimestamp":"2021-04-14T06:30:07Z","labels":{"k8s-app":"kube-dns","kubernetes.io/cluster-service":"true","kubernetes.io/name":"KubeDNS"},"name":"kube-dns","namespace":"kube-system","resourceVersion":"203","selfLink":"kube-system/services/kube-dns","uid":"c221ac20-cbfa-406b-812a-c44b9d82d6dc"},"spec":{"clusterIP":"10.96.0.10","ports":[{"name":"dns","port":53,"protocol":"UDP","targetPort":53},{"name":"dns-tcp","port":53,"protocol":"TCP","targetPort":53},{"name":"metrics","port":9153,"protocol":"TCP","targetPort":9153}],"selector":{"k8s-app":"kube-dns"},"sessionAffinity":"None","type":"ClusterIP"},"status":{"loadBalancer":{}}}],"kind":"ServiceList","metadata":{"resourceVersion":"377360","selfLink":"/api/v1/services"}}
+```
+
+::: warning
+If the return value is an empty list, or the response takes a long time (close to 10s) to get the return value, your configuration may be wrong, please check again.
+:::
+
+## Helm Installation
+
+- **Step 1**: Install Charts
+
+Make sure you have installed Helm 3, then refer to: [Helm Deployment EdgeMesh Guide](https://github.com/kubeedge/edgemesh/blob/main/build/helm/edgemesh/README.md)
+
+- **Step 2**: Check it out
+
+```shell
+$ helm ls -A
+NAME            NAMESPACE       REVISION        UPDATED                                 STATUS          CHART           APP VERSION
+edgemesh        kubeedge        1               2022-09-18 12:21:47.097801805 +0800 CST deployed        edgemesh-0.1.0  latest
+
+$ kubectl get all -n kubeedge -o wide
+NAME                       READY   STATUS    RESTARTS   AGE   IP              NODE         NOMINATED NODE   READINESS GATES
+pod/edgemesh-agent-7gf7g   1/1     Running   0          39s   192.168.0.71    k8s-node1    <none>           <none>
+pod/edgemesh-agent-fwf86   1/1     Running   0          39s   192.168.0.229   k8s-master   <none>           <none>
+pod/edgemesh-agent-twm6m   1/1     Running   0          39s   192.168.5.121   ke-edge2     <none>           <none>
+pod/edgemesh-agent-xwxlp   1/1     Running   0          39s   192.168.5.187   ke-edge1     <none>           <none>
+
+NAME                            DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE   CONTAINERS       IMAGES                           SELECTOR
+daemonset.apps/edgemesh-agent   4         4         4       4            4           <none>          39s   edgemesh-agent   kubeedge/edgemesh-agent:latest   k8s-app=kubeedge,kubeedge=edgemesh-agent
+```
+
+## Manual Installation
+
+- **Step 1**: Download EdgeMesh
+
+```shell
+$ git clone https://github.com/kubeedge/edgemesh.git
+$ cd edgemesh
+```
+
+- **Step 2**: Create CRDs
+
+```shell
+$ kubectl apply -f build/crds/istio/
+customresourcedefinition.apiextensions.k8s.io/destinationrules.networking.istio.io created
+customresourcedefinition.apiextensions.k8s.io/gateways.networking.istio.io created
+customresourcedefinition.apiextensions.k8s.io/virtualservices.networking.istio.io created
+```
+
+- **Step 3**: Deploy edgemesh-agent
+
+```shell
+$ kubectl apply -f build/agent/resources/
+serviceaccount/edgemesh-agent created
+clusterrole.rbac.authorization.k8s.io/edgemesh-agent created
+clusterrolebinding.rbac.authorization.k8s.io/edgemesh-agent created
+configmap/edgemesh-agent-cfg created
+configmap/edgemesh-agent-psk created
+daemonset.apps/edgemesh-agent created
+```
+
+::: tip
+Please set the relayNodes in build/agent/resources/04-configmap.yaml according to your K8s cluster and regenerate the PSK cipher.
+:::
+
+- **Step 4**: Check it out
+
+```shell
+$ kubectl get all -n kubeedge -o wide
+NAME                       READY   STATUS    RESTARTS   AGE   IP              NODE         NOMINATED NODE   READINESS GATES
+pod/edgemesh-agent-7gf7g   1/1     Running   0          39s   192.168.0.71    k8s-node1    <none>           <none>
+pod/edgemesh-agent-fwf86   1/1     Running   0          39s   192.168.0.229   k8s-master   <none>           <none>
+pod/edgemesh-agent-twm6m   1/1     Running   0          39s   192.168.5.121   ke-edge2     <none>           <none>
+pod/edgemesh-agent-xwxlp   1/1     Running   0          39s   192.168.5.187   ke-edge1     <none>           <none>
+
+NAME                            DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE   CONTAINERS       IMAGES                           SELECTOR
+daemonset.apps/edgemesh-agent   4         4         4       4            4           <none>          39s   edgemesh-agent   kubeedge/edgemesh-agent:latest   k8s-app=kubeedge,kubeedge=edgemesh-agent
+```

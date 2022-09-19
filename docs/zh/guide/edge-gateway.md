@@ -6,32 +6,32 @@ EdgeMesh 的边缘网关提供了通过网关的方式访问集群内部服务�
 
 ## 部署
 
-在部署边缘网关之前请确保 edgemesh-server 和 edgemesh-agent 已经部署成功。
+在部署边缘网关之前请确保 edgemesh 已经部署成功。
 
 ### Helm 部署
 
-```shell
-$ helm install edgemesh-gateway --set nodeName=<your node name> \
-https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh-gateway.tgz
-```
+确保你已经安装了 Helm 3，然后参考：[Helm 部署 EdgeMesh-Gateway 指南](https://github.com/kubeedge/edgemesh/blob/main/build/helm/edgemesh-gateway/README.md)
 
-::: warning
-请根据你的 K8s 集群设置 nodeName，否则 edgemesh-gateway 可能无法运行
-:::
+```shell
+$ helm ls -A
+NAME                    NAMESPACE       REVISION        UPDATED                                 STATUS          CHART                   APP VERSION
+edgemesh-gateway        kubeedge        1               2022-09-18 12:56:29.062456383 +0800 CST deployed        edgemesh-gateway-0.1.0  latest
+```
 
 ### 手动部署
 
 ```shell
-$ kubectl apply -f build/agent/kubernetes/edgemesh-gateway/
+$ kubectl apply -f build/gateway/resources
 serviceaccount/edgemesh-gateway created
 clusterrole.rbac.authorization.k8s.io/edgemesh-gateway created
 clusterrolebinding.rbac.authorization.k8s.io/edgemesh-gateway created
 configmap/edgemesh-gateway-cfg created
+configmap/edgemesh-gateway-psk created
 deployment.apps/edgemesh-gateway created
 ```
 
-::: warning
-请根据你的 K8s 集群设置 05-deployment.yaml 的 nodeName，否则 edgemesh-gateway 可能无法运行
+::: tip
+请根据你的 K8s 集群设置 04-deployment.yaml 的 relayNodes，并重新生成 PSK 密码。以及设置 05-deployment.yaml 的 nodeName。
 :::
 
 ## HTTP 网关

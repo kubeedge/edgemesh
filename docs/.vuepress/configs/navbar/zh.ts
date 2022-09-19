@@ -11,8 +11,7 @@ export const zh: NavbarConfig = [
       {
         text: '深入',
         children: [
-          '/zh/advanced/architecture.md',
-          '/zh/advanced/hybirdnat.md',
+          '/zh/advanced/hybird-proxy.md',
         ],
       }
     ],

@@ -6,32 +6,32 @@ Edge Gateway provides the ability to access the internal services of the cluster
 
 ## Deploy
 
-Before deploying the edgemesh-gateway, make sure that edgemesh-server and edgemesh-agent have been deployed successfully.
+Before deploying the edgemesh-gateway, make sure that edgemesh have been deployed successfully.
 
 ### Helm Deploy
 
-```shell
-$ helm install edgemesh-gateway --set nodeName=<your node name> \
-https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh-gateway.tgz
-```
+Make sure you have Helm 3 installed, then refer to: [Helm Deployment EdgeMesh-Gateway Guide](https://github.com/kubeedge/edgemesh/blob/main/build/helm/edgemesh-gateway/README.md)
 
-::: warning
-Please set the value of  nodeName according to your K8s cluster, otherwise edgemesh-gateway may not run
-:::
+```shell
+$ helm ls -A
+NAME                    NAMESPACE       REVISION        UPDATED                                 STATUS          CHART                   APP VERSION
+edgemesh-gateway        kubeedge        1               2022-09-18 12:56:29.062456383 +0800 CST deployed        edgemesh-gateway-0.1.0  latest
+```
 
 ### Manual Deploy
 
 ```shell
-$ kubectl apply -f build/agent/kubernetes/edgemesh-gateway/
+$ kubectl apply -f build/gateway/resources
 serviceaccount/edgemesh-gateway created
 clusterrole.rbac.authorization.k8s.io/edgemesh-gateway created
 clusterrolebinding.rbac.authorization.k8s.io/edgemesh-gateway created
 configmap/edgemesh-gateway-cfg created
+configmap/edgemesh-gateway-psk created
 deployment.apps/edgemesh-gateway created
 ```
 
-::: warning
-Please set the value of 05-deployment.yaml's nodeName according to your K8s cluster, otherwise edgemesh-gateway may not run
+::: tip
+Please set the relayNodes of 04-deployment.yaml according to your K8s cluster and regenerate the PSK cipher. And set the nodeName of 05-deployment.yaml.
 :::
 
 ## HTTP Gateway

@@ -23,7 +23,7 @@ EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge re
   - Use the capabilities provided by LibP2P to connect the network between edge nodes
   - Divide the communication between edge nodes into intra-LAN and cross-LAN
     - Intra-LAN communication: direct access
-    - Cross-LAN communication: when the hole punching is successful, a connection channel is established between the Agents, otherwise it is forwarded through the Server relay
+    - Cross-LAN communication: when the hole punching is successful, a direct tunnel is established between the agents, otherwise the traffic is forwarded through the relay
 - **High reliability (offline scenario)**
   - Metadata is distributed through the KubeEdge edgehub/cloudhub tunnel, no need to access the cloud apiserver
   - EdgeMesh integrates a lightweight node-level DNS server, service discovery no longer accesses the cloud CoreDNS
@@ -116,30 +116,25 @@ EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge re
 
 ## Architecture
 
-![image](./docs/.vuepress/public/images/advanced/em-arch.png)
+![image](./docs/.vuepress/public/images/em-arch.png)
 
-The above figure shows a brief overview of the EdgeMesh architecture, EdgeMesh contains edgemesh-server and edgemesh-agent.
-
-The core components of edgemesh-server include:
-
-- **Tunnel-Server**: Based on [LibP2P](https://github.com/libp2p/go-libp2p), establish a connection with edgemesh-agent to provide relay capability and hole punching capability
+> After EdgeMesh v1.12.0, the capabilities of edgemesh-server are merged into the tunnel module of edgemesh-agent, so that edgemesh-agent with relay capability can automatically become a relay server, providing other nodes with the functions of assisting hole punching and relaying .
 
 The core components of edgemesh-agent include:
 
 - **Proxier**: Responsible for configuring the kernel's iptables rules, and intercepting requests to the EdgeMesh process
 - **DNS**: Built-in DNS resolver, which resolves the DNS request in the node into a service cluster IP
-- **Traffic**: A traffic forwarding module based on the Go-Chassis framework, which is responsible for forwarding traffic between applications
-- **Controller**: Obtains metadata (e.g., Service, Endpoints, Pod, etc.) through the Local APIServer capability on the edge side of KubeEdge
-- **Tunnel-Agent**: Based on LibP2P, using relay and hole punching to provide the ability of communicating across subnets
-
+- **LoadBalancer**: Load balancer, which forwards requests to corresponding backend instances through rich load balancing strategies
+- **Controller**: Obtains metadata (e.g., Service, Endpoints, Pod, etc.) by accessing the apiserver of Kubernetes or KubeEdge
+- **Tunnel**: Based on LibP2P implementation, using automatic relay, MDNS and hole punching to provide the ability to communicate across subnets
 
 ## Guides
 
 ### Documents
-Documentation is located on [netlify.com](https://edgemesh.netlify.app/). These documents can help you understand EdgeMesh better.
+Documentation is located on [edgemesh.netlify.app](https://edgemesh.netlify.app/). These documents can help you understand EdgeMesh better.
 
 ### Installation
-Follow the [EdgeMesh installation document](https://edgemesh.netlify.app/guide/getting-started.html) to install EdgeMesh.
+Follow the [EdgeMesh installation document](https://edgemesh.netlify.app/) to install EdgeMesh.
 
 ### Examples
 Example1: [HTTP traffic forwarding](https://edgemesh.netlify.app/guide/test-case.html#http)

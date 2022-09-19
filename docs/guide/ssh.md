@@ -15,30 +15,28 @@ EdgeMesh's Socks5 agent provides the ability of SSH login and access between nod
 
 ### Helm Configuration
 
+Via Helm's `--set` parameter:
+
 ```shell
-$ helm install edgemesh \
---set server.nodeName=k8s-node1 \
---set "server.advertiseAddress={119.8.211.54}" \
---set agent.modules.edgeProxy.socks5Proxy.enable=true \
-https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
+$ helm install edgemesh --namespace kubeedge \
+--set agent.modules.edgeProxy.socks5Proxy.enable=true ...
 ```
 
 ### Manual Configuration
 
 ```shell
-$ vim build/agent/kubernetes/edgemesh-agent/04-configmap.yaml
+$ vim build/agent/resources/04-configmap.yaml
   modules:
-    ..
+    ...
     edgeProxy:
-      ..
+      ...
       socks5Proxy:
         enable: true
-        listenPort: 10800
-    ..
+    ...
 ```
 
 ::: warning
-edgemesh-agent needs to be restarted after changing the configuration
+edgemesh-agent needs to be restarted after changing the configuration.
 :::
 
 ## How to Use
