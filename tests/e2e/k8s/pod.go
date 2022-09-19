@@ -120,7 +120,10 @@ func WaitforPodsRunning(kubeConfigPath string, podlist v1.PodList, timout time.D
 
 	// wait for a signal or timeout
 	select {
-	case <-signal:
+	case _, ok := <-signal:
+		if !ok {
+			utils.Errorf("chan has been closed")
+		}
 		utils.Infof("All pods come into running status")
 	case <-time.After(timout):
 		errInfo := fmt.Sprintf("Wait for pods come into running status timeout: %v", timout)

@@ -5,15 +5,25 @@ import (
 	"net"
 )
 
+const IPv4Mask = 4
+
 // GetInterfaceIP get net interface ipv4 address
 func GetInterfaceIP(name string) (net.IP, error) {
 	ifi, err := net.InterfaceByName(name)
 	if err != nil {
 		return nil, err
 	}
-	addrs, _ := ifi.Addrs()
+	addrs, err := ifi.Addrs()
+	if err != nil {
+		return nil, err
+	}
 	for _, addr := range addrs {
-		if ip, ipn, _ := net.ParseCIDR(addr.String()); len(ipn.Mask) == 4 {
+		ip, ipn, err := net.ParseCIDR(addr.String())
+		if err != nil {
+			return nil, err
+		}
+
+		if len(ipn.Mask) == IPv4Mask {
 			return ip, nil
 		}
 	}

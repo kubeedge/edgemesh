@@ -46,8 +46,12 @@ func copyBytes(direction string, dest, src net.Conn, wg *sync.WaitGroup) {
 		}
 	}
 	klog.V(4).InfoS("Copied remote address bytes", "bytes", n, "direction", direction, "sourceRemoteAddress", src.RemoteAddr(), "destinationRemoteAddress", dest.RemoteAddr())
-	dest.Close()
-	src.Close()
+	if err = dest.Close(); err != nil {
+		klog.ErrorS(err, "dest close failed")
+	}
+	if err = src.Close(); err != nil {
+		klog.ErrorS(err, "src close failed")
+	}
 }
 
 func ProxyConnUDP(inConn net.Conn, udpConn *net.UDPConn) {

@@ -6,7 +6,10 @@ type timeout interface {
 
 func IsTimeout(err error) bool {
 	t, ok := err.(timeout)
-	return ok && t.Timeout()
+	if !ok {
+		return false
+	}
+	return t.Timeout()
 }
 
 type TimeoutErr struct {

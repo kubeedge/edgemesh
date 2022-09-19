@@ -175,14 +175,22 @@ func (s *SocksHandle) NewRequest(conn net.Conn) (err error) {
 	return nil
 }
 
-func (s *Socks5Proxy) Start() {
+func (s *Socks5Proxy) Start(stop <-chan struct{}) {
 	for {
-		conn, err := s.listener.Accept()
-		if err != nil {
-			klog.Warningf("get socks5 tcp conn error: %v", err)
-			continue
+		select {
+		case _, ok := <-stop:
+			if !ok {
+				klog.Errorf("chan has been closed")
+			}
+			return
+		default:
+			conn, err := s.listener.Accept()
+			if err != nil {
+				klog.Warningf("get socks5 tcp conn error: %v", err)
+				continue
+			}
+			go s.HandleSocksProxy(conn)
 		}
-		go s.HandleSocksProxy(conn)
 	}
 }
 

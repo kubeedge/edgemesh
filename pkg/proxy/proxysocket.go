@@ -96,7 +96,10 @@ func (tcp *tcpProxySocket) ProxyLoop(service proxy.ServicePortName, myInfo *user
 		outConn, err := internalLoadBalancer.TryConnectEndpoints(service, inConn.RemoteAddr(), "tcp", inConn)
 		if err != nil {
 			klog.ErrorS(err, "Failed to connect to balancer")
-			inConn.Close()
+			err = inConn.Close()
+			if err != nil {
+				klog.ErrorS(err, "close error")
+			}
 			continue
 		}
 		// Spin up an async copy loop.
