@@ -1,6 +1,8 @@
-= vendor/go.uber.org/multierr licensed under: =
+= vendor/github.com/whyrusleeping/go-keyspace licensed under: =
 
-Copyright (c) 2017-2021 Uber Technologies, Inc.
+The MIT License (MIT)
+
+Copyright (c) 2016 Jeromy Johnson
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -20,4 +22,4 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
-= vendor/go.uber.org/multierr/LICENSE.txt 721ac51ede11efb667ff53a866be23c4
+= vendor/github.com/whyrusleeping/go-keyspace/LICENSE 8da59d11510b852c955e0d143bd061d1

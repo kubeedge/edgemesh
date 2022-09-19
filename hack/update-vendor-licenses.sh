@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 # Copyright 2015 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,15 +31,14 @@
 # KubeEdge Authors:
 # - File derived from kubernetes v1.19.0-beta.2
 # - Changed KUBE_ROOT value to use absolute path
-# - skip license for k8s.io/klog
 
-# https://github.com/kubeedge/kubeedge/blob/081d4f245725d44f23d9a2919db99a01c56a83e9/hack/update-vendor-licenses.sh
+# copy from https://github.com/kubeedge/kubeedge/blob/231a52442bde834132fae929a0e5974647e56404/hack/update-vendor-licenses.sh
 
 set -o errexit
 set -o nounset
 set -o pipefail
 
-KUBE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 source "${KUBE_ROOT}/hack/lib/init.sh"
 
 export LANG=C
@@ -113,7 +111,6 @@ process_content () {
   IFS=" " read -r -a local_files <<< "$(
     for dir_root in ${package} ${package_root}; do
       [[ -d ${DEPS_DIR}/${dir_root} ]] || continue
-
       # One (set) of these is fine
       find "${DEPS_DIR}/${dir_root}" \
           -xdev -follow -maxdepth ${find_maxdepth} \
@@ -205,44 +202,27 @@ for PACKAGE in $(go list -m -json all | jq -r .Path | sort -f); do
     echo "${PACKAGE} doesn't exist in ${DEPS_DIR}, skipping" >&2
     continue
   fi
-  if [[ "${PACKAGE}" = "sigs.k8s.io/structured-merge-diff" ]]; then
-    # this package doesn't exist, but has v3 subdirectory as a different package
-    # so it can't be  filtered by the previous rule
-    # temporarily treat this way until find out a better rule
-    echo "${PACKAGE}, temporarily skipping" >&2
-    continue
+  # Skip a directory if 1) it has no files and 2) all the subdirectories contain a go.mod file.
+  misses_go_mod=false
+  DEPS_SUBDIR="${DEPS_DIR}/${PACKAGE}"
+  search_for_mods () {
+    if [[ -z "$(find "${DEPS_SUBDIR}/" -mindepth 1 -maxdepth 1 -type f)" ]]; then
+      while read -d "" -r SUBDIR; do
+          if [[ ! -e "${SUBDIR}/go.mod" ]]; then
+              DEPS_SUBDIR=${SUBDIR}
+              search_for_mods
+          fi
+      done < <(find "${DEPS_SUBDIR}/" -mindepth 1 -maxdepth 1 -type d -print0)
+    else
+      misses_go_mod=true
+    fi
+  }
+  search_for_mods
+  if [[ $misses_go_mod = false ]]; then
+      echo "${PACKAGE} has no files, skipping" >&2
+      continue
   fi
-  if [[ "${PACKAGE}" = "github.com/cespare/xxhash" ]]; then
-    # there are 2 versions v1 and v2 under 2 folders indirectly used
-    # so it can't be filtered by the previous rule
-    # temporarily treat this way until find out a better rule
-    echo "${PACKAGE}, temporarily skipping" >&2
-    continue
-  fi
-  if [[ "${PACKAGE}" = "k8s.io/klog" ]]; then
-    # this package doesn't use, but has v2 subdirectory as a different package
-    # so it can't be  filtered by the previous rule
-    # temporarily treat this way until find out a better rule
-    echo "${PACKAGE}, temporarily skipping" >&2
-    continue
-  fi
-  if [[ "${PACKAGE}" = "github.com/libp2p/go-libp2p-noise" ]]; then
-    # this package doesn't use, but has v2 subdirectory as a different package
-    # so it can't be  filtered by the previous rule
-    # temporarily treat this way until find out a better rule
-    echo "${PACKAGE}, temporarily skipping" >&2
-    continue
-  fi
-  if [[ "${PACKAGE}" = "github.com/klauspost/cpuid" ]]; then
-    # this package doesn't use, but has v2 subdirectory as a different package
-    # so it can't be  filtered by the previous rule
-    # temporarily treat this way until find out a better rule
-    echo "${PACKAGE}, temporarily skipping" >&2
-    continue
-  fi
-  if [[ "${PACKAGE}" = "github.com/libp2p/go-yamux" ]]; then
-    # this package doesn't use, but has v2 subdirectory as a different package
-    # so it can't be  filtered by the previous rule
+  if [[ "${PACKAGE}" = "go.etcd.io/etcd" ]]; then
     # temporarily treat this way until find out a better rule
     echo "${PACKAGE}, temporarily skipping" >&2
     continue
@@ -269,7 +249,6 @@ for PACKAGE in $(go list -m -json all | jq -r .Path | sort -f); do
     if [[ -z "${file}" ]]; then
       cat >&2 << __EOF__
 No license could be found for ${PACKAGE} - aborting.
-
 Options:
 1. Check if the upstream repository has a newer version with LICENSE, COPYRIGHT and/or
    COPYING files.
