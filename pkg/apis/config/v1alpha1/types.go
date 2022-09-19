@@ -1,10 +1,10 @@
 package v1alpha1
 
 import (
-	cloudcorev1alpha1 "github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
+	cloudcorev1alpha1 "github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1"
 )
 
 // EdgeMeshAgentConfig indicates the config of EdgeMeshAgent which get from EdgeMeshAgent config file

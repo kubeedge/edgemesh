@@ -1,8 +1,6 @@
 package loadbalancer
 
 import (
-	"fmt"
-
 	"github.com/buraksezer/consistent"
 	"github.com/cespare/xxhash/v2"
 	istiov1alpha3 "istio.io/api/networking/v1alpha3"
@@ -27,7 +25,7 @@ func (i ringItem) String() string {
 func newHashRing(config *v1alpha1.ConsistentHash, endpoints []string) *consistent.Consistent {
 	members := []consistent.Member{}
 	for i := 0; i < len(endpoints); i++ {
-		member := ringItem(fmt.Sprintf("%s", endpoints[i])) // alloc new string memory here.
+		member := ringItem(endpoints[i]) // alloc new string memory here.
 		members = append(members, member)
 	}
 	// TODO read from container config

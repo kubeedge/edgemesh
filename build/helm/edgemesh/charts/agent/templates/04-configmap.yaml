@@ -61,7 +61,7 @@ data:
           {{- range .Values.modules.edgeDNS.cacheDNS.upstreamServers }}
           - {{ . | title }}
           {{- end }}
-          {{- end }}    
+          {{- end }}
           {{- if .Values.modules.edgeDNS.cacheDNS.cacheTTL }}
           cacheTTL: {{ .Values.modules.edgeDNS.cacheDNS.cacheTTL }}
           {{- end}}

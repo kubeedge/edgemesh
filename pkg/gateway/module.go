@@ -6,12 +6,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kubeedge/beehive/pkg/core"
-	beehiveContext "github.com/kubeedge/beehive/pkg/core/context"
 	istio "istio.io/client-go/pkg/clientset/versioned"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 
+	"github.com/kubeedge/beehive/pkg/core"
+	beehiveContext "github.com/kubeedge/beehive/pkg/core/context"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
 	"github.com/kubeedge/edgemesh/pkg/clients"

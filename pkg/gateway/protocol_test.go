@@ -8,11 +8,11 @@ import (
 
 func TestUriMatch(t *testing.T) {
 	uriRules := []*istiov1alpha3.StringMatch{
-		{MatchType: &istiov1alpha3.StringMatch_Prefix{"/"}},
-		{MatchType: &istiov1alpha3.StringMatch_Prefix{"/abc"}},
-		{MatchType: &istiov1alpha3.StringMatch_Prefix{"/xyz"}},
-		{MatchType: &istiov1alpha3.StringMatch_Prefix{"/hello*"}},
-		{MatchType: &istiov1alpha3.StringMatch_Prefix{"/)(j3*a0"}},
+		{MatchType: &istiov1alpha3.StringMatch_Prefix{Prefix: "/"}},
+		{MatchType: &istiov1alpha3.StringMatch_Prefix{Prefix: "/abc"}},
+		{MatchType: &istiov1alpha3.StringMatch_Prefix{Prefix: "/xyz"}},
+		{MatchType: &istiov1alpha3.StringMatch_Prefix{Prefix: "/hello*"}},
+		{MatchType: &istiov1alpha3.StringMatch_Prefix{Prefix: "/)(j3*a0"}},
 	}
 	reqUris := []string{
 		"/",

@@ -217,8 +217,14 @@ func GeneratePSKReader(path string) (io.Reader, error) {
 		return nil, err
 	}
 	m := sha256.New()
-	m.Write(data)
+	_, err = m.Write(data)
+	if err != nil {
+		return nil, err
+	}
 	key := hex.EncodeToString(m.Sum(nil))
-	buf.Write([]byte(key))
+	_, err = buf.Write([]byte(key))
+	if err != nil {
+		return nil, err
+	}
 	return buf, nil
 }

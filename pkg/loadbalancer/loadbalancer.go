@@ -687,7 +687,10 @@ func (lb *LoadBalancer) TryConnectEndpoints(service proxy.ServicePortName, srcAd
 		if req != nil {
 			reqBytes, err := netutil.HttpRequestToBytes(req)
 			if err == nil {
-				outConn.Write(reqBytes)
+				_, err = outConn.Write(reqBytes)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 		return outConn, nil

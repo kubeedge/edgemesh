@@ -6,7 +6,6 @@ import (
 	"time"
 
 	ipfslog "github.com/ipfs/go-log/v2"
-	"github.com/kubeedge/beehive/pkg/core"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	p2phost "github.com/libp2p/go-libp2p/core/host"
@@ -21,6 +20,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	"k8s.io/klog/v2"
 
+	"github.com/kubeedge/beehive/pkg/core"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
 )

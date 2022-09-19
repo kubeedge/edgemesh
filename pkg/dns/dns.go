@@ -3,6 +3,7 @@ package dns
 import (
 	"github.com/coredns/caddy"
 	"github.com/coredns/coredns/coremain"
+
 	// blank imports to make sure the plugin code is pulled in from vendor
 	_ "github.com/coredns/coredns/plugin/bind"
 	_ "github.com/coredns/coredns/plugin/cache"

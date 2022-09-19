@@ -2,26 +2,26 @@ package app
 
 import (
 	"fmt"
-	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1/validation"
 	"os"
 
-	"github.com/kubeedge/beehive/pkg/core"
-	kubeedgeutil "github.com/kubeedge/kubeedge/pkg/util"
-	"github.com/kubeedge/kubeedge/pkg/util/flag"
-	"github.com/kubeedge/kubeedge/pkg/version"
-	"github.com/kubeedge/kubeedge/pkg/version/verflag"
 	"github.com/spf13/cobra"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/cli/globalflag"
 	"k8s.io/component-base/term"
 	"k8s.io/klog/v2"
 
+	"github.com/kubeedge/beehive/pkg/core"
 	"github.com/kubeedge/edgemesh/cmd/edgemesh-gateway/app/options"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
+	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1/validation"
 	"github.com/kubeedge/edgemesh/pkg/clients"
 	"github.com/kubeedge/edgemesh/pkg/gateway"
 	"github.com/kubeedge/edgemesh/pkg/tunnel"
+	kubeedgeutil "github.com/kubeedge/kubeedge/pkg/util"
+	"github.com/kubeedge/kubeedge/pkg/util/flag"
+	"github.com/kubeedge/kubeedge/pkg/version"
+	"github.com/kubeedge/kubeedge/pkg/version/verflag"
 )
 
 func NewEdgeMeshGatewayCommand() *cobra.Command {

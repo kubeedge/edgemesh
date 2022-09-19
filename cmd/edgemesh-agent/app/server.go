@@ -4,17 +4,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kubeedge/beehive/pkg/core"
-	kubeedgeutil "github.com/kubeedge/kubeedge/pkg/util"
-	"github.com/kubeedge/kubeedge/pkg/util/flag"
-	"github.com/kubeedge/kubeedge/pkg/version"
-	"github.com/kubeedge/kubeedge/pkg/version/verflag"
 	"github.com/spf13/cobra"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/cli/globalflag"
 	"k8s.io/component-base/term"
 	"k8s.io/klog/v2"
 
+	"github.com/kubeedge/beehive/pkg/core"
 	"github.com/kubeedge/edgemesh/cmd/edgemesh-agent/app/options"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
@@ -24,6 +20,10 @@ import (
 	"github.com/kubeedge/edgemesh/pkg/proxy"
 	"github.com/kubeedge/edgemesh/pkg/tunnel"
 	netutil "github.com/kubeedge/edgemesh/pkg/util/net"
+	kubeedgeutil "github.com/kubeedge/kubeedge/pkg/util"
+	"github.com/kubeedge/kubeedge/pkg/util/flag"
+	"github.com/kubeedge/kubeedge/pkg/version"
+	"github.com/kubeedge/kubeedge/pkg/version/verflag"
 )
 
 func NewEdgeMeshAgentCommand() *cobra.Command {

@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"path"
 
-	"github.com/kubeedge/kubeedge/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
+	"github.com/kubeedge/kubeedge/pkg/util/validation"
 )
 
 type EdgeMeshGatewayOptions struct {

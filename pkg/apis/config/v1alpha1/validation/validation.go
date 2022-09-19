@@ -1,10 +1,10 @@
 package validation
 
 import (
-	"github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
+	"github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1/validation"
 )
 
 func ValidateEdgeMeshAgentConfiguration(c *v1alpha1.EdgeMeshAgentConfig) field.ErrorList {

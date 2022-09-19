@@ -58,7 +58,6 @@ func TestGenerateKeyPairWithString(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 /**
@@ -102,10 +101,10 @@ func TestAddCircuitAddrsToPeer(t *testing.T) {
 	want := "{12D3KooWQ4LGgA3djuvPt4Ao9YH2U39Yge5uzn3HwHXkDK23YDVg: [/ip4/5.5.5.5/tcp/9000/p2p/12D3KooWQ4LGgA3djuvPt4Ao9YH2U39Yge5uzn3HwHXkDK23YDVg /ip4/5.5.5.5/udp/9000/quic/p2p/12D3KooWQ4LGgA3djuvPt4Ao9YH2U39Yge5uzn3HwHXkDK23YDVg /ip4/5.5.5.5/tcp/9000/p2p/12D3KooWB5qVCMrMNLpBDfMu6o4dy6ci2UqDVsFVomcd2PfYVzfW/p2p/12D3KooWQ4LGgA3djuvPt4Ao9YH2U39Yge5uzn3HwHXkDK23YDVg/p2p-circuit /ip4/5.5.5.5/udp/9000/quic/p2p/12D3KooWB5qVCMrMNLpBDfMu6o4dy6ci2UqDVsFVomcd2PfYVzfW/p2p/12D3KooWQ4LGgA3djuvPt4Ao9YH2U39Yge5uzn3HwHXkDK23YDVg/p2p-circuit /ip4/6.6.6.6/tcp/9000/p2p/12D3KooWErZ4m27CEinjcnXNvem2KFUJUFRBcd9NdcWnYRqyr1Sn/p2p/12D3KooWQ4LGgA3djuvPt4Ao9YH2U39Yge5uzn3HwHXkDK23YDVg/p2p-circuit /ip4/6.6.6.6/udp/9000/quic/p2p/12D3KooWErZ4m27CEinjcnXNvem2KFUJUFRBcd9NdcWnYRqyr1Sn/p2p/12D3KooWQ4LGgA3djuvPt4Ao9YH2U39Yge5uzn3HwHXkDK23YDVg/p2p-circuit /ip4/4.4.4.4/tcp/9000/p2p/12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomoy8S/p2p/12D3KooWQ4LGgA3djuvPt4Ao9YH2U39Yge5uzn3HwHXkDK23YDVg/p2p-circuit /ip4/4.4.4.4/udp/9000/quic/p2p/12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomoy8S/p2p/12D3KooWQ4LGgA3djuvPt4Ao9YH2U39Yge5uzn3HwHXkDK23YDVg/p2p-circuit /ip4/8.8.8.8/tcp/9000/p2p/12D3KooWF3RB8SoMRZht7MDqF6GoipSPdFxVb9ESRLU7NuPX6ifH/p2p/12D3KooWQ4LGgA3djuvPt4Ao9YH2U39Yge5uzn3HwHXkDK23YDVg/p2p-circuit /ip4/8.8.8.8/udp/9000/quic/p2p/12D3KooWF3RB8SoMRZht7MDqF6GoipSPdFxVb9ESRLU7NuPX6ifH/p2p/12D3KooWQ4LGgA3djuvPt4Ao9YH2U39Yge5uzn3HwHXkDK23YDVg/p2p-circuit /ip4/5.5.5.5/tcp/9000/p2p/12D3KooWB5qVCMrMNLpBDfMu6o4dy6ci2UqDVsFVomcd2PfYVzfW/p2p/12D3KooWQ4LGgA3djuvPt4Ao9YH2U39Yge5uzn3HwHXkDK23YDVg/p2p-circuit /ip4/5.5.5.5/udp/9000/quic/p2p/12D3KooWB5qVCMrMNLpBDfMu6o4dy6ci2UqDVsFVomcd2PfYVzfW/p2p/12D3KooWQ4LGgA3djuvPt4Ao9YH2U39Yge5uzn3HwHXkDK23YDVg/p2p-circuit /ip4/6.6.6.6/tcp/9000/p2p/12D3KooWErZ4m27CEinjcnXNvem2KFUJUFRBcd9NdcWnYRqyr1Sn/p2p/12D3KooWQ4LGgA3djuvPt4Ao9YH2U39Yge5uzn3HwHXkDK23YDVg/p2p-circuit /ip4/6.6.6.6/udp/9000/quic/p2p/12D3KooWErZ4m27CEinjcnXNvem2KFUJUFRBcd9NdcWnYRqyr1Sn/p2p/12D3KooWQ4LGgA3djuvPt4Ao9YH2U39Yge5uzn3HwHXkDK23YDVg/p2p-circuit /ip4/4.4.4.4/tcp/9000/p2p/12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomoy8S/p2p/12D3KooWQ4LGgA3djuvPt4Ao9YH2U39Yge5uzn3HwHXkDK23YDVg/p2p-circuit /ip4/4.4.4.4/udp/9000/quic/p2p/12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomoy8S/p2p/12D3KooWQ4LGgA3djuvPt4Ao9YH2U39Yge5uzn3HwHXkDK23YDVg/p2p-circuit /ip4/8.8.8.8/tcp/9000/p2p/12D3KooWF3RB8SoMRZht7MDqF6GoipSPdFxVb9ESRLU7NuPX6ifH/p2p/12D3KooWQ4LGgA3djuvPt4Ao9YH2U39Yge5uzn3HwHXkDK23YDVg/p2p-circuit /ip4/8.8.8.8/udp/9000/quic/p2p/12D3KooWF3RB8SoMRZht7MDqF6GoipSPdFxVb9ESRLU7NuPX6ifH/p2p/12D3KooWQ4LGgA3djuvPt4Ao9YH2U39Yge5uzn3HwHXkDK23YDVg/p2p-circuit]}"
 	//节点列表
 	var Nodes = []*testNode{
-		&testNode{"k8s-master", "5.5.5.5", "12D3KooWB5qVCMrMNLpBDfMu6o4dy6ci2UqDVsFVomcd2PfYVzfW"},
-		&testNode{"node1", "6.6.6.6", "12D3KooWErZ4m27CEinjcnXNvem2KFUJUFRBcd9NdcWnYRqyr1Sn"},
-		&testNode{"ke-edge1", "4.4.4.4", "12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomoy8S"},
-		&testNode{"ke-edge2", "8.8.8.8", "12D3KooWF3RB8SoMRZht7MDqF6GoipSPdFxVb9ESRLU7NuPX6ifH"},
+		{Name: "k8s-master", EIP: "5.5.5.5", ID: "12D3KooWB5qVCMrMNLpBDfMu6o4dy6ci2UqDVsFVomcd2PfYVzfW"},
+		{Name: "node1", EIP: "6.6.6.6", ID: "12D3KooWErZ4m27CEinjcnXNvem2KFUJUFRBcd9NdcWnYRqyr1Sn"},
+		{Name: "ke-edge1", EIP: "4.4.4.4", ID: "12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomoy8S"},
+		{Name: "ke-edge2", EIP: "8.8.8.8", ID: "12D3KooWF3RB8SoMRZht7MDqF6GoipSPdFxVb9ESRLU7NuPX6ifH"},
 	}
 	target := generatemulti(Nodes, t)
 
@@ -114,7 +113,9 @@ func TestAddCircuitAddrsToPeer(t *testing.T) {
 	assertEqual(err, nil, t)
 	pid, err := peer.IDFromPrivateKey(priv)
 	assertEqual(err, nil, t)
-	var MyNodes = []*testNode{&testNode{"MyRelayNode", "5.5.5.5", pid.Pretty()}}
+	var MyNodes = []*testNode{
+		{Name: "MyRelayNode", EIP: "5.5.5.5", ID: pid.Pretty()},
+	}
 	relay := generatemulti(MyNodes, t)
 	relayPeer := peer.AddrInfo{
 		ID:    pid,
@@ -122,11 +123,11 @@ func TestAddCircuitAddrsToPeer(t *testing.T) {
 	}
 
 	relayList := RelayMap{
-		"A": {pid, *target},
-		"B": {pid, *target},
+		"A": {ID: pid, Addrs: *target},
+		"B": {ID: pid, Addrs: *target},
 	}
 	//test AddCircuitAddrsToPeer
-	AddCircuitAddrsToPeer(&relayPeer, relayList)
+	err = AddCircuitAddrsToPeer(&relayPeer, relayList)
 	if err != nil {
 		t.Errorf("AddAddress failed, err:%v", err)
 	}
@@ -139,14 +140,14 @@ func TestAppendMultiaddrs(t *testing.T) {
 
 	// generate multiAddress
 	var Nodes = []*testNode{
-		&testNode{"k8s-master", "8.8.8.8", "12D3KooWB5qVCMrMNLpBDfMu6o4dy6ci2UqDVsFVomcd2PfYVzfW"},
-		&testNode{"ke-edge1", "6.6.6.6", "12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomoy8S"},
+		{Name: "k8s-master", EIP: "8.8.8.8", ID: "12D3KooWB5qVCMrMNLpBDfMu6o4dy6ci2UqDVsFVomcd2PfYVzfW"},
+		{Name: "ke-edge1", EIP: "6.6.6.6", ID: "12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomoy8S"},
 	}
 	node := generatemulti(Nodes, t)
 	// generate destNode
 	var destNode = []*testNode{
-		&testNode{"ke-edge2", "4.4.4.4", "12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomrfDe"},
-		&testNode{"ke-edge1", "6.6.6.6", "12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomoy8S"},
+		{"ke-edge2", "4.4.4.4", "12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomrfDe"},
+		{"ke-edge1", "6.6.6.6", "12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomoy8S"},
 	}
 	destnode := generatemulti(destNode, t)
 
@@ -246,14 +247,14 @@ func BenchmarkGeneratePeerInfo(b *testing.B) {
 func BenchmarkAppendMultiaddrs(b *testing.B) {
 	// generate multiAddress
 	var Nodes = []*testNode{
-		&testNode{"k8s-master", "8.8.8.8", "12D3KooWB5qVCMrMNLpBDfMu6o4dy6ci2UqDVsFVomcd2PfYVzfW"},
-		&testNode{"ke-edge1", "6.6.6.6", "12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomoy8S"},
+		{Name: "k8s-master", EIP: "8.8.8.8", ID: "12D3KooWB5qVCMrMNLpBDfMu6o4dy6ci2UqDVsFVomcd2PfYVzfW"},
+		{Name: "ke-edge1", EIP: "6.6.6.6", ID: "12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomoy8S"},
 	}
 	node := generatemultiB(Nodes, b)
 	// generate destNode
 	var destNode = []*testNode{
-		&testNode{"ke-edge2", "4.4.4.4", "12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomrfDe"},
-		&testNode{"ke-edge1", "6.6.6.6", "12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomoy8S"},
+		{Name: "ke-edge2", EIP: "4.4.4.4", ID: "12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomrfDe"},
+		{Name: "ke-edge1", EIP: "6.6.6.6", ID: "12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomoy8S"},
 	}
 	destnode := generatemultiB(destNode, b)
 
@@ -268,16 +269,16 @@ func BenchmarkAppendMultiaddrs(b *testing.B) {
 func BenchmarkAddCircuitAddrsToPeer(b *testing.B) {
 	//节点列表
 	var Nodes = []*testNode{
-		&testNode{"k8s-master", "5.5.5.5", "12D3KooWB5qVCMrMNLpBDfMu6o4dy6ci2UqDVsFVomcd2PfYVzfW"},
-		&testNode{"node1", "6.6.6.6", "12D3KooWErZ4m27CEinjcnXNvem2KFUJUFRBcd9NdcWnYRqyr1Sn"},
-		&testNode{"ke-edge1", "4.4.4.4", "12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomoy8S"},
-		&testNode{"ke-edge2", "8.8.8.8", "12D3KooWF3RB8SoMRZht7MDqF6GoipSPdFxVb9ESRLU7NuPX6ifH"},
+		{Name: "k8s-master", EIP: "5.5.5.5", ID: "12D3KooWB5qVCMrMNLpBDfMu6o4dy6ci2UqDVsFVomcd2PfYVzfW"},
+		{Name: "node1", EIP: "6.6.6.6", ID: "12D3KooWErZ4m27CEinjcnXNvem2KFUJUFRBcd9NdcWnYRqyr1Sn"},
+		{Name: "ke-edge1", EIP: "4.4.4.4", ID: "12D3KooWSD4f5fZb5c9PQ6FPVd8Em4eKX3mRezcyqXSHUyomoy8S"},
+		{Name: "ke-edge2", EIP: "8.8.8.8", ID: "12D3KooWF3RB8SoMRZht7MDqF6GoipSPdFxVb9ESRLU7NuPX6ifH"},
 	}
 	target := generatemultiB(Nodes, b)
 
 	relayList := RelayMap{
-		"A": {"12D3KooWF3RB8SoMRZht7MDqF6GoipSPdFxVb9EikoU7NuPX6hjk", *target},
-		"B": {"12D3KooWF3RB8SoMRZht7MDqF3RB8SSPdFxVb9EikoU7NuPXjkoP", *target},
+		"A": {ID: "12D3KooWF3RB8SoMRZht7MDqF6GoipSPdFxVb9EikoU7NuPX6hjk", Addrs: *target},
+		"B": {ID: "12D3KooWF3RB8SoMRZht7MDqF3RB8SSPdFxVb9EikoU7NuPXjkoP", Addrs: *target},
 	}
 
 	// generate relayNode
@@ -286,7 +287,7 @@ func BenchmarkAddCircuitAddrsToPeer(b *testing.B) {
 	pid, err := peer.IDFromPrivateKey(priv)
 	assertEqualB(err, nil, b)
 	var MyNodes = []*testNode{
-		&testNode{"MyRelayNode", "5.5.5.5", pid.Pretty()},
+		{Name: "MyRelayNode", EIP: "5.5.5.5", ID: pid.Pretty()},
 	}
 	relay := generatemultiB(MyNodes, b)
 	relayPeer := peer.AddrInfo{
@@ -296,7 +297,7 @@ func BenchmarkAddCircuitAddrsToPeer(b *testing.B) {
 
 	//test AddCircuitAddrsToPeer
 	b.ResetTimer()
-	AddCircuitAddrsToPeer(&relayPeer, relayList)
+	err = AddCircuitAddrsToPeer(&relayPeer, relayList)
 	b.StopTimer()
 	if err != nil {
 		b.Errorf("AddAddress failed, err:%v", err)

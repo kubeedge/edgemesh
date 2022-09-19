@@ -3,13 +3,13 @@ package v1alpha1
 import (
 	"path"
 
-	"github.com/kubeedge/kubeedge/common/constants"
-	cloudcorev1alpha1 "github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/util"
+	"github.com/kubeedge/kubeedge/common/constants"
+	cloudcorev1alpha1 "github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1"
 )
 
 var defaultKubeConfig = &KubeAPIConfig{

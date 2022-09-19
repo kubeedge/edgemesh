@@ -64,7 +64,6 @@ func newProxyServer(
 	lbConfig *v1alpha1.LoadBalancer,
 	client clientset.Interface,
 	istioClient istioclientset.Interface) (*ProxyServer, error) {
-
 	klog.V(0).Info("Using userspace Proxier.")
 
 	// Create a iptables utils.
