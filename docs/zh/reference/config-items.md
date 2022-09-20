@@ -30,7 +30,7 @@ EdgeMesh-Gateway 的 Helm Chart 配置放在 build/helm/edgemesh-gateway 目录�
 ## ConfigMap 配置
 
 :::tip
-详细的字段解释，请参考 [API定义](https://github.com/kubeedge/edgemesh/blob/main/pkg/apis/config/v1alpha1/type.go)。
+详细的字段解释，请参考 [API定义](https://github.com/kubeedge/edgemesh/blob/main/pkg/apis/config/v1alpha1/types.go)。
 :::
 
 ### edgemesh-agent-cfg

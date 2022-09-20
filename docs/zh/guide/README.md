@@ -80,7 +80,7 @@ $ systemctl restart edgecore
 ```
 
 ::: tip
-clusterDNS 设置的值 '169.254.96.16' 来自于 [commonConfig](../reference/config-items.md#表1-2-commonconfig) 中 bridgeDeviceIP 的默认值，如需修改请保持两者一致
+clusterDNS 设置的值 '169.254.96.16' 来自于 [commonConfig](https://edgemesh.netlify.app/zh/reference/config-items.html#edgemesh-agent-cfg) 中 bridgeDeviceIP 的默认值，如需修改请保持两者一致
 :::
 
 （3）验证
