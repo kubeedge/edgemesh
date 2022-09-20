@@ -4,7 +4,6 @@ const guide = {
   text: 'Guide',
   children: [
     '/guide/README.md',
-    '/guide/getting-started.md',
     '/guide/test-case.md',
     '/guide/edge-gateway.md',
     '/guide/security.md',
@@ -22,8 +21,7 @@ const reference = {
 const advanced = {
   text: 'Advanced',
   children: [
-    '/advanced/architecture.md',
-    '/advanced/hybirdnat.md',
+    '/advanced/hybird-proxy.md',
   ],
 }
 

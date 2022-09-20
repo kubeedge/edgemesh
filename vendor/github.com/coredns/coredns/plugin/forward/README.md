@@ -29,8 +29,7 @@ In its most basic form, a simple forwarder uses this syntax:
 forward FROM TO...
 ~~~
 
-* **FROM** is the base domain to match for the request to be forwarded. Domains using CIDR notation
-  that expand to multiple reverse zones are not fully supported; only the first expanded zone is used.
+* **FROM** is the base domain to match for the request to be forwarded.
 * **TO...** are the destination endpoints to forward to. The **TO** syntax allows you to specify
   a protocol, `tls://9.9.9.9` or `dns://` (or no protocol) for plain DNS. The number of upstreams is
   limited to 15.
@@ -79,9 +78,7 @@ forward FROM TO... {
 * `tls_servername` **NAME** allows you to set a server name in the TLS configuration; for instance 9.9.9.9
   needs this to be set to `dns.quad9.net`. Multiple upstreams are still allowed in this scenario,
   but they have to use the same `tls_servername`. E.g. mixing 9.9.9.9 (QuadDNS) with 1.1.1.1
-  (Cloudflare) will not work. Using TLS forwarding but not setting `tls_servername` results in anyone
-  being able to man-in-the-middle your connection to the DNS server you are forwarding to. Because of this,
-  it is strongly recommended to set this value when using TLS forwarding.
+  (Cloudflare) will not work.
 * `policy` specifies the policy to use for selecting upstream servers. The default is `random`.
   * `random` is a policy that implements random upstream selection.
   * `round_robin` is a policy that selects hosts based on round robin ordering.
@@ -91,7 +88,7 @@ forward FROM TO... {
   * `no_rec` - optional argument that sets the RecursionDesired-flag of the dns-query used in health checking to `false`.
     The flag is default `true`.
 * `max_concurrent` **MAX** will limit the number of concurrent queries to **MAX**.  Any new query that would
-  raise the number of concurrent queries above the **MAX** will result in a REFUSED response. This
+  raise the number of concurrent queries above the **MAX** will result in a SERVFAIL response. This
   response does not count as a health failure. When choosing a value for **MAX**, pick a number
   at least greater than the expected *upstream query rate* * *latency* of the upstream servers.
   As an upper bound for **MAX**, consider that each concurrent query will use about 2kb of memory.
@@ -104,20 +101,13 @@ On each endpoint, the timeouts for communication are set as follows:
 * The dial timeout by default is 30s, and can decrease automatically down to 100ms based on early results.
 * The read timeout is static at 2s.
 
-## Metadata
-
-The forward plugin will publish the following metadata, if the *metadata*
-plugin is also enabled:
-
-* `forward/upstream`: the upstream used to forward the request
-
 ## Metrics
 
 If monitoring is enabled (via the *prometheus* plugin) then the following metric are exported:
 
 * `coredns_forward_requests_total{to}` - query count per upstream.
 * `coredns_forward_responses_total{to}` - Counter of responses received per upstream.
-* `coredns_forward_request_duration_seconds{to, rcode, type}` - duration per upstream, RCODE, type
+* `coredns_forward_request_duration_seconds{to}` - duration per upstream interaction.
 * `coredns_forward_responses_total{to, rcode}` - count of RCODEs per upstream.
 * `coredns_forward_healthcheck_failures_total{to}` - number of failed health checks per upstream.
 * `coredns_forward_healthcheck_broken_total{}` - counter of when all upstreams are unhealthy,
@@ -167,7 +157,7 @@ Proxy everything except `example.org` using the host's `resolv.conf`'s nameserve
 }
 ~~~
 
-Proxy all requests to 9.9.9.9 using the DNS-over-TLS (DoT) protocol, and cache every answer for up to 30
+Proxy all requests to 9.9.9.9 using the DNS-over-TLS protocol, and cache every answer for up to 30
 seconds. Note the `tls_servername` is mandatory if you want a working setup, as 9.9.9.9 can't be
 used in the TLS negotiation. Also set the health check duration to 5s to not completely swamp the
 service with health checks.
@@ -194,26 +184,11 @@ Or with multiple upstreams from the same provider
 }
 ~~~
 
-Or when you have multiple DoT upstreams with different `tls_servername`s, you can do the following:
+## Bugs
 
-~~~ corefile
-. {
-    forward . 127.0.0.1:5301 127.0.0.1:5302
-}
+The TLS config is global for the whole forwarding proxy if you need a different `tls_servername` for
+different upstreams you're out of luck.
 
-.:5301 {
-    forward . 8.8.8.8 8.8.4.4 {
-        tls_servername dns.google
-    }
-}
-
-.:5302 {
-    forward . 1.1.1.1 1.0.0.1 {
-        tls_servername cloudflare-dns.com
-    }
-}
-~~~
-
-## See Also
+## Also See
 
 [RFC 7858](https://tools.ietf.org/html/rfc7858) for DNS over TLS.

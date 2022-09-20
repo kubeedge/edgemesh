@@ -22,12 +22,12 @@ Extra knobs are available with an expanded syntax:
 
 ~~~
 errors {
-	consolidate DURATION REGEXP [LEVEL]
+	consolidate DURATION REGEXP
 }
 ~~~
 
-Option `consolidate` allows collecting several error messages matching the regular expression **REGEXP** during **DURATION**. After the **DURATION** since receiving the first such message, the consolidated message will be printed to standard output with
-log level, which is configurable by optional option **LEVEL**. Supported options for **LEVEL** option are `warning`,`error`,`info` and `debug`.
+Option `consolidate` allows collecting several error messages matching the regular expression **REGEXP** during **DURATION**. After the **DURATION** since receiving the first such message, the consolidated message will be printed to standard output, e.g.
+
 ~~~
 2 errors like '^read udp .* i/o timeout$' occurred in last 30s
 ~~~
@@ -47,15 +47,13 @@ example.org {
 }
 ~~~
 
-Use the *forward* plugin to resolve queries via 8.8.8.8 and print consolidated messages
-for errors with suffix " i/o timeout" as warnings,
-and errors with prefix "Failed to " as errors.
+Use the *forward* to resolve queries via 8.8.8.8 and print consolidated error messages for errors with suffix " i/o timeout" or with prefix "Failed to ".
 
 ~~~ corefile
 . {
     forward . 8.8.8.8
     errors {
-        consolidate 5m ".* i/o timeout$" warning
+        consolidate 5m ".* i/o timeout$"
         consolidate 30s "^Failed to .+"
     }
 }

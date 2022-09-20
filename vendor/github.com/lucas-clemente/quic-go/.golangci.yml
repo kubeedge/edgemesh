@@ -21,7 +21,6 @@ linters:
     - depguard
     - exhaustive
     - exportloopref
-    - goconst
     - goimports
     - gofmt # redundant, since gofmt *should* be a no-op after gofumpt
     - gofumpt
@@ -29,7 +28,6 @@ linters:
     - ineffassign
     - misspell
     - prealloc
-    - scopelint
     - staticcheck
     - stylecheck
     - structcheck
@@ -41,9 +39,6 @@ linters:
 
 issues:
   exclude-rules:
-    - path: qlog/
-      linters:
-        - goconst
     - path: internal/qtls
       linters:
         - depguard

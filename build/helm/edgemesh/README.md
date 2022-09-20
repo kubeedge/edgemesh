@@ -1,23 +1,41 @@
 # EdgeMesh app
 
-Visit https://github.com/kubeedge/edgemesh for more information.
+Visit https://edgemesh.netlify.app/reference/config-items.html#helm-configuration for more configuration information.
+
+访问 https://edgemesh.netlify.app/zh/reference/config-items.html#helm-配置 以了解更多的配置信息。
 
 ## Install
 
 ```
-helm install edgemesh \
-    [--set server.nodeName=<your node name>] --set "server.advertiseAddress=<your advertise address list>" .
+helm install edgemesh --namespace kubeedge \
+--set agent.psk=<your psk string> \
+--set agent.relayNodes[0].nodeName=<your node name>,agent.relayNodes[0].advertiseAddress=<your advertise address list> \
+https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
 
 **Install examples:**
+
+You need to generate a PSK cipher first, please refer to: https://edgemesh.netlify.app/guide/security.html
+
+Start with a relay node:
 ```
-helm install edgemesh \
-    [--set server.nodeName=k8s-node1] --set "server.advertiseAddress={119.8.211.54}" .
+helm install edgemesh --namespace kubeedge \
+--set agent.psk=<your psk string> \
+--set agent.relayNodes[0].nodeName=k8s-master,agent.relayNodes[0].advertiseAddress="{1.1.1.1}" \
+https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
 ```
-> If `--set server.nodeName=k8s-node1` is not set, nodeAffinity or nodeSelector will be used for scheduling. Please add the value of at least one of these two fields
+
+Start with two relay nodes:
+```
+helm install edgemesh --namespace kubeedge \
+--set agent.psk=<your psk string> \
+--set agent.relayNodes[0].nodeName=k8s-master,agent.relayNodes[0].advertiseAddress="{1.1.1.1}" \
+--set agent.relayNodes[1].nodeName=ke-edge1,agent.relayNodes[1].advertiseAddress="{2.2.2.2,3.3.3.3}" \
+https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh.tgz
+```
 
 ## Uninstall
 
 ```
-helm uninstall edgemesh
+helm uninstall edgemesh -n kubeedge
 ```

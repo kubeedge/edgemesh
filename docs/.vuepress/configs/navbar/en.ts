@@ -11,8 +11,7 @@ export const en: NavbarConfig = [
       {
         text: 'Advanced',
         children: [
-          '/advanced/architecture.md',
-          '/advanced/hybirdnat.md',
+          '/advanced/hybird-proxy.md',
         ],
       }
     ],

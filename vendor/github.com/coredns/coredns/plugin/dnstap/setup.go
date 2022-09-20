@@ -6,62 +6,64 @@ import (
 	"github.com/coredns/caddy"
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
-	clog "github.com/coredns/coredns/plugin/pkg/log"
+	"github.com/coredns/coredns/plugin/dnstap/dnstapio"
 	"github.com/coredns/coredns/plugin/pkg/parse"
 )
 
-var log = clog.NewWithPlugin("dnstap")
-
 func init() { plugin.Register("dnstap", setup) }
 
-func parseConfig(c *caddy.Controller) (Dnstap, error) {
-	c.Next() // directive name
-	d := Dnstap{}
-	endpoint := ""
+type config struct {
+	target string
+	socket bool
+	full   bool
+}
 
-	if !c.Args(&endpoint) {
-		return d, c.ArgErr()
+func parseConfig(d *caddy.Controller) (c config, err error) {
+	d.Next() // directive name
+
+	if !d.Args(&c.target) {
+		return c, d.ArgErr()
 	}
 
-	if strings.HasPrefix(endpoint, "tcp://") {
+	if strings.HasPrefix(c.target, "tcp://") {
 		// remote IP endpoint
-		servers, err := parse.HostPortOrFile(endpoint[6:])
+		servers, err := parse.HostPortOrFile(c.target[6:])
 		if err != nil {
-			return d, c.ArgErr()
+			return c, d.ArgErr()
 		}
-		dio := newIO("tcp", servers[0])
-		d = Dnstap{io: dio}
+		c.target = servers[0]
 	} else {
-		endpoint = strings.TrimPrefix(endpoint, "unix://")
-		dio := newIO("unix", endpoint)
-		d = Dnstap{io: dio}
+		// default to UNIX socket
+		c.target = strings.TrimPrefix(c.target, "unix://")
+		c.socket = true
 	}
 
-	d.IncludeRawMessage = c.NextArg() && c.Val() == "full"
+	c.full = d.NextArg() && d.Val() == "full"
 
-	return d, nil
+	return
 }
 
 func setup(c *caddy.Controller) error {
-	dnstap, err := parseConfig(c)
+	conf, err := parseConfig(c)
 	if err != nil {
 		return plugin.Error("dnstap", err)
 	}
 
+	dio := dnstapio.New(conf.target, conf.socket)
+	dnstap := Dnstap{io: dio, IncludeRawMessage: conf.full}
+
 	c.OnStartup(func() error {
-		if err := dnstap.io.(*dio).connect(); err != nil {
-			log.Errorf("No connection to dnstap endpoint: %s", err)
-		}
+		dio.Connect()
 		return nil
 	})
 
 	c.OnRestart(func() error {
-		dnstap.io.(*dio).close()
+		dio.Close()
 		return nil
 	})
 
 	c.OnFinalShutdown(func() error {
-		dnstap.io.(*dio).close()
+		dio.Close()
 		return nil
 	})
 

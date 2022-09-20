@@ -1,12 +1,15 @@
 package traffic
 
 import (
+	"flag"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/spf13/pflag"
 
 	"github.com/kubeedge/edgemesh/tests/e2e/k8s"
 	"github.com/kubeedge/kubeedge/tests/e2e/utils"
@@ -18,6 +21,14 @@ var (
 	busyboxToolContainerID string
 	busyboxToolName        = "busybox-edge-tools-" + utils.GetRandomString(5)
 )
+
+func TestMain(m *testing.M) {
+	utils.CopyFlags(utils.Flags, flag.CommandLine)
+	utils.RegisterFlags(flag.CommandLine)
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	pflag.Parse()
+	os.Exit(m.Run())
+}
 
 func TestEdgeMeshTraffic(t *testing.T) {
 	rand.Seed(time.Now().Unix())
@@ -41,5 +52,5 @@ func TestEdgeMeshTraffic(t *testing.T) {
 		err := k8s.CleanBusyBoxTool(busyboxToolName, ctx)
 		Expect(err).To(BeNil())
 	})
-	RunSpecs(t, "Traffic Suite")
+	RunSpecs(t, "EdgeMesh App Traffic Suite")
 }

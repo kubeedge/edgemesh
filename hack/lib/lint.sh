@@ -53,10 +53,10 @@ edgemesh::lint::check() {
     # skip deleted files
     if [[ "$OSTYPE" == "darwin"* ]]
     then
-      git diff --cached --name-only --diff-filter=ACRMTU main | grep -Ev "externalversions|fake|vendor|images|adopters" | xargs $SED_CMD -i 's/[ \t]*$//'
+      git diff --cached --name-only --diff-filter=ACRMTU main | grep -Ev "externalversions|fake|vendor|images|adopters|helm" | xargs $SED_CMD -i 's/[ \t]*$//'
     elif [[ "$OSTYPE" == "linux"* ]]
     then
-      git diff --cached --name-only --diff-filter=ACRMTU main | grep -Ev "externalversions|fake|vendor|images|adopters" | xargs --no-run-if-empty $SED_CMD -i 's/[ \t]*$//'
+      git diff --cached --name-only --diff-filter=ACRMTU main | grep -Ev "externalversions|fake|vendor|images|adopters|helm" | xargs --no-run-if-empty $SED_CMD -i 's/[ \t]*$//'
     else
       echo "Unsupported OS $OSTYPE"
       exit 1

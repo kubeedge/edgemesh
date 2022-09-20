@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edgemesh-gateway
+  namespace: kubeedge
+  labels:
+    k8s-app: kubeedge
+    kubeedge: edgemesh-gateway
+spec:
+  selector:
+    matchLabels:
+      k8s-app: kubeedge
+      kubeedge: edgemesh-gateway
+  template:
+    metadata:
+      labels:
+        k8s-app: kubeedge
+        kubeedge: edgemesh-gateway
+    spec:
+      nodeName: <your node name>
+      hostNetwork: true
+      containers:
+        - name: edgemesh-gateway
+          securityContext:
+            privileged: true
+          image: kubeedge/edgemesh-gateway:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: conf
+              mountPath: /etc/edgemesh/config
+            - name: host-time
+              mountPath: /etc/localtime
+              readOnly: true
+            - name: psk
+              mountPath: /etc/edgemesh
+      restartPolicy: Always
+      serviceAccountName: edgemesh-gateway
+      volumes:
+        - name: conf
+          configMap:
+            name: edgemesh-gateway-cfg
+        - name: host-time
+          hostPath:
+            path: /etc/localtime
+        - name: psk
+          configMap:
+            name: edgemesh-gateway-psk

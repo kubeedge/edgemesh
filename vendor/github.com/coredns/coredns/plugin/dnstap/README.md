@@ -9,8 +9,8 @@
 dnstap is a flexible, structured binary log format for DNS software; see https://dnstap.info. With this
 plugin you make CoreDNS output dnstap logging.
 
-Every message is sent to the socket as soon as it comes in, the *dnstap* plugin has a buffer of
-10000 messages, above that number dnstap messages will be dropped (this is logged).
+Note that there is an internal buffer, so expect at least 13 requests before the server sends its
+dnstap messages to the socket.
 
 ## Syntax
 
@@ -18,7 +18,7 @@ Every message is sent to the socket as soon as it comes in, the *dnstap* plugin 
 dnstap SOCKET [full]
 ~~~
 
-* **SOCKET** is the socket (path) supplied to the dnstap command line tool.
+* **SOCKET** is the socket path supplied to the dnstap command line tool.
 * `full` to include the wire-format DNS message.
 
 ## Examples
@@ -100,5 +100,5 @@ func (x RandomPlugin) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns
 
 ## See Also
 
-The website [dnstap.info](https://dnstap.info) has info on the dnstap protocol. The *forward*
-plugin's `dnstap.go` uses dnstap to tap messages sent to an upstream.
+The website [dnstap.info](https://dnstap.info) has info on the dnstap protocol.
+The *forward* plugin's `dnstap.go` uses dnstap to tap messages sent to an upstream.

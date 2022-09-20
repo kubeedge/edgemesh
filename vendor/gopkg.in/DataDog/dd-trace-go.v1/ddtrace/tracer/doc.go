@@ -1,7 +1,7 @@
 // Unless explicitly stated otherwise all files in this repository are licensed
 // under the Apache License Version 2.0.
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
-// Copyright 2016 Datadog, Inc.
+// Copyright 2016-2020 Datadog, Inc.
 
 // Package tracer contains Datadog's core tracing client. It is used to trace
 // requests as they flow across web servers, databases and microservices, giving
@@ -42,17 +42,6 @@
 // The value is a JSON array of objects. Each object must have a "sample_rate", and the
 // "name" and "service" fields are optional.
 //    export DD_TRACE_SAMPLING_RULES='[{"name": "web.request", "sample_rate": 1.0}]'
-//
-// To create spans, use the functions StartSpan and StartSpanFromContext. Both accept
-// StartSpanOptions that can be used to configure the span. A span that is started
-// with no parent will begin a new trace. See the function documentation for details
-// on specific usage. Each trace has a hard limit of 100,000 spans, after which the
-// trace will be dropped and give a diagnostic log message. In practice users should
-// not approach this limit as traces of this size are not useful and impossible to
-// visualize.
-//
-// See the contrib package ( https://pkg.go.dev/gopkg.in/DataDog/dd-trace-go.v1/contrib )
-// for integrating datadog with various libraries, frameworks and clients.
 //
 // All spans created by the tracer contain a context hereby referred to as the span
 // context. Note that this is different from Go's context. The span context is used

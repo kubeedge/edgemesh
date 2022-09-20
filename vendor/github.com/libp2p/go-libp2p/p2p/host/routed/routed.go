@@ -5,17 +5,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/connmgr"
-	"github.com/libp2p/go-libp2p-core/event"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p/core/connmgr"
+	"github.com/libp2p/go-libp2p/core/event"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/protocol"
 
-	logging "github.com/ipfs/go-log"
-	circuit "github.com/libp2p/go-libp2p-circuit"
-	lgbl "github.com/libp2p/go-libp2p-loggables"
+	logging "github.com/ipfs/go-log/v2"
 
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -48,9 +46,12 @@ func Wrap(h host.Host, r Routing) *RoutedHost {
 // RoutedHost's Connect differs in that if the host has no addresses for a
 // given peer, it will use its routing system to try to find some.
 func (rh *RoutedHost) Connect(ctx context.Context, pi peer.AddrInfo) error {
-	// first, check if we're already connected.
-	if rh.Network().Connectedness(pi.ID) == network.Connected {
-		return nil
+	// first, check if we're already connected unless force direct dial.
+	forceDirect, _ := network.GetForceDirectDial(ctx)
+	if !forceDirect {
+		if rh.Network().Connectedness(pi.ID) == network.Connected {
+			return nil
+		}
 	}
 
 	// if we were given some addresses, keep + use them.
@@ -71,10 +72,9 @@ func (rh *RoutedHost) Connect(ctx context.Context, pi peer.AddrInfo) error {
 
 	// Issue 448: if our address set includes routed specific relay addrs,
 	// we need to make sure the relay's addr itself is in the peerstore or else
-	// we wont be able to dial it.
+	// we won't be able to dial it.
 	for _, addr := range addrs {
-		_, err := addr.ValueForProtocol(circuit.P_CIRCUIT)
-		if err != nil {
+		if _, err := addr.ValueForProtocol(ma.P_CIRCUIT); err != nil {
 			// not a relay address
 			continue
 		}
@@ -85,8 +85,7 @@ func (rh *RoutedHost) Connect(ctx context.Context, pi peer.AddrInfo) error {
 		}
 
 		relay, _ := addr.ValueForProtocol(ma.P_P2P)
-
-		relayID, err := peer.IDFromString(relay)
+		relayID, err := peer.Decode(relay)
 		if err != nil {
 			log.Debugf("failed to parse relay ID in address %s: %s", relay, err)
 			continue
@@ -119,19 +118,15 @@ func (rh *RoutedHost) findPeerAddrs(ctx context.Context, id peer.ID) ([]ma.Multi
 
 	if pi.ID != id {
 		err = fmt.Errorf("routing failure: provided addrs for different peer")
-		logRoutingErrDifferentPeers(ctx, id, pi.ID, err)
+		log.Errorw("got wrong peer",
+			"error", err,
+			"wantedPeer", id,
+			"gotPeer", pi.ID,
+		)
 		return nil, err
 	}
 
 	return pi.Addrs, nil
-}
-
-func logRoutingErrDifferentPeers(ctx context.Context, wanted, got peer.ID, err error) {
-	lm := make(lgbl.DeferredMap)
-	lm["error"] = err
-	lm["wantedPeer"] = func() interface{} { return wanted.Pretty() }
-	lm["gotPeer"] = func() interface{} { return got.Pretty() }
-	log.Event(ctx, "routingError", lm)
 }
 
 func (rh *RoutedHost) ID() peer.ID {

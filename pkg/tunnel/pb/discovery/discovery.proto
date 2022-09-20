@@ -1,0 +1,15 @@
+syntax = "proto2";
+
+package discovery;
+
+message Discovery {
+  enum Type {
+    CONNECT = 0;
+    SUCCESS = 1;
+    FAILED = 2;
+  }
+
+  optional Type type = 1;
+  optional string protocol = 2; // libp2p discovery protocol: MDNS, DHT
+  optional string node_name = 3;
+}

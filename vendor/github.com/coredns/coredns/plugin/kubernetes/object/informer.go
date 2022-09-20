@@ -1,8 +1,6 @@
 package object
 
 import (
-	"fmt"
-
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
@@ -23,22 +21,16 @@ func NewIndexerInformer(lw cache.ListerWatcher, objType runtime.Object, h cache.
 	return clientState, cache.New(cfg)
 }
 
-// RecordLatencyFunc is a function for recording api object delta latency
-type RecordLatencyFunc func(meta.Object)
+type recordLatencyFunc func(meta.Object)
 
 // DefaultProcessor is based on the Process function from cache.NewIndexerInformer except it does a conversion.
-func DefaultProcessor(convert ToFunc, recordLatency *EndpointLatencyRecorder) ProcessorBuilder {
+func DefaultProcessor(convert ToFunc, recordLatency recordLatencyFunc) ProcessorBuilder {
 	return func(clientState cache.Indexer, h cache.ResourceEventHandler) cache.ProcessFunc {
 		return func(obj interface{}) error {
 			for _, d := range obj.(cache.Deltas) {
-				if recordLatency != nil {
-					if o, ok := d.Object.(meta.Object); ok {
-						recordLatency.init(o)
-					}
-				}
 				switch d.Type {
 				case cache.Sync, cache.Added, cache.Updated:
-					obj, err := convert(d.Object.(meta.Object))
+					obj, err := convert(d.Object)
 					if err != nil {
 						return err
 					}
@@ -54,18 +46,14 @@ func DefaultProcessor(convert ToFunc, recordLatency *EndpointLatencyRecorder) Pr
 						h.OnAdd(obj)
 					}
 					if recordLatency != nil {
-						recordLatency.record()
+						recordLatency(d.Object.(meta.Object))
 					}
 				case cache.Deleted:
 					var obj interface{}
 					obj, ok := d.Object.(cache.DeletedFinalStateUnknown)
 					if !ok {
 						var err error
-						metaObj, ok := d.Object.(meta.Object)
-						if !ok {
-							return fmt.Errorf("unexpected object %v", d.Object)
-						}
-						obj, err = convert(metaObj)
+						obj, err = convert(d.Object)
 						if err != nil && err != errPodTerminating {
 							return err
 						}
@@ -76,7 +64,7 @@ func DefaultProcessor(convert ToFunc, recordLatency *EndpointLatencyRecorder) Pr
 					}
 					h.OnDelete(obj)
 					if !ok && recordLatency != nil {
-						recordLatency.record()
+						recordLatency(d.Object.(meta.Object))
 					}
 				}
 			}

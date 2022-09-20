@@ -5,8 +5,11 @@ package kubernetes
 // Returns true even for namespaces not exposed by plugin configuration,
 // see namespaceExposed.
 func (k *Kubernetes) filteredNamespaceExists(namespace string) bool {
-	_, err := k.APIConn.GetNamespaceByName(namespace)
-	return err == nil
+	ns, err := k.APIConn.GetNamespaceByName(namespace)
+	if err != nil {
+		return false
+	}
+	return ns.ObjectMeta.Name == namespace
 }
 
 // configuredNamespace returns true when the namespace is exposed through the plugin

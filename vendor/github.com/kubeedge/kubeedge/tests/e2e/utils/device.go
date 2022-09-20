@@ -5,9 +5,10 @@ import (
 
 	v12 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 
-	"github.com/kubeedge/kubeedge/cloud/pkg/apis/devices/v1alpha2"
 	"github.com/kubeedge/kubeedge/cloud/pkg/devicecontroller/types"
+	"github.com/kubeedge/kubeedge/pkg/apis/devices/v1alpha2"
 )
 
 func NewLedDeviceModel() v1alpha2.DeviceModel {
@@ -431,8 +432,8 @@ func NewModbusDeviceInstance(nodeSelector string) v1alpha2.Device {
 		VisitorConfig: v1alpha2.VisitorConfig{
 			Modbus: &v1alpha2.VisitorConfigModbus{
 				Register:       "CoilRegister",
-				Offset:         2,
-				Limit:          1,
+				Offset:         pointer.Int64Ptr(2),
+				Limit:          pointer.Int64Ptr(1),
 				Scale:          1,
 				IsSwap:         true,
 				IsRegisterSwap: true,
@@ -444,8 +445,8 @@ func NewModbusDeviceInstance(nodeSelector string) v1alpha2.Device {
 		VisitorConfig: v1alpha2.VisitorConfig{
 			Modbus: &v1alpha2.VisitorConfigModbus{
 				Register:       "DiscreteInputRegister",
-				Offset:         3,
-				Limit:          1,
+				Offset:         pointer.Int64Ptr(3),
+				Limit:          pointer.Int64Ptr(1),
 				Scale:          1.0,
 				IsSwap:         true,
 				IsRegisterSwap: true,
@@ -666,7 +667,12 @@ func NewCustomizedDeviceInstance(nodeSelector string) v1alpha2.Device {
 		VisitorConfig: v1alpha2.VisitorConfig{
 			CustomizedProtocol: &v1alpha2.VisitorConfigCustomized{
 				ProtocolName: "CustomizedProtocol1",
-				ConfigData:   &v1alpha2.CustomizedValue{"config1": "config-val1", "config2": "config-val2"},
+				ConfigData: &v1alpha2.CustomizedValue{
+					Data: map[string]interface{}{
+						"config1": "config-val1",
+						"config2": "config-val2",
+					},
+				},
 			},
 		},
 	}
@@ -675,7 +681,12 @@ func NewCustomizedDeviceInstance(nodeSelector string) v1alpha2.Device {
 		VisitorConfig: v1alpha2.VisitorConfig{
 			CustomizedProtocol: &v1alpha2.VisitorConfigCustomized{
 				ProtocolName: "CustomizedProtocol1",
-				ConfigData:   &v1alpha2.CustomizedValue{"config3": "config-val3", "config4": "config-val4"},
+				ConfigData: &v1alpha2.CustomizedValue{
+					Data: map[string]interface{}{
+						"config3": "config-val3",
+						"config4": "config-val4",
+					},
+				},
 			},
 		},
 	}
@@ -714,7 +725,12 @@ func NewCustomizedDeviceInstance(nodeSelector string) v1alpha2.Device {
 			Protocol: v1alpha2.ProtocolConfig{
 				CustomizedProtocol: &v1alpha2.ProtocolConfigCustomized{
 					ProtocolName: "CustomizedProtocol1",
-					ConfigData:   &v1alpha2.CustomizedValue{"config1": "config-val1", "config2": "config-val2"},
+					ConfigData: &v1alpha2.CustomizedValue{
+						Data: map[string]interface{}{
+							"config1": "config-val1",
+							"config2": "config-val2",
+						},
+					},
 				},
 				Common: &v1alpha2.ProtocolConfigCommon{
 					COM: &v1alpha2.ProtocolConfigCOM{
@@ -806,8 +822,8 @@ func UpdatedModbusDeviceInstance(nodeSelector string) v1alpha2.Device {
 		VisitorConfig: v1alpha2.VisitorConfig{
 			Modbus: &v1alpha2.VisitorConfigModbus{
 				Register:       "CoilRegister",
-				Offset:         2,
-				Limit:          1,
+				Offset:         pointer.Int64Ptr(2),
+				Limit:          pointer.Int64Ptr(1),
 				Scale:          2,
 				IsSwap:         true,
 				IsRegisterSwap: true,
@@ -819,8 +835,8 @@ func UpdatedModbusDeviceInstance(nodeSelector string) v1alpha2.Device {
 		VisitorConfig: v1alpha2.VisitorConfig{
 			Modbus: &v1alpha2.VisitorConfigModbus{
 				Register:       "DiscreteInputRegister",
-				Offset:         1,
-				Limit:          1,
+				Offset:         pointer.Int64Ptr(1),
+				Limit:          pointer.Int64Ptr(1),
 				Scale:          1.0,
 				IsSwap:         true,
 				IsRegisterSwap: true,
@@ -861,7 +877,7 @@ func UpdatedModbusDeviceInstance(nodeSelector string) v1alpha2.Device {
 			},
 			Protocol: v1alpha2.ProtocolConfig{
 				Modbus: &v1alpha2.ProtocolConfigModbus{
-					SlaveID: 1,
+					SlaveID: pointer.Int64Ptr(1),
 				},
 				Common: &v1alpha2.ProtocolConfigCommon{
 					COM: &v1alpha2.ProtocolConfigCOM{
@@ -1399,8 +1415,8 @@ func NewConfigMapModbus(nodeSelector string) v12.ConfigMap {
 			Protocol:     "modbus",
 			VisitorConfig: v1alpha2.VisitorConfigModbus{
 				Register:       "CoilRegister",
-				Offset:         2,
-				Limit:          1,
+				Offset:         pointer.Int64Ptr(2),
+				Limit:          pointer.Int64Ptr(1),
 				Scale:          1,
 				IsSwap:         true,
 				IsRegisterSwap: true,
@@ -1413,8 +1429,8 @@ func NewConfigMapModbus(nodeSelector string) v12.ConfigMap {
 			Protocol:     "modbus",
 			VisitorConfig: v1alpha2.VisitorConfigModbus{
 				Register:       "DiscreteInputRegister",
-				Offset:         3,
-				Limit:          1,
+				Offset:         pointer.Int64Ptr(3),
+				Limit:          pointer.Int64Ptr(1),
 				Scale:          1,
 				IsSwap:         true,
 				IsRegisterSwap: true,
@@ -1505,8 +1521,8 @@ func UpdatedConfigMapModbusForDataAndTwins(nodeSelector string) v12.ConfigMap {
 			Protocol:     "modbus",
 			VisitorConfig: v1alpha2.VisitorConfigModbus{
 				Register:       "CoilRegister",
-				Offset:         2,
-				Limit:          1,
+				Offset:         pointer.Int64Ptr(2),
+				Limit:          pointer.Int64Ptr(1),
 				Scale:          1,
 				IsSwap:         true,
 				IsRegisterSwap: true,
@@ -1519,8 +1535,8 @@ func UpdatedConfigMapModbusForDataAndTwins(nodeSelector string) v12.ConfigMap {
 			Protocol:     "modbus",
 			VisitorConfig: v1alpha2.VisitorConfigModbus{
 				Register:       "DiscreteInputRegister",
-				Offset:         3,
-				Limit:          1,
+				Offset:         pointer.Int64Ptr(3),
+				Limit:          pointer.Int64Ptr(1),
 				Scale:          1,
 				IsSwap:         true,
 				IsRegisterSwap: true,
@@ -1548,15 +1564,17 @@ func UpdatedConfigMapModbusForDataAndTwins(nodeSelector string) v12.ConfigMap {
 					},
 				},
 			},
-			DataProperties: []v1alpha2.DataProperty{
-				{
-					PropertyName: "temperature",
-					Metadata: map[string]string{
-						"type": "string",
+			Data: &v1alpha2.DeviceData{
+				DataProperties: []v1alpha2.DataProperty{
+					{
+						PropertyName: "temperature",
+						Metadata: map[string]string{
+							"type": "string",
+						},
 					},
 				},
+				DataTopic: "$ke/events/+/device/customized/update",
 			},
-			DataTopic:        "$ke/events/+/device/customized/update",
 			PropertyVisitors: propertyVisitors,
 		},
 	}
@@ -1590,7 +1608,7 @@ func UpdatedConfigMapModbusForDataAndTwins(nodeSelector string) v12.ConfigMap {
 			Name:     "modbus-sensor-tag-instance-02",
 			Protocol: "modbus",
 			ProtocolConfig: &v1alpha2.ProtocolConfigModbus{
-				SlaveID: 1,
+				SlaveID: pointer.Int64Ptr(1),
 			},
 			ProtocolCommonConfig: &v1alpha2.ProtocolConfigCommon{
 				COM: &v1alpha2.ProtocolConfigCOM{
@@ -1635,7 +1653,12 @@ func NewConfigMapCustomized(nodeSelector string) v12.ConfigMap {
 
 			VisitorConfig: v1alpha2.VisitorConfigCustomized{
 				ProtocolName: "CustomizedProtocol1",
-				ConfigData:   &v1alpha2.CustomizedValue{"config1": "config-val1", "config2": "config-val2"},
+				ConfigData: &v1alpha2.CustomizedValue{
+					Data: map[string]interface{}{
+						"config1": "config-val1",
+						"config2": "config-val2",
+					},
+				},
 			},
 		},
 		{
@@ -1645,7 +1668,12 @@ func NewConfigMapCustomized(nodeSelector string) v12.ConfigMap {
 			Protocol:     "customized-protocol",
 			VisitorConfig: v1alpha2.VisitorConfigCustomized{
 				ProtocolName: "CustomizedProtocol1",
-				ConfigData:   &v1alpha2.CustomizedValue{"config3": "config-val3", "config4": "config-val4"},
+				ConfigData: &v1alpha2.CustomizedValue{
+					Data: map[string]interface{}{
+						"config3": "config-val3",
+						"config4": "config-val4",
+					},
+				},
 			},
 		},
 	}
@@ -1705,7 +1733,12 @@ func NewConfigMapCustomized(nodeSelector string) v12.ConfigMap {
 			Protocol: "customized-protocol",
 			ProtocolConfig: &v1alpha2.ProtocolConfigCustomized{
 				ProtocolName: "CustomizedProtocol1",
-				ConfigData:   &v1alpha2.CustomizedValue{"config1": "config-val1", "config2": "config-val2"},
+				ConfigData: &v1alpha2.CustomizedValue{
+					Data: map[string]interface{}{
+						"config1": "config-val1",
+						"config2": "config-val2",
+					},
+				},
 			},
 			ProtocolCommonConfig: &v1alpha2.ProtocolConfigCommon{
 				COM: &v1alpha2.ProtocolConfigCOM{

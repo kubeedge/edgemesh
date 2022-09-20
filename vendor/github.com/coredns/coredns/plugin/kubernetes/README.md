@@ -33,7 +33,7 @@ all the zones the plugin should be authoritative for.
 kubernetes [ZONES...] {
     endpoint URL
     tls CERT KEY CACERT
-    kubeconfig KUBECONFIG [CONTEXT]
+    kubeconfig KUBECONFIG CONTEXT
     namespaces NAMESPACE...
     labels EXPRESSION
     pods POD-MODE
@@ -49,10 +49,7 @@ kubernetes [ZONES...] {
    If omitted, it will connect to k8s in-cluster using the cluster service account.
 * `tls` **CERT** **KEY** **CACERT** are the TLS cert, key and the CA cert file names for remote k8s connection.
    This option is ignored if connecting in-cluster (i.e. endpoint is not specified).
-* `kubeconfig` **KUBECONFIG [CONTEXT]** authenticates the connection to a remote k8s cluster using a kubeconfig file.
-   **[CONTEXT]** is optional, if not set, then the current context specified in kubeconfig will be used.
-   It supports TLS, username and password, or token-based authentication.
-   This option is ignored if connecting in-cluster (i.e., the endpoint is not specified).
+* `kubeconfig` **KUBECONFIG** **CONTEXT** authenticates the connection to a remote k8s cluster using a kubeconfig file. It supports TLS, username and password, or token-based authentication. This option is ignored if connecting in-cluster (i.e., the endpoint is not specified).
 * `namespaces` **NAMESPACE [NAMESPACE...]** only exposes the k8s namespaces listed.
    If this option is omitted all namespaces are exposed
 * `namespace_labels` **EXPRESSION** only expose the records for Kubernetes namespaces that match this label selector.
@@ -87,7 +84,7 @@ kubernetes [ZONES...] {
    If this directive is included, then name selection for endpoints changes as
    follows: Use the hostname of the endpoint, or if hostname is not set, use the
    pod name of the pod targeted by the endpoint. If there is no pod targeted by
-   the endpoint or pod name is longer than 63, use the dashed IP address form.
+   the endpoint, use the dashed IP address form.
 * `ttl` allows you to set a custom TTL for responses. The default is 5 seconds.  The minimum TTL allowed is
   0 seconds, and the maximum is capped at 3600 seconds. Setting TTL to 0 will prevent records from being cached.
 * `noendpoints` will turn off the serving of endpoint records by disabling the watch on endpoints.
@@ -103,20 +100,6 @@ kubernetes [ZONES...] {
   The search path could, for example, include another Kubernetes cluster.
 
 Enabling zone transfer is done by using the *transfer* plugin.
-
-## Startup
-
-When CoreDNS starts with the *kubernetes* plugin enabled, it will delay serving DNS for up to 5 seconds
-until it can connect to the Kubernetes API and synchronize all object watches.  If this cannot happen within
-5 seconds, then CoreDNS will start serving DNS while the *kubernetes* plugin continues to try to connect
-and synchronize all object watches.  CoreDNS will answer SERVFAIL to any request made for a Kubernetes record
-that has not yet been synchronized.
-
-## Monitoring Kubernetes Endpoints
-
-By default the *kubernetes* plugin watches Endpoints via the `discovery.EndpointSlices` API.  However the
-`api.Endpoints` API is used instead if the Kubernetes version does not support the `EndpointSliceProxying`
-feature gate by default (i.e. Kubernetes version < 1.19).
 
 ## Ready
 
@@ -198,8 +181,6 @@ packet received by CoreDNS must be the IP address of the Pod that sent the reque
 
 ## Wildcards
 
-**NOTE: Wildcard queries are deprecated** and will no longer be supported in the next minor release.
-
 Some query labels accept a wildcard value to match any value.  If a label is a valid wildcard (\*,
 or the word "any"), then that label will match all values.  The labels that accept wildcards are:
 
@@ -254,7 +235,7 @@ If monitoring is enabled (via the *prometheus* plugin) then the following metric
 
 The duration metric only supports the "headless\_with\_selector" service currently.
 
-## See Also
+## Also See
 
 See the *autopath* plugin to enable search path optimizations. And use the *transfer* plugin to
 enable outgoing zone transfers.

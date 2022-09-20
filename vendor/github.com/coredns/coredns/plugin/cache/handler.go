@@ -39,28 +39,38 @@ func (c *Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 		ttl = i.ttl(now)
 	}
 	if i == nil {
+		if !do {
+			setDo(rc)
+		}
 		crr := &ResponseWriter{ResponseWriter: w, Cache: c, state: state, server: server, do: do}
-		return c.doRefresh(ctx, state, crr)
+		return plugin.NextOrFailure(c.Name(), c.Next, ctx, crr, rc)
 	}
 	if ttl < 0 {
 		servedStale.WithLabelValues(server).Inc()
 		// Adjust the time to get a 0 TTL in the reply built from a stale item.
 		now = now.Add(time.Duration(ttl) * time.Second)
-		cw := newPrefetchResponseWriter(server, state, c)
-		go c.doPrefetch(ctx, state, cw, i, now)
-	} else if c.shouldPrefetch(i, now) {
-		cw := newPrefetchResponseWriter(server, state, c)
-		go c.doPrefetch(ctx, state, cw, i, now)
+		go func() {
+			if !do {
+				setDo(rc)
+			}
+			crr := &ResponseWriter{Cache: c, state: state, server: server, prefetch: true, remoteAddr: w.LocalAddr(), do: do}
+			plugin.NextOrFailure(c.Name(), c.Next, ctx, crr, rc)
+		}()
 	}
 	resp := i.toMsg(r, now, do)
 	w.WriteMsg(resp)
 
+	if c.shouldPrefetch(i, now) {
+		go c.doPrefetch(ctx, state, server, i, now)
+	}
 	return dns.RcodeSuccess, nil
 }
 
-func (c *Cache) doPrefetch(ctx context.Context, state request.Request, cw *ResponseWriter, i *item, now time.Time) {
-	cachePrefetches.WithLabelValues(cw.server).Inc()
-	c.doRefresh(ctx, state, cw)
+func (c *Cache) doPrefetch(ctx context.Context, state request.Request, server string, i *item, now time.Time) {
+	cw := newPrefetchResponseWriter(server, state, c)
+
+	cachePrefetches.WithLabelValues(server).Inc()
+	plugin.NextOrFailure(c.Name(), c.Next, ctx, cw, state.Req)
 
 	// When prefetching we loose the item i, and with it the frequency
 	// that we've gathered sofar. See we copy the frequencies info back
@@ -68,13 +78,6 @@ func (c *Cache) doPrefetch(ctx context.Context, state request.Request, cw *Respo
 	if i1 := c.exists(state); i1 != nil {
 		i1.Freq.Reset(now, i.Freq.Hits())
 	}
-}
-
-func (c *Cache) doRefresh(ctx context.Context, state request.Request, cw *ResponseWriter) (int, error) {
-	if !state.Do() {
-		setDo(state.Req)
-	}
-	return plugin.NextOrFailure(c.Name(), c.Next, ctx, cw, state.Req)
 }
 
 func (c *Cache) shouldPrefetch(i *item, now time.Time) bool {
@@ -91,7 +94,6 @@ func (c *Cache) Name() string { return "cache" }
 
 func (c *Cache) get(now time.Time, state request.Request, server string) (*item, bool) {
 	k := hash(state.Name(), state.QType())
-	cacheRequests.WithLabelValues(server).Inc()
 
 	if i, ok := c.ncache.Get(k); ok && i.(*item).ttl(now) > 0 {
 		cacheHits.WithLabelValues(server, Denial).Inc()
@@ -109,7 +111,6 @@ func (c *Cache) get(now time.Time, state request.Request, server string) (*item,
 // getIgnoreTTL unconditionally returns an item if it exists in the cache.
 func (c *Cache) getIgnoreTTL(now time.Time, state request.Request, server string) *item {
 	k := hash(state.Name(), state.QType())
-	cacheRequests.WithLabelValues(server).Inc()
 
 	if i, ok := c.ncache.Get(k); ok {
 		ttl := i.(*item).ttl(now)

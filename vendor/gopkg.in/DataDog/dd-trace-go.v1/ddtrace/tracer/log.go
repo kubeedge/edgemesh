@@ -1,7 +1,7 @@
 // Unless explicitly stated otherwise all files in this repository are licensed
 // under the Apache License Version 2.0.
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
-// Copyright 2016 Datadog, Inc.
+// Copyright 2016-2020 Datadog, Inc.
 
 package tracer
 
@@ -14,7 +14,6 @@ import (
 	"runtime"
 	"time"
 
-	"gopkg.in/DataDog/dd-trace-go.v1/internal/appsec"
 	"gopkg.in/DataDog/dd-trace-go.v1/internal/globalconfig"
 	"gopkg.in/DataDog/dd-trace-go.v1/internal/log"
 	"gopkg.in/DataDog/dd-trace-go.v1/internal/version"
@@ -48,8 +47,6 @@ type startupInfo struct {
 	Architecture          string            `json:"architecture"`            // Architecture of host machine
 	GlobalService         string            `json:"global_service"`          // Global service string. If not-nil should be same as Service. (#614)
 	LambdaMode            string            `json:"lambda_mode"`             // Whether or not the client has enabled lambda mode
-	AppSec                string            `json:"appsec"`                  // AppSec status string
-	AgentFeatures         agentFeatures     `json:"agent_features"`          // Lists the capabilities of the agent.
 }
 
 // checkEndpoint tries to connect to the URL specified by endpoint.
@@ -73,7 +70,7 @@ func checkEndpoint(endpoint string) error {
 // JSON format.
 func logStartup(t *tracer) {
 	tags := make(map[string]string)
-	for k, v := range t.config.globalTags {
+	for k, v := range t.globalTags {
 		tags[k] = fmt.Sprintf("%v", v)
 	}
 
@@ -86,7 +83,7 @@ func logStartup(t *tracer) {
 		LangVersion:           runtime.Version(),
 		Env:                   t.config.env,
 		Service:               t.config.serviceName,
-		AgentURL:              t.config.transport.endpoint(),
+		AgentURL:              t.transport.endpoint(),
 		Debug:                 t.config.debug,
 		AnalyticsEnabled:      !math.IsNaN(globalconfig.AnalyticsRate()),
 		SampleRate:            fmt.Sprintf("%f", t.rulesSampling.globalRate),
@@ -98,16 +95,14 @@ func logStartup(t *tracer) {
 		Architecture:          runtime.GOARCH,
 		GlobalService:         globalconfig.ServiceName(),
 		LambdaMode:            fmt.Sprintf("%t", t.config.logToStdout),
-		AgentFeatures:         t.features.Load(),
-		AppSec:                appsec.Status(),
 	}
 	if _, err := samplingRulesFromEnv(); err != nil {
 		info.SamplingRulesError = fmt.Sprintf("%s", err)
 	}
 	if !t.config.logToStdout {
-		if err := checkEndpoint(t.config.transport.endpoint()); err != nil {
+		if err := checkEndpoint(t.transport.endpoint()); err != nil {
 			info.AgentError = fmt.Sprintf("%s", err)
-			log.Warn("DIAGNOSTICS Unable to reach agent intake: %s", err)
+			log.Warn("DIAGNOSTICS Unable to reach agent: %s", err)
 		}
 	}
 	bs, err := json.Marshal(info)

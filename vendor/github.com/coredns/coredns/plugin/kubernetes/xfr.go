@@ -18,10 +18,6 @@ import (
 
 // Transfer implements the transfer.Transfer interface.
 func (k *Kubernetes) Transfer(zone string, serial uint32) (<-chan []dns.RR, error) {
-	match := plugin.Zones(k.Zones).Matches(zone)
-	if match == "" {
-		return nil, transfer.ErrNotAuthoritative
-	}
 	// state is not used here, hence the empty request.Request{]
 	soa, err := plugin.SOA(context.TODO(), k, zone, request.Request{}, plugin.Options{})
 	if err != nil {
@@ -42,17 +38,6 @@ func (k *Kubernetes) Transfer(zone string, serial uint32) (<-chan []dns.RR, erro
 		}
 		ch <- soa
 
-		nsAddrs := k.nsAddrs(false, zone)
-		nsHosts := make(map[string]struct{})
-		for _, nsAddr := range nsAddrs {
-			nsHost := nsAddr.Header().Name
-			if _, ok := nsHosts[nsHost]; !ok {
-				nsHosts[nsHost] = struct{}{}
-				ch <- []dns.RR{&dns.NS{Hdr: dns.RR_Header{Name: zone, Rrtype: dns.TypeNS, Class: dns.ClassINET, Ttl: k.ttl}, Ns: nsHost}}
-			}
-			ch <- nsAddrs
-		}
-
 		sort.Slice(serviceList, func(i, j int) bool {
 			return serviceList[i].Name < serviceList[j].Name
 		})
@@ -65,16 +50,13 @@ func (k *Kubernetes) Transfer(zone string, serial uint32) (<-chan []dns.RR, erro
 			switch svc.Type {
 
 			case api.ServiceTypeClusterIP, api.ServiceTypeNodePort, api.ServiceTypeLoadBalancer:
-				clusterIP := net.ParseIP(svc.ClusterIPs[0])
+				clusterIP := net.ParseIP(svc.ClusterIP)
 				if clusterIP != nil {
-					var host string
-					for _, ip := range svc.ClusterIPs {
-						s := msg.Service{Host: ip, TTL: k.ttl}
-						s.Key = strings.Join(svcBase, "/")
+					s := msg.Service{Host: svc.ClusterIP, TTL: k.ttl}
+					s.Key = strings.Join(svcBase, "/")
 
-						// Change host from IP to Name for SRV records
-						host = emitAddressRecord(ch, s)
-					}
+					// Change host from IP to Name for SRV records
+					host := emitAddressRecord(ch, s)
 
 					for _, p := range svc.Ports {
 						s := msg.Service{Host: host, Port: int(p.Port), TTL: k.ttl}
@@ -102,6 +84,10 @@ func (k *Kubernetes) Transfer(zone string, serial uint32) (<-chan []dns.RR, erro
 				endpointsList := k.APIConn.EpIndex(svc.Name + "." + svc.Namespace)
 
 				for _, ep := range endpointsList {
+					if ep.Name != svc.Name || ep.Namespace != svc.Namespace {
+						continue
+					}
+
 					for _, eps := range ep.Subsets {
 						srvWeight := calcSRVWeight(len(eps.Addresses))
 						for _, addr := range eps.Addresses {

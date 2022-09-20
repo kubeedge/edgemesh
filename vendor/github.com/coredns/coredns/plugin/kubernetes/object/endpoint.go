@@ -4,9 +4,6 @@ import (
 	"fmt"
 
 	api "k8s.io/api/core/v1"
-	discovery "k8s.io/api/discovery/v1"
-	discoveryV1beta1 "k8s.io/api/discovery/v1beta1"
-	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -48,12 +45,19 @@ type EndpointPort struct {
 // EndpointsKey returns a string using for the index.
 func EndpointsKey(name, namespace string) string { return name + "." + namespace }
 
-// ToEndpoints converts an *api.Endpoints to a *Endpoints.
-func ToEndpoints(obj meta.Object) (meta.Object, error) {
-	end, ok := obj.(*api.Endpoints)
-	if !ok {
-		return nil, fmt.Errorf("unexpected object %v", obj)
+// ToEndpoints returns a function that converts an *api.Endpoints to a *Endpoints.
+func ToEndpoints(skipCleanup bool) ToFunc {
+	return func(obj interface{}) (interface{}, error) {
+		eps, ok := obj.(*api.Endpoints)
+		if !ok {
+			return nil, fmt.Errorf("unexpected object %v", obj)
+		}
+		return toEndpoints(skipCleanup, eps), nil
 	}
+}
+
+// toEndpoints converts an *api.Endpoints to a *Endpoints.
+func toEndpoints(skipCleanup bool, end *api.Endpoints) *Endpoints {
 	e := &Endpoints{
 		Version:   end.GetResourceVersion(),
 		Name:      end.GetName(),
@@ -97,118 +101,11 @@ func ToEndpoints(obj meta.Object) (meta.Object, error) {
 		}
 	}
 
-	*end = api.Endpoints{}
-
-	return e, nil
-}
-
-// EndpointSliceToEndpoints converts a *discovery.EndpointSlice to a *Endpoints.
-func EndpointSliceToEndpoints(obj meta.Object) (meta.Object, error) {
-	ends, ok := obj.(*discovery.EndpointSlice)
-	if !ok {
-		return nil, fmt.Errorf("unexpected object %v", obj)
-	}
-	e := &Endpoints{
-		Version:   ends.GetResourceVersion(),
-		Name:      ends.GetName(),
-		Namespace: ends.GetNamespace(),
-		Index:     EndpointsKey(ends.Labels[discovery.LabelServiceName], ends.GetNamespace()),
-		Subsets:   make([]EndpointSubset, 1),
+	if !skipCleanup {
+		*end = api.Endpoints{}
 	}
 
-	if len(ends.Ports) == 0 {
-		// Add sentinel if there are no ports.
-		e.Subsets[0].Ports = []EndpointPort{{Port: -1}}
-	} else {
-		e.Subsets[0].Ports = make([]EndpointPort, len(ends.Ports))
-		for k, p := range ends.Ports {
-			ep := EndpointPort{Port: *p.Port, Name: *p.Name, Protocol: string(*p.Protocol)}
-			e.Subsets[0].Ports[k] = ep
-		}
-	}
-
-	for _, end := range ends.Endpoints {
-		if !endpointsliceReady(end.Conditions.Ready) {
-			continue
-		}
-		for _, a := range end.Addresses {
-			ea := EndpointAddress{IP: a}
-			if end.Hostname != nil {
-				ea.Hostname = *end.Hostname
-			}
-			// ignore pod names that are too long to be a valid label
-			if end.TargetRef != nil && len(end.TargetRef.Name) < 64 {
-				ea.TargetRefName = end.TargetRef.Name
-			}
-			if end.NodeName != nil {
-				ea.NodeName = *end.NodeName
-			}
-			e.Subsets[0].Addresses = append(e.Subsets[0].Addresses, ea)
-			e.IndexIP = append(e.IndexIP, a)
-		}
-	}
-
-	*ends = discovery.EndpointSlice{}
-
-	return e, nil
-}
-
-// EndpointSliceV1beta1ToEndpoints converts a v1beta1 *discovery.EndpointSlice to a *Endpoints.
-func EndpointSliceV1beta1ToEndpoints(obj meta.Object) (meta.Object, error) {
-	ends, ok := obj.(*discoveryV1beta1.EndpointSlice)
-	if !ok {
-		return nil, fmt.Errorf("unexpected object %v", obj)
-	}
-	e := &Endpoints{
-		Version:   ends.GetResourceVersion(),
-		Name:      ends.GetName(),
-		Namespace: ends.GetNamespace(),
-		Index:     EndpointsKey(ends.Labels[discovery.LabelServiceName], ends.GetNamespace()),
-		Subsets:   make([]EndpointSubset, 1),
-	}
-
-	if len(ends.Ports) == 0 {
-		// Add sentinel if there are no ports.
-		e.Subsets[0].Ports = []EndpointPort{{Port: -1}}
-	} else {
-		e.Subsets[0].Ports = make([]EndpointPort, len(ends.Ports))
-		for k, p := range ends.Ports {
-			ep := EndpointPort{Port: *p.Port, Name: *p.Name, Protocol: string(*p.Protocol)}
-			e.Subsets[0].Ports[k] = ep
-		}
-	}
-
-	for _, end := range ends.Endpoints {
-		if !endpointsliceReady(end.Conditions.Ready) {
-			continue
-		}
-		for _, a := range end.Addresses {
-			ea := EndpointAddress{IP: a}
-			if end.Hostname != nil {
-				ea.Hostname = *end.Hostname
-			}
-			// ignore pod names that are too long to be a valid label
-			if end.TargetRef != nil && len(end.TargetRef.Name) < 64 {
-				ea.TargetRefName = end.TargetRef.Name
-			}
-			// EndpointSlice does not contain NodeName, leave blank
-			e.Subsets[0].Addresses = append(e.Subsets[0].Addresses, ea)
-			e.IndexIP = append(e.IndexIP, a)
-		}
-	}
-
-	*ends = discoveryV1beta1.EndpointSlice{}
-
-	return e, nil
-}
-
-func endpointsliceReady(ready *bool) bool {
-	// Per API docs: a nil value indicates an unknown state. In most cases consumers
-	// should interpret this unknown state as ready.
-	if ready == nil {
-		return true
-	}
-	return *ready
+	return e
 }
 
 // CopyWithoutSubsets copies e, without the subsets.

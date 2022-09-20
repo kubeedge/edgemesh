@@ -22,7 +22,7 @@ set -o pipefail
 
 KUBE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 EDGEMESH_HELM_DIR=${KUBE_ROOT}/build/helm/edgemesh
-GATEWAY_HELM_DIR=${KUBE_ROOT}/build/helm/gateway
+GATEWAY_HELM_DIR=${KUBE_ROOT}/build/helm/edgemesh-gateway
 _tmpdir=/tmp/edgemesh
 
 function package:helm:files {
