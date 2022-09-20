@@ -30,7 +30,7 @@ The Helm Chart configuration of EdgeMesh-Gateway is placed in the build/helm/edg
 ## ConfigMap Configure
 
 :::tip
-For detailed field explanation, please refer to [API Definition](https://github.com/kubeedge/edgemesh/blob/main/pkg/apis/config/v1alpha1/type.go).
+For detailed field explanation, please refer to [API Definition](https://github.com/kubeedge/edgemesh/blob/main/pkg/apis/config/v1alpha1/types.go).
 :::
 
 ### edgemesh-agent-cfg

@@ -80,7 +80,7 @@ $ systemctl restart edgecore
 ```
 
 ::: tip
-The value '169.254.96.16' set by clusterDNS comes from the default value of bridgeDeviceIP in [commonConfig](../reference/config-items.md#table-1-2-commonconfig), if you need to modify it, please keep the two consistent.
+The value '169.254.96.16' set by clusterDNS comes from the default value of bridgeDeviceIP in [commonConfig](https://edgemesh.netlify.app/reference/config-items.html#edgemesh-agent-cfg), if you need to modify it, please keep the two consistent.
 :::
 
 (3) Check it out
