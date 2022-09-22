@@ -1226,7 +1226,6 @@ k8s.io/kubernetes/pkg/features
 k8s.io/kubernetes/pkg/fieldpath
 k8s.io/kubernetes/pkg/kubelet/types
 k8s.io/kubernetes/pkg/proxy
-k8s.io/kubernetes/pkg/proxy/apis
 k8s.io/kubernetes/pkg/proxy/apis/config
 k8s.io/kubernetes/pkg/proxy/config
 k8s.io/kubernetes/pkg/proxy/metrics
