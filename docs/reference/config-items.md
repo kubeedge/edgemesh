@@ -8,24 +8,27 @@ The Helm Chart configuration of EdgeMesh is placed in the build/helm/edgemesh di
 
 #### 1. edgemesh-agent
 
-| Name       | Type   | Example of use                                        | Describe                                   |
-|------------|--------|-------------------------------------------------------|--------------------------------------------|
-| image      | string | --set agent.image=kubeedge/edgemesh-agent:v1.12.0     | Specifies the image used by edgemesh-agent |
-| psk        | string | --set agent.psk=123456                                | PSK cipher                                 |
-| relayNodes | list   | --set relayNodes[0].nodeName=k8s-master               | Relay node configuration table             |
-| modules    | object | --set agent.modules.edgeProxy.socks5Proxy.enable=true | Same meaning as modules in configmap       |
+| Name          | Type   | Example of use                                        | Describe                                   |
+|---------------|--------|-------------------------------------------------------|--------------------------------------------|
+| image         | string | --set agent.image=kubeedge/edgemesh-agent:v1.12.0     | Specifies the image used by edgemesh-agent |
+| psk           | string | --set agent.psk=123456                                | PSK cipher                                 |
+| relayNodes    | list   | --set relayNodes[0].nodeName=k8s-master               | Relay node configuration table             |
+| kubeAPIConfig | object | --set agent.kubeAPIConfig.master=https://1.1.1.1:6443 | Same meaning as kubeAPIConfig in configmap |
+| commonConfig  | object | --set agent.commonConfig.bridgeDeviceIP=169.254.96.16 | Same meaning as commonConfig in configmap  |
+| modules       | object | --set agent.modules.edgeProxy.socks5Proxy.enable=true | Same meaning as modules in configmap       |
 
 ### Edgemesh-Gateway
 
 The Helm Chart configuration of EdgeMesh-Gateway is placed in the build/helm/edgemesh-gateway directory.
 
-| Name       | Type   | Example of use                                | Describe                                            |
-|------------|--------|-----------------------------------------------|-----------------------------------------------------|
-| image      | string | --set image=kubeedge/edgemesh-gateway:v1.12.0 | Specifies the image used by edgemesh-gateway        |
-| nodeName   | string | --set nodeName=k8s-master                     | Specify the node where edgemesh-gateway is deployed |
-| psk        | string | --set psk=123456                              | PSK cipher                                          |
-| relayNodes | list   | --set relayNodes[0].nodeName=k8s-master       | Relay node configuration table                      |
-| modules    | object | --set modules.edgeGateway.nic=eth0            | Same meaning as modules in configmap                |
+| Name          | Type   | Example of use                                  | Describe                                            |
+|---------------|--------|-------------------------------------------------|-----------------------------------------------------|
+| image         | string | --set image=kubeedge/edgemesh-gateway:v1.12.0   | Specifies the image used by edgemesh-gateway        |
+| nodeName      | string | --set nodeName=k8s-master                       | Specify the node where edgemesh-gateway is deployed |
+| psk           | string | --set psk=123456                                | PSK cipher                                          |
+| relayNodes    | list   | --set relayNodes[0].nodeName=k8s-master         | Relay node configuration table                      |
+| kubeAPIConfig | object | --set kubeAPIConfig.master=https://1.1.1.1:6443 | Same meaning as kubeAPIConfig in configmap          |
+| modules       | object | --set modules.edgeGateway.nic=eth0              | Same meaning as modules in configmap                |
 
 ## ConfigMap Configure
 
