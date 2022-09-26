@@ -12,23 +12,50 @@ data:
     kubeAPIConfig:
       {{- if .Values.kubeAPIConfig.burst }}
       burst: {{ .Values.kubeAPIConfig.burst }}
-      {{- end}}
+      {{- end }}
       {{- if .Values.kubeAPIConfig.contentType }}
       contentType: {{ .Values.kubeAPIConfig.contentType }}
-      {{- end}}
+      {{- end }}
       {{- if .Values.kubeAPIConfig.kubeConfig }}
       kubeConfig: {{ .Values.kubeAPIConfig.kubeConfig }}
-      {{- end}}
+      {{- end }}
       {{- if .Values.kubeAPIConfig.master }}
       master: {{ .Values.kubeAPIConfig.master }}
-      {{- end}}
+      {{- end }}
       {{- if .Values.kubeAPIConfig.qps }}
       qps: {{ .Values.kubeAPIConfig.qps }}
-      {{- end}}
-      {{- if .Values.kubeAPIConfig.metaServerAddress }}
-      metaServerAddress: {{ .Values.kubeAPIConfig.metaServerAddress }}
-      {{- end}}
-    {{- end}}
+      {{- end }}
+      {{- if .Values.kubeAPIConfig.metaServer }}
+      metaServer:
+        {{- if .Values.kubeAPIConfig.metaServer.server }}
+        server: {{ .Values.kubeAPIConfig.metaServer.server }}
+        {{- end }}
+        {{- if .Values.kubeAPIConfig.metaServer.security }}
+        security:
+          {{- if .Values.kubeAPIConfig.metaServer.security.enable }}
+          enable: {{ .Values.kubeAPIConfig.metaServer.security.enable }}
+          {{- end }}
+          {{- if .Values.kubeAPIConfig.metaServer.security.authorization }}
+          authorization:
+            {{- if .Values.kubeAPIConfig.metaServer.security.authorization.requireAuthorization }}
+            requireAuthorization: {{ .Values.kubeAPIConfig.metaServer.security.authorization.requireAuthorization }}
+            {{- end }}
+            {{- if .Values.kubeAPIConfig.metaServer.security.authorization.insecureSkipTLSVerify }}
+            insecureSkipTLSVerify: {{ .Values.kubeAPIConfig.metaServer.security.authorization.insecureSkipTLSVerify }}
+            {{- end }}
+            {{- if .Values.kubeAPIConfig.metaServer.security.authorization.tlsCaFile }}
+            tlsCaFile: {{ .Values.kubeAPIConfig.metaServer.security.authorization.tlsCaFile }}
+            {{- end }}
+            {{- if .Values.kubeAPIConfig.metaServer.security.authorization.tlsCertFile }}
+            tlsCertFile: {{ .Values.kubeAPIConfig.metaServer.security.authorization.tlsCertFile }}
+            {{- end }}
+            {{- if .Values.kubeAPIConfig.metaServer.security.authorization.tlsPrivateKeyFile }}
+            tlsPrivateKeyFile: {{ .Values.kubeAPIConfig.metaServer.security.authorization.tlsPrivateKeyFile }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
     {{- if .Values.modules }}
     modules:
       {{- if .Values.modules.edgeGateway }}
@@ -54,7 +81,7 @@ data:
             {{- end }}
             {{- if .Values.modules.edgeGateway.loadBalancer.consistentHash.replicationFactor }}
             replicationFactor: {{ .Values.modules.edgeGateway.loadBalancer.consistentHash.replicationFactor }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.modules.edgeGateway.loadBalancer.consistentHash.load }}
             load: {{ .Values.modules.edgeGateway.loadBalancer.consistentHash.load }}
             {{- end }}
@@ -101,13 +128,13 @@ data:
         psk:
           {{- if .Values.modules.edgeTunnel.psk.enable }}
           enable: {{ .Values.modules.edgeTunnel.psk.enable }}
-          {{- end}}
+          {{- end }}
           {{- if .Values.modules.edgeTunnel.psk.path }}
           path: {{ .Values.modules.edgeTunnel.psk.path }}
-          {{- end}}
-        {{- end}}
-      {{- end}}
-    {{- end}}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
 ---
 apiVersion: v1
 kind: ConfigMap
