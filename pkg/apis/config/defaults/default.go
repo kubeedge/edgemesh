@@ -19,13 +19,18 @@ const (
 	EdgeGatewayModuleName = "EdgeGateway"
 	EdgeTunnelModuleName  = "EdgeTunnel"
 
-	BridgeDeviceName  = "edgemesh0"
-	BridgeDeviceIP    = "169.254.96.16"
-	MetaServerAddress = "http://127.0.0.1:10550"
+	BridgeDeviceName = "edgemesh0"
+	BridgeDeviceIP   = "169.254.96.16"
 
-	EdgeMode  RunningMode = "EdgeMode"  // detected running on the edge
-	CloudMode RunningMode = "CloudMode" // detected running on the cloud
-	DebugMode RunningMode = "DebugMode" // detected that user manually configured kubeAPIConfig
+	MetaServerAddress  = "http://127.0.0.1:10550"
+	MetaServerCertDir  = "/etc/edgemesh/metaserver/"
+	MetaServerCaFile   = MetaServerCertDir + "rootCA.crt"
+	MetaServerCertFile = MetaServerCertDir + "server.crt"
+	MetaServerKeyFile  = MetaServerCertDir + "server.key"
+
+	EdgeMode   RunningMode = "EdgeMode"   // detected running on the edge
+	CloudMode  RunningMode = "CloudMode"  // detected running on the cloud
+	ManualMode RunningMode = "ManualMode" // detected that user manually configured kubeAPIConfig
 
 	EmptyNodeName = "EMPTY_NODE_NAME"
 	EmptyPodName  = "EMPTY_POD_NAME"
