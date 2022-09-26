@@ -47,7 +47,16 @@ kubeAPIConfig:
   qps: 100
   burst: 200
   kubeConfig: /root/.kube/config
-  metaServerAddress: http://127.0.0.1:10550
+  metaServer:
+    server: http://127.0.0.1:10550
+    security:
+      enable: false
+      authorization:
+        requireAuthorization: false
+        insecureSkipTLSVerify: true
+        tlsCaFile: /path/to/caFile
+        tlsCertFile: /path/to/certFile
+        tlsPrivateKeyFile: /path/to/keyFile
 commonConfig:
   bridgeDeviceName: edgemesh0
   bridgeDeviceIP: 169.254.96.16
@@ -105,7 +114,16 @@ kubeAPIConfig:
   qps: 100
   burst: 200
   kubeConfig: /root/.kube/config
-  metaServerAddress: http://127.0.0.1:10550
+  metaServer:
+    server: http://127.0.0.1:10550
+    security:
+      enable: false
+      authorization:
+        requireAuthorization: false
+        insecureSkipTLSVerify: true
+        tlsCaFile: /path/to/caFile
+        tlsCertFile: /path/to/certFile
+        tlsPrivateKeyFile: /path/to/keyFile
 modules:
   edgeGateway:
     enable: false
