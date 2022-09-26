@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -19,6 +20,7 @@ import (
 	"github.com/kubeedge/edgemesh/pkg/dns"
 	"github.com/kubeedge/edgemesh/pkg/proxy"
 	"github.com/kubeedge/edgemesh/pkg/tunnel"
+	"github.com/kubeedge/edgemesh/pkg/util"
 	netutil "github.com/kubeedge/edgemesh/pkg/util/net"
 	kubeedgeutil "github.com/kubeedge/kubeedge/pkg/util"
 	"github.com/kubeedge/kubeedge/pkg/util/flag"
@@ -128,17 +130,21 @@ func registerModules(c *v1alpha1.EdgeMeshAgentConfig, cli *clients.Clients) []er
 
 // prepareRun prepares edgemesh-agent to run
 func prepareRun(c *v1alpha1.EdgeMeshAgentConfig) error {
-	// If in the edge mode and the user does not configure KubeAPIConfig.Master,
-	// set KubeAPIConfig.Master to the value of CommonConfig.MetaServerAddress
-	if c.KubeAPIConfig.Mode == defaults.EdgeMode && c.KubeAPIConfig.Master == defaults.MetaServerAddress {
-		c.KubeAPIConfig.Master = c.KubeAPIConfig.MetaServerAddress
-	}
-
-	// If the user sets KubeConfig or Master and Master is not equal to
-	// EdgeCore's metaServer address, then enter the debug mode
-	if c.KubeAPIConfig.KubeConfig != "" || c.KubeAPIConfig.Master != "" &&
-		c.KubeAPIConfig.Master != c.KubeAPIConfig.MetaServerAddress {
-		c.KubeAPIConfig.Mode = defaults.DebugMode
+	// Enter manual mode if user set Master or KubeConfig
+	if c.KubeAPIConfig.Master != "" || c.KubeAPIConfig.KubeConfig != "" {
+		c.KubeAPIConfig.Mode = defaults.ManualMode
+	} else {
+		if c.KubeAPIConfig.Mode == defaults.EdgeMode {
+			// If the security feature of metaServer is set, then the address
+			// of metaServer must be replaced with the https schema
+			if c.KubeAPIConfig.MetaServer.Security.Enable {
+				c.KubeAPIConfig.MetaServer.Server = strings.ReplaceAll(c.KubeAPIConfig.MetaServer.Server, "http://", "https://")
+			}
+			err := util.UpdateKubeConfig(c.KubeAPIConfig)
+			if err != nil {
+				return fmt.Errorf("failed to update kubeConfig: %w", err)
+			}
+		}
 	}
 
 	// Set dns and proxy modules listenInterface

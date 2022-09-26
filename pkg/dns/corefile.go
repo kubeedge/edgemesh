@@ -15,7 +15,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 
-	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
 	netutil "github.com/kubeedge/edgemesh/pkg/util/net"
 )
@@ -68,16 +67,17 @@ type KubernetesPluginInfo struct {
 
 func getKubernetesPluginStr(cfg *v1alpha1.EdgeDNSConfig) (string, error) {
 	var apiServer string
-	if cfg.KubeAPIConfig.Mode == defaults.DebugMode {
-		if cfg.KubeAPIConfig.Master != "" {
-			apiServer = fmt.Sprintf("endpoint %s", cfg.KubeAPIConfig.Master)
+	if cfg.KubeAPIConfig.Master != "" {
+		endpointStr := fmt.Sprintf("endpoint %s", cfg.KubeAPIConfig.Master)
+		apiServer += endpointStr
+	}
+	if cfg.KubeAPIConfig.KubeConfig != "" {
+		kubeConfigStr := fmt.Sprintf("kubeconfig %s \"\"", cfg.KubeAPIConfig.KubeConfig)
+		if apiServer == "" {
+			apiServer += kubeConfigStr
+		} else {
+			apiServer += "\n        " + kubeConfigStr
 		}
-		// if kubeconfig is set, use it to overwrite the endpoint
-		if cfg.KubeAPIConfig.KubeConfig != "" {
-			apiServer = fmt.Sprintf("kubeconfig %s \"\"", cfg.KubeAPIConfig.KubeConfig)
-		}
-	} else if cfg.KubeAPIConfig.Mode == defaults.EdgeMode {
-		apiServer = fmt.Sprintf("endpoint %s", cfg.KubeAPIConfig.Master)
 	}
 
 	info := &KubernetesPluginInfo{

@@ -55,11 +55,54 @@ type KubeAPIConfig struct {
 	cloudcorev1alpha1.KubeAPIConfig
 	// Mode indicates the current running mode of container
 	// do not allow users to configure manually
-	// options DebugMode, CloudMode and EdgeMode
+	// options ManualMode, CloudMode and EdgeMode
 	Mode defaults.RunningMode
-	// MetaServerAddress indicates the EdgeCore's metaServer address
-	// default http://127.0.0.1:10550
-	MetaServerAddress string `json:"metaServerAddress,omitempty"`
+	// MetaServer indicates the config of EdgeCore's metaServer module
+	MetaServer *MetaServer `json:"metaServer,omitempty"`
+}
+
+// MetaServer indicates the config of EdgeCore's metaServer module
+type MetaServer struct {
+	// Server indicates the address of metaServer
+	// default http://127.0.0.1:10550, when security is disabled
+	// default https://127.0.0.1:10550, when security is enabled
+	Server string `json:"server,omitempty"`
+	// Security indicates the metaServer security feature
+	Security *MetaServerSecurity `json:"security,omitempty"`
+}
+
+// MetaServerSecurity indicates metaServer security feature, KubeEdge >= 1.12.0 enables
+// TLS-based security access by default.
+type MetaServerSecurity struct {
+	// Enable indicates whether enable MetaServerSecurity. If your KubeEdge >= 1.12.0, you must enable it.
+	// default false
+	Enable bool `json:"enable,omitempty"`
+	// Authorization indicates metaServer mutual authentication TLS configure
+	Authorization *MetaServerAuthorization `json:"authorization,omitempty"`
+}
+
+// MetaServerAuthorization indicates metaServer mutual authentication TLS configure
+// More information: https://github.com/kubeedge/kubeedge/issues/4108
+type MetaServerAuthorization struct {
+	// RequireAuthorization indicates whether enable mutual authentication TLS configure
+	// If RequireAuthorization is false, we can access metaServer like `curl -k https://127.0.0.1:10550/api/v1/namespaces/kube-system/pods`
+	// More information: https://github.com/kubeedge/kubeedge/pull/4226
+	// default false
+	RequireAuthorization bool `json:"requireAuthorization,omitempty"`
+	// InsecureSkipTLSVerify indicates whether enable insecure tls verify
+	// If InsecureSkipTLSVerify is true, we can access metaServer like `curl -k -H 'Authorization: Bearer xxx' https://127.0.0.1:10550/api/v1/namespaces/kube-system/pods`
+	// If InsecureSkipTLSVerify is false, we only can access metaServer like `curl --cacert /file-path --key /key-path --cert /cert-path -H 'Authorization: Bearer xxx' https://127.0.0.1:10550/api/v1/namespaces/kube-system/pods`
+	// default true
+	InsecureSkipTLSVerify bool `json:"insecureSkipTLSVerify,omitempty"`
+	// TLSCaFile indicates the ca file of metaServer
+	// default /etc/edgemesh/metaserver/rootCA.crt
+	TLSCaFile string `json:"tlsCaFile,omitempty"`
+	// TLSCertFile indicates the cert file of metaServer
+	// default /etc/edgemesh/metaserver/server.crt
+	TLSCertFile string `json:"tlsCertFile,omitempty"`
+	// TLSPrivateKeyFile indicates the private key file of mateServer
+	// default /etc/edgemesh/metaserver/server.key
+	TLSPrivateKeyFile string `json:"tlsPrivateKeyFile,omitempty"`
 }
 
 // CommonConfig defines some common configuration items
