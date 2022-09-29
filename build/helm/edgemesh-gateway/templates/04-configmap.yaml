@@ -32,26 +32,20 @@ data:
         {{- end }}
         {{- if .Values.kubeAPIConfig.metaServer.security }}
         security:
-          {{- if .Values.kubeAPIConfig.metaServer.security.enable }}
-          enable: {{ .Values.kubeAPIConfig.metaServer.security.enable }}
+          {{- if .Values.kubeAPIConfig.metaServer.security.requireAuthorization }}
+          requireAuthorization: {{ .Values.kubeAPIConfig.metaServer.security.requireAuthorization }}
           {{- end }}
-          {{- if .Values.kubeAPIConfig.metaServer.security.authorization }}
-          authorization:
-            {{- if .Values.kubeAPIConfig.metaServer.security.authorization.requireAuthorization }}
-            requireAuthorization: {{ .Values.kubeAPIConfig.metaServer.security.authorization.requireAuthorization }}
-            {{- end }}
-            {{- if .Values.kubeAPIConfig.metaServer.security.authorization.insecureSkipTLSVerify }}
-            insecureSkipTLSVerify: {{ .Values.kubeAPIConfig.metaServer.security.authorization.insecureSkipTLSVerify }}
-            {{- end }}
-            {{- if .Values.kubeAPIConfig.metaServer.security.authorization.tlsCaFile }}
-            tlsCaFile: {{ .Values.kubeAPIConfig.metaServer.security.authorization.tlsCaFile }}
-            {{- end }}
-            {{- if .Values.kubeAPIConfig.metaServer.security.authorization.tlsCertFile }}
-            tlsCertFile: {{ .Values.kubeAPIConfig.metaServer.security.authorization.tlsCertFile }}
-            {{- end }}
-            {{- if .Values.kubeAPIConfig.metaServer.security.authorization.tlsPrivateKeyFile }}
-            tlsPrivateKeyFile: {{ .Values.kubeAPIConfig.metaServer.security.authorization.tlsPrivateKeyFile }}
-            {{- end }}
+          {{- if .Values.kubeAPIConfig.metaServer.security.insecureSkipTLSVerify }}
+          insecureSkipTLSVerify: {{ .Values.kubeAPIConfig.metaServer.security.insecureSkipTLSVerify }}
+          {{- end }}
+          {{- if .Values.kubeAPIConfig.metaServer.security.tlsCaFile }}
+          tlsCaFile: {{ .Values.kubeAPIConfig.metaServer.security.tlsCaFile }}
+          {{- end }}
+          {{- if .Values.kubeAPIConfig.metaServer.security.tlsCertFile }}
+          tlsCertFile: {{ .Values.kubeAPIConfig.metaServer.security.tlsCertFile }}
+          {{- end }}
+          {{- if .Values.kubeAPIConfig.metaServer.security.tlsPrivateKeyFile }}
+          tlsPrivateKeyFile: {{ .Values.kubeAPIConfig.metaServer.security.tlsPrivateKeyFile }}
           {{- end }}
         {{- end }}
       {{- end }}

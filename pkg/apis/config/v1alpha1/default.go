@@ -24,14 +24,11 @@ var defaultKubeConfig = &KubeAPIConfig{
 	MetaServer: &MetaServer{
 		Server: defaults.MetaServerAddress,
 		Security: &MetaServerSecurity{
-			Enable: false,
-			Authorization: &MetaServerAuthorization{
-				RequireAuthorization:  false,
-				InsecureSkipTLSVerify: true,
-				TLSCaFile:             defaults.MetaServerCaFile,
-				TLSCertFile:           defaults.MetaServerCertFile,
-				TLSPrivateKeyFile:     defaults.MetaServerKeyFile,
-			},
+			RequireAuthorization:  false,
+			InsecureSkipTLSVerify: false,
+			TLSCaFile:             defaults.MetaServerCaFile,
+			TLSCertFile:           defaults.MetaServerCertFile,
+			TLSPrivateKeyFile:     defaults.MetaServerKeyFile,
 		},
 	},
 }
