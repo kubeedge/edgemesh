@@ -71,37 +71,23 @@ type MetaServer struct {
 	Security *MetaServerSecurity `json:"security,omitempty"`
 }
 
-// MetaServerSecurity indicates metaServer security feature, KubeEdge >= 1.12.0 enables
-// TLS-based security access by default.
+// MetaServerSecurity indicates the metaServer security feature, KubeEdge >= 1.12.0 support
+// TLS-based security access, refer to https://github.com/kubeedge/kubeedge/issues/4108
 type MetaServerSecurity struct {
-	// Enable indicates whether enable MetaServerSecurity. If your KubeEdge >= 1.12.0, you must enable it.
-	// default false
-	Enable bool `json:"enable,omitempty"`
-	// Authorization indicates metaServer mutual authentication TLS configure
-	Authorization *MetaServerAuthorization `json:"authorization,omitempty"`
-}
-
-// MetaServerAuthorization indicates metaServer mutual authentication TLS configure
-// More information: https://github.com/kubeedge/kubeedge/issues/4108
-type MetaServerAuthorization struct {
-	// RequireAuthorization indicates whether enable mutual authentication TLS configure
-	// If RequireAuthorization is false, we can access metaServer like `curl -k https://127.0.0.1:10550/api/v1/namespaces/kube-system/pods`
-	// More information: https://github.com/kubeedge/kubeedge/pull/4226
+	// RequireAuthorization indicates whether enable metaServer security access
 	// default false
 	RequireAuthorization bool `json:"requireAuthorization,omitempty"`
-	// InsecureSkipTLSVerify indicates whether enable insecure tls verify
-	// If InsecureSkipTLSVerify is true, we can access metaServer like `curl -k -H 'Authorization: Bearer xxx' https://127.0.0.1:10550/api/v1/namespaces/kube-system/pods`
-	// If InsecureSkipTLSVerify is false, we only can access metaServer like `curl --cacert /file-path --key /key-path --cert /cert-path -H 'Authorization: Bearer xxx' https://127.0.0.1:10550/api/v1/namespaces/kube-system/pods`
-	// default true
+	// InsecureSkipTLSVerify indicates whether enable insecure skip tls verify
+	// default false
 	InsecureSkipTLSVerify bool `json:"insecureSkipTLSVerify,omitempty"`
-	// TLSCaFile indicates the ca file of metaServer
-	// default /etc/edgemesh/metaserver/rootCA.crt
+	// TLSCaFile indicates the client ca file
+	// default /etc/edgemesh/metaserver/ca.crt
 	TLSCaFile string `json:"tlsCaFile,omitempty"`
-	// TLSCertFile indicates the cert file of metaServer
-	// default /etc/edgemesh/metaserver/server.crt
+	// TLSCertFile indicates the client cert file
+	// default /etc/edgemesh/metaserver/client.crt
 	TLSCertFile string `json:"tlsCertFile,omitempty"`
-	// TLSPrivateKeyFile indicates the private key file of mateServer
-	// default /etc/edgemesh/metaserver/server.key
+	// TLSPrivateKeyFile indicates the client private key file
+	// default /etc/edgemesh/metaserver/client.key
 	TLSPrivateKeyFile string `json:"tlsPrivateKeyFile,omitempty"`
 }
 

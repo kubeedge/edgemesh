@@ -24,9 +24,9 @@ const (
 
 	MetaServerAddress  = "http://127.0.0.1:10550"
 	MetaServerCertDir  = "/etc/edgemesh/metaserver/"
-	MetaServerCaFile   = MetaServerCertDir + "rootCA.crt"
-	MetaServerCertFile = MetaServerCertDir + "server.crt"
-	MetaServerKeyFile  = MetaServerCertDir + "server.key"
+	MetaServerCaFile   = MetaServerCertDir + "ca.crt"
+	MetaServerCertFile = MetaServerCertDir + "client.crt"
+	MetaServerKeyFile  = MetaServerCertDir + "client.key"
 
 	EdgeMode   RunningMode = "EdgeMode"   // detected running on the edge
 	CloudMode  RunningMode = "CloudMode"  // detected running on the cloud

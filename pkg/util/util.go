@@ -1,7 +1,6 @@
 package util
 
 import (
-	"io/ioutil"
 	"os"
 
 	clientcmdv1 "k8s.io/client-go/tools/clientcmd/api/v1"
@@ -13,11 +12,11 @@ import (
 )
 
 const (
-	clusterName = "kubeedge-cluster"
-	contextName = "kubeedge-context"
-	userName    = "edgemesh"
-	filePath    = defaults.ConfigDir + "kubeconfig"
-	tokenPath   = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	clusterName    = "kubeedge-cluster"
+	contextName    = "kubeedge-context"
+	userName       = "edgemesh"
+	kubeConfigPath = defaults.ConfigDir + "kubeconfig"
+	saTokenPath    = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 )
 
 // UpdateKubeConfig generate a kubeconfig file and set KubeConfig
@@ -40,23 +39,15 @@ func UpdateKubeConfig(c *v1alpha1.KubeAPIConfig) error {
 		AuthInfo: clientcmdv1.AuthInfo{},
 	}
 
-	if c.MetaServer.Security.Enable {
-		if c.MetaServer.Security.Authorization.RequireAuthorization {
-			if !c.MetaServer.Security.Authorization.InsecureSkipTLSVerify {
-				// use tls access metaServer
-				namedCluster.Cluster.CertificateAuthority = c.MetaServer.Security.Authorization.TLSCaFile
-				token, err := getServiceAccountToken()
-				if err != nil {
-					return err
-				}
-				namedAuthInfo.AuthInfo.Token = token
-				namedAuthInfo.AuthInfo.ClientCertificate = c.MetaServer.Security.Authorization.TLSCertFile
-				namedAuthInfo.AuthInfo.ClientKey = c.MetaServer.Security.Authorization.TLSPrivateKeyFile
-			} else {
-				namedCluster.Cluster.InsecureSkipTLSVerify = true
-			}
-		} else {
+	if c.MetaServer.Security.RequireAuthorization {
+		if c.MetaServer.Security.InsecureSkipTLSVerify {
 			namedCluster.Cluster.InsecureSkipTLSVerify = true
+		} else {
+			// use tls access metaServer
+			namedCluster.Cluster.CertificateAuthority = c.MetaServer.Security.TLSCaFile
+			namedAuthInfo.AuthInfo.TokenFile = saTokenPath
+			namedAuthInfo.AuthInfo.ClientCertificate = c.MetaServer.Security.TLSCertFile
+			namedAuthInfo.AuthInfo.ClientKey = c.MetaServer.Security.TLSPrivateKeyFile
 		}
 	}
 
@@ -75,7 +66,7 @@ func UpdateKubeConfig(c *v1alpha1.KubeAPIConfig) error {
 		return nil
 	}
 
-	f, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0766)
+	f, err := os.OpenFile(kubeConfigPath, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0766)
 	if err != nil {
 		return err
 	}
@@ -91,24 +82,6 @@ func UpdateKubeConfig(c *v1alpha1.KubeAPIConfig) error {
 		return err
 	}
 
-	c.KubeConfig = filePath
+	c.KubeConfig = kubeConfigPath
 	return nil
-}
-
-func getServiceAccountToken() (string, error) {
-	f, err := os.OpenFile(tokenPath, os.O_RDONLY, 0)
-	if err != nil {
-		return "", err
-	}
-	defer func() {
-		err = f.Close()
-		if err != nil {
-			klog.ErrorS(err, "close file error")
-		}
-	}()
-	token, err := ioutil.ReadAll(f)
-	if err != nil {
-		return "", err
-	}
-	return string(token), nil
 }

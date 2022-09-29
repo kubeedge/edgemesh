@@ -132,7 +132,7 @@ func prepareRun(c *v1alpha1.EdgeMeshGatewayConfig) error {
 		if c.KubeAPIConfig.Mode == defaults.EdgeMode {
 			// If the security feature of metaServer is set, then the address
 			// of metaServer must be replaced with the https schema
-			if c.KubeAPIConfig.MetaServer.Security.Enable {
+			if c.KubeAPIConfig.MetaServer.Security.RequireAuthorization {
 				c.KubeAPIConfig.MetaServer.Server = strings.ReplaceAll(c.KubeAPIConfig.MetaServer.Server, "http://", "https://")
 			}
 			err := util.UpdateKubeConfig(c.KubeAPIConfig)
