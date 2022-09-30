@@ -10,7 +10,8 @@ type TunnelMode string
 type DiscoveryType string
 
 const (
-	ConfigDir                 = "/etc/edgemesh/config/"
+	BaseDir                   = "/etc/edgemesh/"
+	ConfigDir                 = BaseDir + "config/"
 	EdgeMeshAgentConfigName   = "edgemesh-agent.yaml"
 	EdgeMeshGatewayConfigName = "edgemesh-gateway.yaml"
 
@@ -23,10 +24,10 @@ const (
 	BridgeDeviceIP   = "169.254.96.16"
 
 	MetaServerAddress  = "http://127.0.0.1:10550"
-	MetaServerCertDir  = "/etc/edgemesh/metaserver/"
-	MetaServerCaFile   = MetaServerCertDir + "ca.crt"
-	MetaServerCertFile = MetaServerCertDir + "client.crt"
-	MetaServerKeyFile  = MetaServerCertDir + "client.key"
+	MetaServerCertDir  = BaseDir + "metaserver/"
+	MetaServerCaFile   = MetaServerCertDir + "rootCA.crt"
+	MetaServerCertFile = MetaServerCertDir + "server.crt"
+	MetaServerKeyFile  = MetaServerCertDir + "server.key"
 
 	EdgeMode   RunningMode = "EdgeMode"   // detected running on the edge
 	CloudMode  RunningMode = "CloudMode"  // detected running on the cloud
@@ -45,7 +46,7 @@ const (
 	ServerClientMode TunnelMode = "ServerAndClient"
 
 	Rendezvous = "EDGEMESH_PLAYGOUND"
-	PSKPath    = "/etc/edgemesh/psk"
+	PSKPath    = BaseDir + "psk"
 
 	// DiscoveryProtocol and ProxyProtocol maintained by EdgeMesh Author
 	DiscoveryProtocol protocol.ID = "/libp2p/tunnel-discovery/1.0.0"

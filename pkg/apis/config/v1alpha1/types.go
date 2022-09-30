@@ -80,14 +80,14 @@ type MetaServerSecurity struct {
 	// InsecureSkipTLSVerify indicates whether enable insecure skip tls verify
 	// default false
 	InsecureSkipTLSVerify bool `json:"insecureSkipTLSVerify,omitempty"`
-	// TLSCaFile indicates the client ca file
-	// default /etc/edgemesh/metaserver/ca.crt
+	// TLSCaFile indicates the ca file
+	// default /etc/edgemesh/metaserver/rootCA.crt
 	TLSCaFile string `json:"tlsCaFile,omitempty"`
-	// TLSCertFile indicates the client cert file
-	// default /etc/edgemesh/metaserver/client.crt
+	// TLSCertFile indicates the cert file
+	// default /etc/edgemesh/metaserver/server.crt
 	TLSCertFile string `json:"tlsCertFile,omitempty"`
-	// TLSPrivateKeyFile indicates the client private key file
-	// default /etc/edgemesh/metaserver/client.key
+	// TLSPrivateKeyFile indicates the private key file
+	// default /etc/edgemesh/metaserver/server.key
 	TLSPrivateKeyFile string `json:"tlsPrivateKeyFile,omitempty"`
 }
 

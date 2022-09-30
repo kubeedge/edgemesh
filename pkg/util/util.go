@@ -7,7 +7,6 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
-	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
 )
 
@@ -15,7 +14,7 @@ const (
 	clusterName    = "kubeedge-cluster"
 	contextName    = "kubeedge-context"
 	userName       = "edgemesh"
-	kubeConfigPath = defaults.ConfigDir + "kubeconfig"
+	kubeConfigPath = "/kubeconfig"
 	saTokenPath    = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 )
 
@@ -40,12 +39,12 @@ func UpdateKubeConfig(c *v1alpha1.KubeAPIConfig) error {
 	}
 
 	if c.MetaServer.Security.RequireAuthorization {
+		namedAuthInfo.AuthInfo.TokenFile = saTokenPath
 		if c.MetaServer.Security.InsecureSkipTLSVerify {
 			namedCluster.Cluster.InsecureSkipTLSVerify = true
 		} else {
 			// use tls access metaServer
 			namedCluster.Cluster.CertificateAuthority = c.MetaServer.Security.TLSCaFile
-			namedAuthInfo.AuthInfo.TokenFile = saTokenPath
 			namedAuthInfo.AuthInfo.ClientCertificate = c.MetaServer.Security.TLSCertFile
 			namedAuthInfo.AuthInfo.ClientKey = c.MetaServer.Security.TLSPrivateKeyFile
 		}
@@ -66,7 +65,7 @@ func UpdateKubeConfig(c *v1alpha1.KubeAPIConfig) error {
 		return nil
 	}
 
-	f, err := os.OpenFile(kubeConfigPath, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0766)
+	f, err := os.OpenFile(kubeConfigPath, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
