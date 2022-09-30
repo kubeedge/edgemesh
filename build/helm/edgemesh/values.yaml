@@ -25,6 +25,8 @@ agent:
   #  - 2.2.2.2
   #  - 3.3.3.3
 
+  #metaServerSecret: metaserver-certs
+
   # edgemesh-agent configmap, for more detailed configuration, please refer to: https://edgemesh.netlify.app/reference/config-items.html#edgemesh-agent
   modules:
     edgeProxy:

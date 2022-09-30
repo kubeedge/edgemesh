@@ -56,6 +56,10 @@ spec:
               readOnly: true
             - name: psk
               mountPath: /etc/edgemesh
+            {{- if .Values.metaServerSecret }}
+            - name: metaserver-certs
+              mountPath: /etc/edgemesh/metaserver
+            {{- end }}
       restartPolicy: Always
       serviceAccountName: {{ .Release.Name }}
       volumes:
@@ -68,3 +72,9 @@ spec:
         - name: psk
           configMap:
             name: {{ .Release.Name }}-psk
+        {{- if .Values.metaServerSecret }}
+        - name: metaserver-certs
+          secret:
+            secretName: {{ .Values.metaServerSecret }}
+            defaultMode: 420
+        {{- end }}
