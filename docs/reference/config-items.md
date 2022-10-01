@@ -8,27 +8,29 @@ The Helm Chart configuration of EdgeMesh is placed in the build/helm/edgemesh di
 
 #### 1. edgemesh-agent
 
-| Name          | Type   | Example of use                                        | Describe                                   |
-|---------------|--------|-------------------------------------------------------|--------------------------------------------|
-| image         | string | --set agent.image=kubeedge/edgemesh-agent:v1.12.0     | Specifies the image used by edgemesh-agent |
-| psk           | string | --set agent.psk=123456                                | PSK cipher                                 |
-| relayNodes    | list   | --set relayNodes[0].nodeName=k8s-master               | Relay node configuration table             |
-| kubeAPIConfig | object | --set agent.kubeAPIConfig.master=https://1.1.1.1:6443 | Same meaning as kubeAPIConfig in configmap |
-| commonConfig  | object | --set agent.commonConfig.bridgeDeviceIP=169.254.96.16 | Same meaning as commonConfig in configmap  |
-| modules       | object | --set agent.modules.edgeProxy.socks5Proxy.enable=true | Same meaning as modules in configmap       |
+| Name             | Type   | Example of use                                        | Describe                                        |
+|------------------|--------|-------------------------------------------------------|-------------------------------------------------|
+| image            | string | --set agent.image=kubeedge/edgemesh-agent:v1.12.0     | Specifies the image used by edgemesh-agent      |
+| psk              | string | --set agent.psk=123456                                | PSK cipher                                      |
+| relayNodes       | list   | --set relayNodes[0].nodeName=k8s-master               | Relay node configuration table                  |
+| metaServerSecret | string | --set agent.metaServerSecret=metaserver-certs         | Secret to store the metaServer certificate file |
+| kubeAPIConfig    | object | --set agent.kubeAPIConfig.master=https://1.1.1.1:6443 | Same meaning as kubeAPIConfig in configmap      |
+| commonConfig     | object | --set agent.commonConfig.bridgeDeviceIP=169.254.96.16 | Same meaning as commonConfig in configmap       |
+| modules          | object | --set agent.modules.edgeProxy.socks5Proxy.enable=true | Same meaning as modules in configmap            |
 
 ### Edgemesh-Gateway
 
 The Helm Chart configuration of EdgeMesh-Gateway is placed in the build/helm/edgemesh-gateway directory.
 
-| Name          | Type   | Example of use                                  | Describe                                            |
-|---------------|--------|-------------------------------------------------|-----------------------------------------------------|
-| image         | string | --set image=kubeedge/edgemesh-gateway:v1.12.0   | Specifies the image used by edgemesh-gateway        |
-| nodeName      | string | --set nodeName=k8s-master                       | Specify the node where edgemesh-gateway is deployed |
-| psk           | string | --set psk=123456                                | PSK cipher                                          |
-| relayNodes    | list   | --set relayNodes[0].nodeName=k8s-master         | Relay node configuration table                      |
-| kubeAPIConfig | object | --set kubeAPIConfig.master=https://1.1.1.1:6443 | Same meaning as kubeAPIConfig in configmap          |
-| modules       | object | --set modules.edgeGateway.nic=eth0              | Same meaning as modules in configmap                |
+| Name             | Type   | Example of use                                  | Describe                                            |
+|------------------|--------|-------------------------------------------------|-----------------------------------------------------|
+| image            | string | --set image=kubeedge/edgemesh-gateway:v1.12.0   | Specifies the image used by edgemesh-gateway        |
+| nodeName         | string | --set nodeName=k8s-master                       | Specify the node where edgemesh-gateway is deployed |
+| psk              | string | --set psk=123456                                | PSK cipher                                          |
+| relayNodes       | list   | --set relayNodes[0].nodeName=k8s-master         | Relay node configuration table                      |
+| metaServerSecret | string | --set metaServerSecret=metaserver-certs         | Secret to store the metaServer certificate file     |
+| kubeAPIConfig    | object | --set kubeAPIConfig.master=https://1.1.1.1:6443 | Same meaning as kubeAPIConfig in configmap          |
+| modules          | object | --set modules.edgeGateway.nic=eth0              | Same meaning as modules in configmap                |
 
 ## ConfigMap Configure
 
@@ -50,13 +52,11 @@ kubeAPIConfig:
   metaServer:
     server: http://127.0.0.1:10550
     security:
-      enable: false
-      authorization:
-        requireAuthorization: false
-        insecureSkipTLSVerify: true
-        tlsCaFile: /path/to/caFile
-        tlsCertFile: /path/to/certFile
-        tlsPrivateKeyFile: /path/to/keyFile
+      requireAuthorization: false
+      insecureSkipTLSVerify: false
+      tlsCaFile: /etc/edgemesh/metaserver/rootCA.crt
+      tlsCertFile: /etc/edgemesh/metaserver/server.crt
+      tlsPrivateKeyFile: /etc/edgemesh/metaserver/server.key
 commonConfig:
   bridgeDeviceName: edgemesh0
   bridgeDeviceIP: 169.254.96.16
@@ -117,13 +117,11 @@ kubeAPIConfig:
   metaServer:
     server: http://127.0.0.1:10550
     security:
-      enable: false
-      authorization:
-        requireAuthorization: false
-        insecureSkipTLSVerify: true
-        tlsCaFile: /path/to/caFile
-        tlsCertFile: /path/to/certFile
-        tlsPrivateKeyFile: /path/to/keyFile
+      requireAuthorization: false
+      insecureSkipTLSVerify: false
+      tlsCaFile: /etc/edgemesh/metaserver/rootCA.crt
+      tlsCertFile: /etc/edgemesh/metaserver/server.crt
+      tlsPrivateKeyFile: /etc/edgemesh/metaserver/server.key
 modules:
   edgeGateway:
     enable: false

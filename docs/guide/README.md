@@ -9,105 +9,35 @@
 ::: tip
 - EdgeMesh isn't really depending on KubeEdge, it interacts with standard Kubernetes APIs only
 
-- Regarding the fact that edge nodes may be isolated in different edge network, we are benefiting from "autonomic Kube-API endpoint" feature to simplify the setup
+- Regarding the fact that edge nodes may be isolated in different edge network, we are benefiting from [Edge Kube-API Endpoint](./edge-kube-api.md) feature to simplify the setup
 :::
 
 ## Prerequisites
+
 - **Step 1**: Remove the taint of the K8s master nodes
 
-```
-kubectl taint nodes --all node-role.kubernetes.io/master-
+```shell
+$ kubectl taint nodes --all node-role.kubernetes.io/master-
 ```
 If the application that needs to be proxied is not deployed on the K8s master nodes, the above steps can be omitted.
 
-- **Step 2**: Modify KubeEdge Configuration
-
-(1) Enable Local APIServer
-
-On the cloud, open the dynamicController module, and restart cloudcore
+- **Step 2**: Add filter labels to Kubernetes API services
 
 ```shell
-$ vim /etc/kubeedge/config/cloudcore.yaml
-modules:
-  ..
-  dynamicController:
-    enable: true
-..
+$ kubectl label services kubernetes service.edgemesh.kubeedge.io/service-proxy-name=""
 ```
 
-```shell
-# If cloudcore is not configured for systemd management, use the following command to restart (cloudcore < 1.10 is not configured for systemd management by default)
-$ pkill cloudcore ; nohup /usr/local/bin/cloudcore > /var/log/kubeedge/cloudcore.log 2>&1 &
+Normally you don't want EdgeMesh to proxy the Kubernetes API service, so you need to add a filter label to it. For more information, please refer to [Hybrid Proxy](../advanced/hybird-proxy.md).
 
-# If cloudcore is configured for systemd management, use the following command to restart
-$ systemctl restart cloudcore
+- **Step 3**: Enable KubeEdge's Edge Kube-API Endpoint Service
 
-# If cloudcore uses containerized deployment, delete cloudcore's pods with `kubectl`
-$ kubectl -n kubeedge delete pod <your cloudcore pod name>
-```
+Please refer to the documentation [Edge Kube-API Endpoint](./edge-kube-api.md#quick-start) to enable this service.
 
-At the edge node, open metaServer module (if your KubeEdge < 1.8.0, you also need to close edgeMesh module)
+## Install
 
-```shell
-$ vim /etc/kubeedge/config/edgecore.yaml
-modules:
-  ..
-  edgeMesh:
-    enable: false
-  ..
-  metaManager:
-    metaServer:
-      enable: true
-..
-```
+We provide two ways to install EdgeMesh, you can choose one to deploy EdgeMesh according to your own situation.
 
-(2) Configure clusterDNS and clusterDomain
-
-At the edge node, configure clusterDNS, clusterDomain and restart edgecore
-
-```shell
-$ vim /etc/kubeedge/config/edgecore.yaml
-modules:
-  ..
-  edged:
-    clusterDNS: 169.254.96.16
-    clusterDomain: cluster.local
-..
-```
-
-```shell
-$ systemctl restart edgecore
-```
-
-::: tip
-The value '169.254.96.16' set by clusterDNS comes from the default value of bridgeDeviceIP in [commonConfig](https://edgemesh.netlify.app/reference/config-items.html#edgemesh-agent-cfg), if you need to modify it, please keep the two consistent.
-:::
-
-(3) Check it out
-
-At the edge node, check if Local APIServer works
-
-```shell
-$ curl 127.0.0.1:10550/api/v1/services
-{"apiVersion":"v1","items":[{"apiVersion":"v1","kind":"Service","metadata":{"creationTimestamp":"2021-04-14T06:30:05Z","labels":{"component":"apiserver","provider":"kubernetes"},"name":"kubernetes","namespace":"default","resourceVersion":"147","selfLink":"default/services/kubernetes","uid":"55eeebea-08cf-4d1a-8b04-e85f8ae112a9"},"spec":{"clusterIP":"10.96.0.1","ports":[{"name":"https","port":443,"protocol":"TCP","targetPort":6443}],"sessionAffinity":"None","type":"ClusterIP"},"status":{"loadBalancer":{}}},{"apiVersion":"v1","kind":"Service","metadata":{"annotations":{"prometheus.io/port":"9153","prometheus.io/scrape":"true"},"creationTimestamp":"2021-04-14T06:30:07Z","labels":{"k8s-app":"kube-dns","kubernetes.io/cluster-service":"true","kubernetes.io/name":"KubeDNS"},"name":"kube-dns","namespace":"kube-system","resourceVersion":"203","selfLink":"kube-system/services/kube-dns","uid":"c221ac20-cbfa-406b-812a-c44b9d82d6dc"},"spec":{"clusterIP":"10.96.0.10","ports":[{"name":"dns","port":53,"protocol":"UDP","targetPort":53},{"name":"dns-tcp","port":53,"protocol":"TCP","targetPort":53},{"name":"metrics","port":9153,"protocol":"TCP","targetPort":9153}],"selector":{"k8s-app":"kube-dns"},"sessionAffinity":"None","type":"ClusterIP"},"status":{"loadBalancer":{}}}],"kind":"ServiceList","metadata":{"resourceVersion":"377360","selfLink":"/api/v1/services"}}
-```
-
-::: warning
-If the return value is an empty list, or the response takes a long time (close to 10s) to get the return value, your configuration may be wrong, please check again.
-:::
-
-If KubeEdge >= v1.12.0, use `https` to check Local APIServer
-
-```shell
-$ curl -k https://127.0.0.1:10550/api/v1/services
-{"apiVersion":"v1","items":[{"apiVersion":"v1","kind":"Service","metadata":{"creationTimestamp":"2021-04-14T06:30:05Z","labels":{"component":"apiserver","provider":"kubernetes"},"name":"kubernetes","namespace":"default","resourceVersion":"147","selfLink":"default/services/kubernetes","uid":"55eeebea-08cf-4d1a-8b04-e85f8ae112a9"},"spec":{"clusterIP":"10.96.0.1","ports":[{"name":"https","port":443,"protocol":"TCP","targetPort":6443}],"sessionAffinity":"None","type":"ClusterIP"},"status":{"loadBalancer":{}}},{"apiVersion":"v1","kind":"Service","metadata":{"annotations":{"prometheus.io/port":"9153","prometheus.io/scrape":"true"},"creationTimestamp":"2021-04-14T06:30:07Z","labels":{"k8s-app":"kube-dns","kubernetes.io/cluster-service":"true","kubernetes.io/name":"KubeDNS"},"name":"kube-dns","namespace":"kube-system","resourceVersion":"203","selfLink":"kube-system/services/kube-dns","uid":"c221ac20-cbfa-406b-812a-c44b9d82d6dc"},"spec":{"clusterIP":"10.96.0.10","ports":[{"name":"dns","port":53,"protocol":"UDP","targetPort":53},{"name":"dns-tcp","port":53,"protocol":"TCP","targetPort":53},{"name":"metrics","port":9153,"protocol":"TCP","targetPort":9153}],"selector":{"k8s-app":"kube-dns"},"sessionAffinity":"None","type":"ClusterIP"},"status":{"loadBalancer":{}}}],"kind":"ServiceList","metadata":{"resourceVersion":"377360","selfLink":"/api/v1/services"}}
-```
-
-::: warning
-If KubeEdge >= v1.12.0, you must set `kubeAPIConfig.metaServer.security.enable=true` when installing EdgeMesh later.
-:::
-
-## Helm Installation
+### Helm Install
 
 - **Step 1**: Install Charts
 
@@ -131,7 +61,7 @@ NAME                            DESIRED   CURRENT   READY   UP-TO-DATE   AVAILAB
 daemonset.apps/edgemesh-agent   4         4         4       4            4           <none>          39s   edgemesh-agent   kubeedge/edgemesh-agent:latest   k8s-app=kubeedge,kubeedge=edgemesh-agent
 ```
 
-## Manual Installation
+### Manual Install
 
 - **Step 1**: Download EdgeMesh
 

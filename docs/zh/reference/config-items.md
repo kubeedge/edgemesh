@@ -8,27 +8,29 @@ EdgeMesh 的 Helm Chart 配置放在 build/helm/edgemesh 目录下。
 
 #### 1. edgemesh-agent
 
-| 名称            | 类型     | 使用示例                                                  | 描述                               |
-|---------------|--------|-------------------------------------------------------|----------------------------------|
-| image         | string | --set agent.image=kubeedge/edgemesh-agent:v1.12.0     | 指定 edgemesh-agent 使用的镜像          |
-| psk           | string | --set agent.psk=123456                                | PSK 密码                           |
-| relayNodes    | list   | --set relayNodes[0].nodeName=k8s-master               | 中继节点配置表                          |
-| kubeAPIConfig | object | --set agent.kubeAPIConfig.master=https://1.1.1.1:6443 | 与 configmap 的 kubeAPIConfig 含义相同 |
-| commonConfig  | object | --set agent.commonConfig.bridgeDeviceIP=169.254.96.16 | 与 configmap 的 commonConfig 含义相同  |
-| modules       | object | --set agent.modules.edgeProxy.socks5Proxy.enable=true | 与 configmap 的 modules 含义相同       |
+| 名称               | 类型     | 使用示例                                                  | 描述                               |
+|------------------|--------|-------------------------------------------------------|----------------------------------|
+| image            | string | --set agent.image=kubeedge/edgemesh-agent:v1.12.0     | 指定 edgemesh-agent 使用的镜像          |
+| psk              | string | --set agent.psk=123456                                | PSK 密码                           |
+| relayNodes       | list   | --set agent.relayNodes[0].nodeName=k8s-master         | 中继节点配置表                          |
+| metaServerSecret | string | --set agent.metaServerSecret=metaserver-certs         | 存放 metaServer 证书文件的 Secret       |                                                 
+| kubeAPIConfig    | object | --set agent.kubeAPIConfig.master=https://1.1.1.1:6443 | 与 configmap 的 kubeAPIConfig 含义相同 |
+| commonConfig     | object | --set agent.commonConfig.bridgeDeviceIP=169.254.96.16 | 与 configmap 的 commonConfig 含义相同  |
+| modules          | object | --set agent.modules.edgeProxy.socks5Proxy.enable=true | 与 configmap 的 modules 含义相同       |
 
 ### Edgemesh-Gateway
 
 EdgeMesh-Gateway 的 Helm Chart 配置放在 build/helm/edgemesh-gateway 目录下。
 
-| 名称            | 类型     | 使用示例                                            | 描述                               |
-|---------------|--------|-------------------------------------------------|----------------------------------|
-| image         | string | --set image=kubeedge/edgemesh-gateway:v1.12.0   | 指定 edgemesh-gateway 使用的镜像        |
-| nodeName      | string | --set nodeName=k8s-master                       | 指定 edgemesh-gateway 部署的节点        |
-| psk           | string | --set psk=123456                                | PSK 密码                           |
-| relayNodes    | list   | --set relayNodes[0].nodeName=k8s-master         | 中继节点配置表                          |
-| kubeAPIConfig | object | --set kubeAPIConfig.master=https://1.1.1.1:6443 | 与 configmap 的 kubeAPIConfig 含义相同 |
-| modules       | object | --set modules.edgeGateway.nic=eth0              | 与 configmap 的 modules 含义相同       |
+| 名称               | 类型     | 使用示例                                            | 描述                               |
+|------------------|--------|-------------------------------------------------|----------------------------------|
+| image            | string | --set image=kubeedge/edgemesh-gateway:v1.12.0   | 指定 edgemesh-gateway 使用的镜像        |
+| nodeName         | string | --set nodeName=k8s-master                       | 指定 edgemesh-gateway 部署的节点        |
+| psk              | string | --set psk=123456                                | PSK 密码                           |
+| relayNodes       | list   | --set relayNodes[0].nodeName=k8s-master         | 中继节点配置表                          |
+| metaServerSecret | string | --set metaServerSecret=metaserver-certs         | 存放 metaServer 证书文件的 Secret       |
+| kubeAPIConfig    | object | --set kubeAPIConfig.master=https://1.1.1.1:6443 | 与 configmap 的 kubeAPIConfig 含义相同 |
+| modules          | object | --set modules.edgeGateway.nic=eth0              | 与 configmap 的 modules 含义相同       |
 
 ## ConfigMap 配置
 
@@ -50,13 +52,11 @@ kubeAPIConfig:
   metaServer:
     server: http://127.0.0.1:10550
     security:
-      enable: false
-      authorization:
-        requireAuthorization: false
-        insecureSkipTLSVerify: true
-        tlsCaFile: /path/to/caFile
-        tlsCertFile: /path/to/certFile
-        tlsPrivateKeyFile: /path/to/keyFile
+      requireAuthorization: false
+      insecureSkipTLSVerify: false
+      tlsCaFile: /etc/edgemesh/metaserver/rootCA.crt
+      tlsCertFile: /etc/edgemesh/metaserver/server.crt
+      tlsPrivateKeyFile: /etc/edgemesh/metaserver/server.key
 commonConfig:
   bridgeDeviceName: edgemesh0
   bridgeDeviceIP: 169.254.96.16
@@ -117,13 +117,11 @@ kubeAPIConfig:
   metaServer:
     server: http://127.0.0.1:10550
     security:
-      enable: false
-      authorization:
-        requireAuthorization: false
-        insecureSkipTLSVerify: true
-        tlsCaFile: /path/to/caFile
-        tlsCertFile: /path/to/certFile
-        tlsPrivateKeyFile: /path/to/keyFile
+      requireAuthorization: false
+      insecureSkipTLSVerify: false
+      tlsCaFile: /etc/edgemesh/metaserver/rootCA.crt
+      tlsCertFile: /etc/edgemesh/metaserver/server.crt
+      tlsPrivateKeyFile: /etc/edgemesh/metaserver/server.key
 modules:
   edgeGateway:
     enable: false
