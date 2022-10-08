@@ -27,7 +27,7 @@ If the application that needs to be proxied is not deployed on the K8s master no
 $ kubectl label services kubernetes service.edgemesh.kubeedge.io/service-proxy-name=""
 ```
 
-Normally you don't want EdgeMesh to proxy the Kubernetes API service, so you need to add a filter label to it. For more information, please refer to [Hybrid Proxy](../advanced/hybird-proxy.md).
+Normally you don't want EdgeMesh to proxy the Kubernetes API service, so you need to add a filter label to it. For more information, please refer to [Service Filter](../advanced/hybird-proxy.md#service-filter).
 
 - **Step 3**: Enable KubeEdge's Edge Kube-API Endpoint Service
 

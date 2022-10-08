@@ -27,7 +27,7 @@ $ kubectl taint nodes --all node-role.kubernetes.io/master-
 $ kubectl label services kubernetes service.edgemesh.kubeedge.io/service-proxy-name=""
 ```
 
-正常情况下你不会希望 EdgeMesh 去代理 Kubernetes API 服务，因此需要给它添加过滤标签，更多信息请参考 [混合代理](../advanced/hybird-proxy.md)。
+正常情况下你不会希望 EdgeMesh 去代理 Kubernetes API 服务，因此需要给它添加过滤标签，更多信息请参考 [服务过滤](../advanced/hybird-proxy.md#服务过滤)。
 
 - **步骤3**: 启用 KubeEdge 的边缘 Kube-API 端点服务
 

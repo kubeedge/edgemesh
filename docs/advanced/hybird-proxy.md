@@ -25,7 +25,7 @@ Chain OUTPUT (policy ACCEPT 1317K packets, 79M bytes)
 If there is an error such as `No route to host` when accessing the service, it may be because the startup of edgemesh-agent precedes the startup of kube-proxy, resulting in the chain of `KUBE-PORTALS-CONTAINER` located behind `KUBE-SERVICES`, which cannot be prioritized Because kube-proxy hijacks the service's traffic. This problem can be circumvented by redeploying edgemesh to re-establish the order of the chain.
 :::
 
-## Service Filtering
+## Service Filter
 
 edgemesh-agent intercepts and forwards all services accessed through Cluster IP by default, but the traffic forwarding process of edgemesh-agent will bring a little performance loss in user mode. Therefore, you may have some services that you don't want to be proxied by edgemesh-agent, we provide a label for service filtering: `service.edgemesh.kubeedge.io/service-proxy-name`.
 
