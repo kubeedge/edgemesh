@@ -3,6 +3,7 @@ package validation
 import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
 	"github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1/validation"
 )
@@ -11,6 +12,7 @@ func ValidateEdgeMeshAgentConfiguration(c *v1alpha1.EdgeMeshAgentConfig) field.E
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, ValidateKubeAPIConfig(c.KubeAPIConfig)...)
 	allErrs = append(allErrs, ValidateModuleEdgeTunnel(c.Modules.EdgeTunnelConfig)...)
+	allErrs = append(allErrs, ValidateModuleEdgeProxy(c.Modules.EdgeProxyConfig)...)
 	return allErrs
 }
 
@@ -26,6 +28,30 @@ func ValidateKubeAPIConfig(c *v1alpha1.KubeAPIConfig) field.ErrorList {
 	validation.ValidateKubeAPIConfig(c.KubeAPIConfig)
 	// TODO validate metaServerAddress
 	return allErrs
+}
+
+func ValidateModuleEdgeProxy(c *v1alpha1.EdgeProxyConfig) field.ErrorList {
+	if !c.Enable {
+		return field.ErrorList{}
+	}
+
+	allErrs := field.ErrorList{}
+
+	validServiceFilterModes := []defaults.ServiceFilterMode{"FilterIfLabelDoesNotExists", "FilterIfLabelExists"}
+	if !isValidServiceFilterMode(c.ServiceFilterMode, validServiceFilterModes) {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("serviceFilterMode"), c.ServiceFilterMode, "invalid serviceFilterMode"))
+	}
+
+	return allErrs
+}
+
+func isValidServiceFilterMode(mode defaults.ServiceFilterMode, validValues []defaults.ServiceFilterMode) bool {
+	for _, m := range validValues {
+		if mode == m {
+			return true
+		}
+	}
+	return false
 }
 
 func ValidateModuleEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) field.ErrorList {

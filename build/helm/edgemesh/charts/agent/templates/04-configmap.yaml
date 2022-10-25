@@ -93,6 +93,9 @@ data:
         {{- if .Values.modules.edgeProxy.enable }}
         enable: {{ .Values.modules.edgeProxy.enable }}
         {{- end }}
+        {{- if .Values.modules.edgeProxy.serviceFilterMode }}
+        serviceFilterMode: {{ .Values.modules.edgeProxy.serviceFilterMode }}
+        {{- end }}
         {{- if .Values.modules.edgeProxy.socks5Proxy }}
         socks5Proxy:
           {{- if .Values.modules.edgeProxy.socks5Proxy.enable }}

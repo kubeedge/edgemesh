@@ -81,7 +81,8 @@ func NewDefaultEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 				},
 			},
 			EdgeProxyConfig: &EdgeProxyConfig{
-				Enable: false,
+				Enable:            false,
+				ServiceFilterMode: defaults.FilterIfLabelExistsMode,
 				Socks5Proxy: &Socks5Proxy{
 					Enable:     false,
 					ListenPort: 10800,
