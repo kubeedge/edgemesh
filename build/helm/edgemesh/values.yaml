@@ -2,7 +2,7 @@ agent:
   image: kubeedge/edgemesh-agent:latest
   affinity: {}
   nodeSelector: {}
-  tolerations: {}
+  tolerations: []
   resources:
     limits:
       cpu: 1
