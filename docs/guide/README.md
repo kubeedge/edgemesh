@@ -9,7 +9,7 @@
 ::: tip
 - EdgeMesh isn't really depending on KubeEdge, it interacts with standard Kubernetes APIs only
 
-- Regarding the fact that edge nodes may be isolated in different edge network, we are benefiting from [Edge Kube-API Endpoint](./edge-kube-api.md) feature to simplify the setup
+- Regarding the fact that edge nodes may be isolated in different edge network, we are benefiting from [Edge Kube-API Endpoint](../guide/edge-kube-api.md) feature to simplify the setup
 :::
 
 ## Prerequisites
@@ -31,7 +31,7 @@ Normally you don't want EdgeMesh to proxy the Kubernetes API service, so you nee
 
 - **Step 3**: Enable KubeEdge's Edge Kube-API Endpoint Service
 
-Please refer to the documentation [Edge Kube-API Endpoint](./edge-kube-api.md#quick-start) to enable this service.
+Please refer to the documentation [Edge Kube-API Endpoint](../guide/edge-kube-api.md#quick-start) to enable this service.
 
 ## Install
 
