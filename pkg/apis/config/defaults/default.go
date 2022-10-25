@@ -8,6 +8,7 @@ type RunningMode string
 type LoadBalancerCaller string
 type TunnelMode string
 type DiscoveryType string
+type ServiceFilterMode string
 
 const (
 	BaseDir                   = "/etc/edgemesh/"
@@ -54,4 +55,7 @@ const (
 
 	MdnsDiscovery DiscoveryType = "MDNS"
 	DhtDiscovery  DiscoveryType = "DHT"
+
+	FilterIfLabelExistsMode        ServiceFilterMode = "FilterIfLabelExists"
+	FilterIfLabelDoesNotExistsMode ServiceFilterMode = "FilterIfLabelDoesNotExists"
 )

@@ -29,6 +29,8 @@ If there is an error such as `No route to host` when accessing the service, it m
 
 edgemesh-agent intercepts and forwards all services accessed through Cluster IP by default, but the traffic forwarding process of edgemesh-agent will bring a little performance loss in user mode. Therefore, you may have some services that you don't want to be proxied by edgemesh-agent, we provide a label for service filtering: `service.edgemesh.kubeedge.io/service-proxy-name`.
 
+To enable more fine-tuned settings you can set the service filter mode by setting the `serviceFilterMode` option in the edgemesh-agent configuration file (`modules.edgeProxy.serviceFilterMode`) to either "FilterIfLabelExists" or "FilterIfLabelDoesNotExists". The default value is "FilterIfLabelExists". If the value is "FilterIfLabelExists", the service will be filtered if the label `service.edgemesh.kubeedge.io/service-proxy-name` exists and vice versa if the label does not exist.
+
 For example: If you want to deploy prometheus + grafana monitoring services in the cloud, these services do not require edge access, so you do not want them to be proxied by edgemesh-agent, then you can do this:
 
 ```yaml

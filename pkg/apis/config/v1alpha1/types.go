@@ -146,6 +146,10 @@ type EdgeProxyConfig struct {
 	Socks5Proxy *Socks5Proxy `json:"socks5Proxy,omitempty"`
 	// LoadBalancer indicates the load balance strategy
 	LoadBalancer *LoadBalancer `json:"loadBalancer,omitempty"`
+	// ServiceFilterMode indicates the service filter mode
+	// Allowed values are: "FilterIfLabelExists", "FilterIfLabelDoesNotExists"
+	// default "FilterIfLabelExists"
+	ServiceFilterMode defaults.ServiceFilterMode `json:"serviceFilterMode,omitempty"`
 }
 
 // Socks5Proxy indicates the socks5 proxy config

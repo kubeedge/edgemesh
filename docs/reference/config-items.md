@@ -73,6 +73,7 @@ modules:
       cacheTTL: 30
   edgeProxy:
     enable: false
+    serviceFilterMode: FilterIfLabelExists
     socks5Proxy:
       enable: false
       listenPort: 10800

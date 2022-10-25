@@ -33,13 +33,14 @@ import (
 
 // ProxyServer represents all the parameters required to start the Kubernetes proxy server.
 type ProxyServer struct {
-	kubeClient       clientset.Interface
-	istioClient      istioclientset.Interface
-	IptInterface     utiliptables.Interface
-	execer           exec.Interface
-	Proxier          proxy.Provider
-	ConfigSyncPeriod time.Duration
-	loadBalancer     *loadbalancer.LoadBalancer
+	kubeClient        clientset.Interface
+	istioClient       istioclientset.Interface
+	IptInterface      utiliptables.Interface
+	execer            exec.Interface
+	Proxier           proxy.Provider
+	ConfigSyncPeriod  time.Duration
+	loadBalancer      *loadbalancer.LoadBalancer
+	serviceFilterMode defaults.ServiceFilterMode
 }
 
 // NewDefaultKubeProxyConfiguration new default kube-proxy config for edgemesh-agent runtime.
@@ -62,7 +63,8 @@ func newProxyServer(
 	config *proxyconfigapi.KubeProxyConfiguration,
 	lbConfig *v1alpha1.LoadBalancer,
 	client clientset.Interface,
-	istioClient istioclientset.Interface) (*ProxyServer, error) {
+	istioClient istioclientset.Interface,
+	serviceFilterMode defaults.ServiceFilterMode) (*ProxyServer, error) {
 	klog.V(0).Info("Using userspace Proxier.")
 
 	// Create a iptables utils.
@@ -90,18 +92,25 @@ func newProxyServer(
 	}
 
 	return &ProxyServer{
-		kubeClient:       client,
-		istioClient:      istioClient,
-		IptInterface:     iptInterface,
-		execer:           execer,
-		Proxier:          proxier,
-		ConfigSyncPeriod: config.ConfigSyncPeriod.Duration,
-		loadBalancer:     loadBalancer,
+		kubeClient:        client,
+		istioClient:       istioClient,
+		IptInterface:      iptInterface,
+		execer:            execer,
+		Proxier:           proxier,
+		ConfigSyncPeriod:  config.ConfigSyncPeriod.Duration,
+		loadBalancer:      loadBalancer,
+		serviceFilterMode: serviceFilterMode,
 	}, nil
 }
 
 func (s *ProxyServer) Run() error {
-	noEdgeMeshProxyName, err := labels.NewRequirement(defaults.LabelEdgeMeshServiceProxyName, selection.DoesNotExist, nil)
+	// Determine the service filter mode.
+	// By default, we will proxy all services that are not labeled with the LabelEdgeMeshServiceProxyName label.
+	operation := selection.DoesNotExist
+	if s.serviceFilterMode != defaults.FilterIfLabelExistsMode {
+		operation = selection.Exists
+	}
+	noEdgeMeshProxyName, err := labels.NewRequirement(defaults.LabelEdgeMeshServiceProxyName, operation, nil)
 	if err != nil {
 		return err
 	}
