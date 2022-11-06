@@ -56,6 +56,13 @@ var defaultEdgeTunnelConfig = &EdgeTunnelConfig{
 		Enable: true,
 		Path:   defaults.PSKPath,
 	},
+	TunnelLimitConfig: &TunnelLimitConfig{
+		Enable:                  true,
+		TunnelBaseStreamIn:      defaults.TunnelBaseStreamIn,
+		TunnelBaseStreamOut:     defaults.TunnelBaseStreamOut,
+		TunnelPeerBaseStreamIn:  defaults.TunnelPeerBaseStreamIn,
+		TunnelPeerBaseStreamOut: defaults.TunnelPeerBaseStreamOut,
+	},
 }
 
 // NewDefaultEdgeMeshAgentConfig returns a full EdgeMeshAgentConfig object
