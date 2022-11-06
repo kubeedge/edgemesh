@@ -161,7 +161,7 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 	// If this host is a relay node, we need to run libp2p relayv2 service
 	var relayService *relayv2.Relay
 	if isRelay && c.Mode == defaults.ServerClientMode {
-		relayService, err = relayv2.New(h) // TODO close relayService
+		relayService, err = relayv2.New(h, relayv2.WithLimit(nil)) // TODO close relayService
 		if err != nil {
 			return nil, fmt.Errorf("run libp2p relayv2 service error: %w", err)
 		}
