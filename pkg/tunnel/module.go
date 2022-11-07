@@ -151,7 +151,10 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 		libp2p.EnableNATService(),
 		libp2p.EnableHolePunching(),
 	}...)
-
+	//Adjust stream limit
+	if limitOpt, err := CreateLimitOpt(c.TunnelLimitConfig); err == nil {
+		opts = append(opts, limitOpt)
+	}
 	h, err := libp2p.New(opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to new p2p host: %w", err)

@@ -58,4 +58,9 @@ const (
 
 	FilterIfLabelExistsMode        ServiceFilterMode = "FilterIfLabelExists"
 	FilterIfLabelDoesNotExistsMode ServiceFilterMode = "FilterIfLabelDoesNotExists"
+
+	TunnelBaseStreamIn      int = 10240
+	TunnelBaseStreamOut     int = 10240
+	TunnelPeerBaseStreamIn  int = 1024
+	TunnelPeerBaseStreamOut int = 1024
 )

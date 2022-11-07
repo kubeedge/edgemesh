@@ -257,6 +257,8 @@ type EdgeTunnelConfig struct {
 	FinderPeriod int `json:"finderPeriod,omitempty"`
 	// PSK configures libp2p to use the given private network protector.
 	PSK *PSK `json:"psk,omitempty"`
+	// TunnelLimitConfig configures tunnel stream limit
+	TunnelLimitConfig *TunnelLimitConfig `json:"tunnelLimitConfig,omitempty"`
 }
 
 type RelayNode struct {
@@ -273,4 +275,22 @@ type PSK struct {
 	// Path indicates the psk file path.
 	// default /etc/edgemesh/psk
 	Path string `json:"path,omitempty"`
+}
+
+type TunnelLimitConfig struct {
+	// Enable indicates whether libp2p ResourceLimit is enabled,
+	// defaults true
+	Enable bool `json:"enable,omitempty"`
+	// Tunnel Proxy all Stream InBound count
+	// default:10240
+	TunnelBaseStreamIn int `json:"tunnelBaseStreamIn,omitempty"`
+	// Tunnel Proxy all Stream OutBound count
+	// default:10240
+	TunnelBaseStreamOut int `json:"tunnelBaseStreamOut,omitempty"`
+	// Tunnel Proxy each Peer Stream InBound count
+	// default:1024
+	TunnelPeerBaseStreamIn int `json:"tunnelPeerBaseStreamIn,omitempty"`
+	// Tunnel Proxy each Peer Stream OutBound count
+	// default:1024
+	TunnelPeerBaseStreamOut int `json:"tunnelPeerBaseStreamOut,omitempty"`
 }
