@@ -70,8 +70,8 @@ get_kubeedge_pid() {
 
 # spin up cluster with kind command
 function kind_up_cluster {
-  echo "Running kind: [kind create cluster ${CLUSTER_CONTEXT} --image kindest/node:v1.18.2]"
-  kind create cluster ${CLUSTER_CONTEXT} --image kindest/node:v1.18.2
+  echo "Running kind: [kind create cluster ${CLUSTER_CONTEXT}]"
+  kind create cluster ${CLUSTER_CONTEXT}
   add_cleanup '
     echo "Running kind: [kind delete cluster ${CLUSTER_CONTEXT}]"
     kind delete cluster ${CLUSTER_CONTEXT}
