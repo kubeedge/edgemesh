@@ -9,6 +9,7 @@ const guide = {
     '/guide/security.md',
     '/guide/ssh.md',
     '/guide/edge-kube-api.md',
+    '/guide/ha.md',
   ],
 }
 
