@@ -116,7 +116,7 @@ EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge re
 
 ## Architecture
 
-![image](./docs/.vuepress/public/images/em-arch.png)
+![image](./docs/.vuepress/public/images/arch.png)
 
 > After EdgeMesh v1.12.0, the capabilities of edgemesh-server are merged into the tunnel module of edgemesh-agent, so that edgemesh-agent with relay capability can automatically become a relay server, providing other nodes with the functions of assisting hole punching and relaying
 
