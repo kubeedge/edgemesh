@@ -151,6 +151,9 @@ Example6: [Load Balance](https://edgemesh.netlify.app/guide/test-case.html#load-
 
 Example7: [Cross-edge-cloud communication](https://edgemesh.netlify.app/guide/test-case.html#cross-edge-cloud)
 
+## Release
+
+EdgeMesh is currently released with KubeEdge's main repo, and the released products will be placed in [KubeEdge Releases](https://github.com/kubeedge/kubeedge/releases). EdgeMesh's version release cadence will follow and be consistent with https://github.com/kubeedge/kubeedge.
 
 ## Contact
 

@@ -151,6 +151,9 @@ EdgeMesh 的安装文档请参考[这里](https://edgemesh.netlify.app/zh/)。
 
 样例7：[跨边云通信](https://edgemesh.netlify.app/zh/guide/test-case.html#跨边云通信)
 
+## 发布
+
+EdgeMesh 当前随 KubeEdge 的主仓库发布版本，发布产物将统一放在 [KubeEdge Releases](https://github.com/kubeedge/kubeedge/releases) 中。EdgeMesh 的版本发布节奏会跟随 https://github.com/kubeedge/kubeedge 并与其保持一致。
 
 ## 联系方式
 
