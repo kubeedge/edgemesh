@@ -9,7 +9,7 @@
 ::: tip
 - EdgeMesh 并不依赖于 KubeEdge，它仅与标准 Kubernetes API 交互
 
-- 鉴于边缘节点可能被割裂在不同边缘网络中的情况，我们借助于 [边缘 Kube-API 端点](../zh/guide/edge-kube-api.html#快速上手) 功能以简化设置
+- 鉴于边缘节点可能被割裂在不同边缘网络中的情况，我们借助于 [边缘 Kube-API 端点](../../zh/guide/edge-kube-api.md#快速上手) 功能以简化设置
 :::
 
 ## 前置准备
@@ -27,11 +27,11 @@ $ kubectl taint nodes --all node-role.kubernetes.io/master-
 $ kubectl label services kubernetes service.edgemesh.kubeedge.io/service-proxy-name=""
 ```
 
-正常情况下你不会希望 EdgeMesh 去代理 Kubernetes API 服务，因此需要给它添加过滤标签，更多信息请参考 [服务过滤](../zh/advanced/hybird-proxy.md#服务过滤)。
+正常情况下你不会希望 EdgeMesh 去代理 Kubernetes API 服务，因此需要给它添加过滤标签，更多信息请参考 [服务过滤](../../zh/advanced/hybird-proxy.md#服务过滤)。
 
 - **步骤3**: 启用 KubeEdge 的边缘 Kube-API 端点服务
 
-请参考文档 [边缘 Kube-API 端点](../zh/guide/edge-kube-api.html#快速上手) 以启用此服务。
+请参考文档 [边缘 Kube-API 端点](../../zh/guide/edge-kube-api.md#快速上手) 以启用此服务。
 
 ## 安装
 
