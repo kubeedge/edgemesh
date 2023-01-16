@@ -18,7 +18,7 @@ The Helm Chart configuration of EdgeMesh is placed in the build/helm/edgemesh di
 | commonConfig     | object | --set agent.commonConfig.bridgeDeviceIP=169.254.96.16 | Same meaning as commonConfig in configmap       |
 | modules          | object | --set agent.modules.edgeProxy.socks5Proxy.enable=true | Same meaning as modules in configmap            |
 
-### Edgemesh-Gateway
+### EdgeMesh-Gateway
 
 The Helm Chart configuration of EdgeMesh-Gateway is placed in the build/helm/edgemesh-gateway directory.
 
@@ -73,7 +73,6 @@ modules:
       cacheTTL: 30
   edgeProxy:
     enable: false
-    serviceFilterMode: FilterIfLabelExists
     socks5Proxy:
       enable: false
       listenPort: 10800
@@ -82,6 +81,7 @@ modules:
         partitionCount: 100
         replicationFactor: 10
         load: 1.25
+    serviceFilterMode: FilterIfLabelExists
   edgeTunnel:
     enable: false
     listenPort: 20006
@@ -102,6 +102,12 @@ modules:
     psk:
       enable: true
       path: /etc/edgemesh/psk
+    tunnelLimitConfig:
+      enable: false
+      tunnelBaseStreamIn: 10240
+      tunnelBaseStreamOut: 10240
+      TunnelPeerBaseStreamIn: 1024
+      tunnelPeerBaseStreamOut: 1024
 ```
 
 ### edgemesh-gateway-cfg
@@ -154,4 +160,10 @@ modules:
     psk:
       enable: true
       path: /etc/edgemesh/psk
+    tunnelLimitConfig:
+      enable: false
+      tunnelBaseStreamIn: 10240
+      tunnelBaseStreamOut: 10240
+      TunnelPeerBaseStreamIn: 1024
+      tunnelPeerBaseStreamOut: 1024
 ```

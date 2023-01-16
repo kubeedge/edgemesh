@@ -13,12 +13,12 @@ EdgeMesh 的 Helm Chart 配置放在 build/helm/edgemesh 目录下。
 | image            | string | --set agent.image=kubeedge/edgemesh-agent:v1.12.0     | 指定 edgemesh-agent 使用的镜像          |
 | psk              | string | --set agent.psk=123456                                | PSK 密码                           |
 | relayNodes       | list   | --set agent.relayNodes[0].nodeName=k8s-master         | 中继节点配置表                          |
-| metaServerSecret | string | --set agent.metaServerSecret=metaserver-certs         | 存放 metaServer 证书文件的 Secret       |                                                 
+| metaServerSecret | string | --set agent.metaServerSecret=metaserver-certs         | 存放 metaServer 证书文件的 Secret       |
 | kubeAPIConfig    | object | --set agent.kubeAPIConfig.master=https://1.1.1.1:6443 | 与 configmap 的 kubeAPIConfig 含义相同 |
 | commonConfig     | object | --set agent.commonConfig.bridgeDeviceIP=169.254.96.16 | 与 configmap 的 commonConfig 含义相同  |
 | modules          | object | --set agent.modules.edgeProxy.socks5Proxy.enable=true | 与 configmap 的 modules 含义相同       |
 
-### Edgemesh-Gateway
+### EdgeMesh-Gateway
 
 EdgeMesh-Gateway 的 Helm Chart 配置放在 build/helm/edgemesh-gateway 目录下。
 
@@ -81,6 +81,7 @@ modules:
         partitionCount: 100
         replicationFactor: 10
         load: 1.25
+    serviceFilterMode: FilterIfLabelExists
   edgeTunnel:
     enable: false
     listenPort: 20006
@@ -101,6 +102,12 @@ modules:
     psk:
       enable: true
       path: /etc/edgemesh/psk
+    tunnelLimitConfig:
+      enable: false
+      tunnelBaseStreamIn: 10240
+      tunnelBaseStreamOut: 10240
+      TunnelPeerBaseStreamIn: 1024
+      tunnelPeerBaseStreamOut: 1024
 ```
 
 ### edgemesh-gateway-cfg
@@ -153,4 +160,10 @@ modules:
     psk:
       enable: true
       path: /etc/edgemesh/psk
+    tunnelLimitConfig:
+      enable: false
+      tunnelBaseStreamIn: 10240
+      tunnelBaseStreamOut: 10240
+      TunnelPeerBaseStreamIn: 1024
+      tunnelPeerBaseStreamOut: 1024
 ```
