@@ -127,6 +127,24 @@ data:
           path: {{ .Values.modules.edgeTunnel.psk.path }}
           {{- end }}
         {{- end }}
+        {{- if .Values.modules.edgeTunnel.tunnelLimitConfig }}
+        tunnelLimitConfig:
+          {{- if .Values.modules.edgeTunnel.tunnelLimitConfig.enable }}
+          enable: {{ .Values.modules.edgeTunnel.tunnelLimitConfig.enable }}
+          {{- end }}
+          {{- if .Values.modules.edgeTunnel.tunnelLimitConfig.tunnelBaseStreamIn }}
+          tunnelBaseStreamIn: {{ .Values.modules.edgeTunnel.tunnelLimitConfig.tunnelBaseStreamIn }}
+          {{- end }}
+          {{- if .Values.modules.edgeTunnel.tunnelLimitConfig.tunnelBaseStreamOut }}
+          tunnelBaseStreamOut: {{ .Values.modules.edgeTunnel.tunnelLimitConfig.tunnelBaseStreamOut }}
+          {{- end }}
+          {{- if .Values.modules.edgeTunnel.tunnelLimitConfig.tunnelPeerBaseStreamIn }}
+          tunnelPeerBaseStreamIn: {{ .Values.modules.edgeTunnel.tunnelLimitConfig.tunnelPeerBaseStreamIn }}
+          {{- end }}
+          {{- if .Values.modules.edgeTunnel.tunnelLimitConfig.tunnelPeerBaseStreamOut }}
+          tunnelPeerBaseStreamOut: {{ .Values.modules.edgeTunnel.tunnelLimitConfig.tunnelPeerBaseStreamOut }}
+          {{- end }}
+        {{- end }}
       {{- end }}
     {{- end }}
 ---
