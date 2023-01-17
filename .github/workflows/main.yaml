@@ -151,8 +151,9 @@ jobs:
 
       - run: make docker-cross-build
 
-  check-helm:
+  check_helm_pkg:
     runs-on: ubuntu-latest
+    name: Check helm package
     steps:
       - uses: actions/cache@v2
         with:

@@ -1,0 +1,39 @@
+name: RELEASE
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+env:
+  IMAGE_REPO: kubeedge
+  IMAGE_TAG: latest
+
+jobs:
+  release-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v3
+        with:
+          # fetch-depth:
+          # 0 indicates all history for all branches and tags.
+          # for `git describe --tags` in Makefile.
+          fetch-depth: 0
+      - name: install QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: install Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USER_NAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: set image tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          echo "IMAGE_TAG=$(git describe --tags)" >> $GITHUB_ENV
+      - name: build and publish images
+        run: IMAGE_REPO=${{ env.IMAGE_REPO }} IMAGE_TAG=${{ env.IMAGE_TAG }} make push-all
