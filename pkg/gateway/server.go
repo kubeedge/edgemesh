@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"strings"
 	"sync"
 
 	istioapi "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -72,18 +73,20 @@ func (srv *Server) serve() {
 	defer srv.wg.Done()
 
 	for {
-		conn, err := srv.listener.Accept()
-		if err != nil {
-			select {
-			case _, isClosed := <-srv.stop:
-				if !isClosed {
-					klog.Errorf("server stop to serve")
-				}
-				return
-			default:
-				klog.Warningf("get conn error: %v", err)
+		select {
+		case _, isClosed := <-srv.stop:
+			if isClosed {
+				klog.Errorf("server stop to serve")
 			}
-		} else {
+			return
+		default:
+			conn, err := srv.listener.Accept()
+			if err != nil {
+				if !IsClosedError(err) {
+					klog.Errorf("get conn error: %v", err)
+				}
+				continue
+			}
 			// tls
 			if srv.options.CredentialName != "" {
 				klog.Infof("tls required")
@@ -138,18 +141,15 @@ func (srv *Server) serve() {
 			}
 			proto, err := srv.newProto(conn)
 			if err != nil {
-				klog.Errorf("get pb from conn err: %v", err)
+				klog.Errorf("get proto from conn err: %v", err)
 				err = conn.Close()
 				if err != nil {
 					klog.Errorf("close conn err: %v", err)
 				}
 				continue
 			}
-			srv.wg.Add(1)
-			go func() {
-				proto.Process()
-				srv.wg.Done()
-			}()
+			// handle req
+			go proto.Process()
 		}
 	}
 }
@@ -208,4 +208,8 @@ func (srv *Server) Stop() {
 		klog.Errorf("close listener err: %v", err)
 	}
 	srv.wg.Wait()
+}
+
+func IsClosedError(err error) bool {
+	return strings.HasPrefix(err.Error(), "use of closed network connection")
 }
