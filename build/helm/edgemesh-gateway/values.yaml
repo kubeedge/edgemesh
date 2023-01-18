@@ -1,4 +1,4 @@
-image: kubeedge/edgemesh-gateway:latest
+image: kubeedge/edgemesh-gateway:v1.13.0-beta.0
 nodeName: "your node name"
 affinity: {}
 nodeSelector: {}
