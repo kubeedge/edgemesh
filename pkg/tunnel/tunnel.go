@@ -446,6 +446,14 @@ func (t *EdgeTunnel) nodeNameFromPeerID(id peer.ID) (string, bool) {
 func (t *EdgeTunnel) runRelayFinder(ddht *dual.DHT, peerSource chan peer.AddrInfo, period time.Duration) {
 	klog.Infof("Starting relay finder")
 	err := wait.PollUntil(period, func() (done bool, err error) {
+		// ensure peers in same LAN can send [hop]RESERVE to the relay
+		for _, relay := range t.relayMap {
+			select {
+			case peerSource <- *relay:
+			case <-t.hostCtx.Done():
+				return
+			}
+		}
 		closestPeers, err := ddht.WAN.GetClosestPeers(t.hostCtx, t.p2pHost.ID().String())
 		if err != nil {
 			if !IsNoFindPeerError(err) {
