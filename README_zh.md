@@ -120,7 +120,7 @@ EdgeMesh 满足边缘场景下的新需求（如边缘资源有限、边云网�
 
 ![image](./docs/.vuepress/public/images/arch.png)
 
-> EdgeMesh v1.12.0 之后，edgemesh-server 的能力合并到 edgemesh-agent 的 tunnel 模块中，使得具备中继能力的 edgemesh-agent 能够自动成为中继服务器，为其他节点提供协助打洞与中继转发的功能
+> EdgeMesh v1.12.0 之后，edgemesh-server 的能力合并到 edgemesh-agent 的 tunnel 模块中，使得具备中继能力的 edgemesh-agent 能够自动成为中继服务器，为其他节点提供协助打洞与中继转发的功能。[EdgeMesh v1.12.0 之前的架构图](./docs/.vuepress/public/images/arch_before1.12.png)
 
 edgemesh-agent 的核心组件包括：
 
