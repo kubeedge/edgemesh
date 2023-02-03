@@ -11,6 +11,8 @@ English | [简体中文](./README_zh.md)
 
 EdgeMesh, as the data plane component of the [KubeEdge](https://github.com/kubeedge/kubeedge) cluster, provides simple service discovery and traffic proxy functions for applications, thereby shielding the complex network structure in edge scenarios.
 
+*Note: The KubeEdge-EdgeMesh data plane is not related in any way to edgemesh corporation or their e-commerce services. Their website is [edgemesh.com](https://edgemesh.com).*
+
 ### Background
 
 KubeEdge is build based on [Kubernetes](https://github.com/kubernetes/kubernetes), extending cloud-native containerized application orchestration capabilities to the edge. However, at the scenario of edge computer, the network topology is more complex. Edge nodes in different areas are often not interconnected, and the inter-communication of traffic between applications is the primary requirement of the business. For this scenairo, EdgeMesh offers a solution.

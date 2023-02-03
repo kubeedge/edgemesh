@@ -11,6 +11,8 @@
 
 EdgeMesh 作为 [KubeEdge](https://github.com/kubeedge/kubeedge) 集群的数据面组件，为应用程序提供了简单的服务发现与流量代理功能，从而屏蔽了边缘场景下复杂的网络结构。
 
+*备注：KubeEdge-EdgeMesh 数据面组件与 edgemesh 公司及其提供的电商服务无任何关系。edgemesh 公司的网站是 [edgemesh.com](https://edgemesh.com)。*
+
 ### 背景
 
 KubeEdge 基于 [Kubernetes](https://github.com/kubernetes/kubernetes) 构建，将云原生容器化应用程序编排能力延伸到了边缘。但是，在边缘计算场景下，网络拓扑较为复杂，不同区域中的边缘节点往往网络不互通，并且应用之间流量的互通是业务的首要需求，而 EdgeMesh 正是对此提供了一套解决方案。
