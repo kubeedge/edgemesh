@@ -98,6 +98,10 @@ func (t *EdgeTunnel) isRelayPeer(id peer.ID) bool {
 	return false
 }
 
+// discovery function is used in the EdgeTunnel to establish connections with other nodes.
+// It creates a new stream with the given address information (pi) and discovery type (MDNS or DHT) and performs a handshake.
+// If a non-relay node is discovered in DHT discovery, it adds its address to the peerstore to avoid RESERVATION delays.
+// Once the connection is established, the function adds the address information of the connection to the node-peer mapping table (t.nodePeerMap) for future communication.
 func (t *EdgeTunnel) discovery(discoverType defaults.DiscoveryType, pi peer.AddrInfo) {
 	if pi.ID == t.p2pHost.ID() {
 		return
@@ -167,6 +171,10 @@ func (t *EdgeTunnel) discovery(discoverType defaults.DiscoveryType, pi peer.Addr
 	t.nodePeerMap[nodeName] = pi.ID
 }
 
+// discoveryStreamHandler handles incoming streams for discovery service.
+// It reads the handshake message from the incoming stream and writes a response message,
+// then maps the nodeName and peerID of the remote peer to the nodePeerMap of EdgeTunnel.
+// This function is called when a new stream is received by the discovery service of EdgeTunnel.
 func (t *EdgeTunnel) discoveryStreamHandler(stream network.Stream) {
 	remotePeer := peer.AddrInfo{
 		ID:    stream.Conn().RemotePeer(),
@@ -212,6 +220,12 @@ type ProxyOptions struct {
 	Port     int32
 }
 
+// GetProxyStream establishes a new stream with a destination peer, either directly or through a relay node,
+// by performing a handshake with the destination peer over the stream to confirm the connection.
+// It first looks up the destination peer's ID in a cache, and if not found, generates the peer ID and adds circuit addresses to it.
+// It then opens a new stream using the libp2p host, and performs a handshake with the destination peer over the stream.
+// If the handshake is successful, it returns a new StreamConn object representing the stream.
+// If any errors occur during the process, it returns an error.
 func (t *EdgeTunnel) GetProxyStream(opts ProxyOptions) (*StreamConn, error) {
 	destName := opts.NodeName
 	destID, exists := t.nodePeerMap[destName]
@@ -339,6 +353,10 @@ func (t *EdgeTunnel) proxyStreamHandler(stream network.Stream) {
 	klog.Infof("Success proxy for {%s %s %s}", targetProto, targetNode, targetAddr)
 }
 
+// tryDialEndpoint tries to dial to an endpoint with given protocol, ip and port.
+// If TCP or UDP protocol is used, it retries several times and waits for DailSleepTime between each try.
+// If neither TCP nor UDP is used, it returns an error with an unsupported protocol message.
+// when maximum retries are reached for the given protocol, it logs the error and returns it.
 func tryDialEndpoint(protocol, ip string, port int) (conn net.Conn, err error) {
 	switch protocol {
 	case TCP:
@@ -370,6 +388,10 @@ func tryDialEndpoint(protocol, ip string, port int) (conn net.Conn, err error) {
 	return nil, err
 }
 
+// BootstrapConnect tries to connect to a list of bootstrap peers in a relay map.
+// The function runs a loop to attempt connecting to each peer, and will retry if some peers fail to connect.
+// If a peer fails to connect, it is removed from the relay map.
+// The function returns an error if it fails to connect to all bootstrap peers after a certain period of time.
 func BootstrapConnect(ctx context.Context, ph p2phost.Host, bootstrapPeers RelayMap) error {
 	var lock sync.Mutex
 	var badRelays []string
