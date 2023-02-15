@@ -368,7 +368,7 @@ func tryDialEndpoint(protocol, ip string, port int) (conn net.Conn, err error) {
 			if err == nil {
 				return conn, nil
 			}
-			time.Sleep(DailRetryTime)
+			time.Sleep(DailSleepTime)
 		}
 	case UDP:
 		for i := 0; i < DailRetryTime; i++ {
