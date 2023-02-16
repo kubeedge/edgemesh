@@ -4,7 +4,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
-	cloudcorev1alpha1 "github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1"
 )
 
 // EdgeMeshAgentConfig indicates the config of EdgeMeshAgent which get from EdgeMeshAgent config file
@@ -52,11 +51,26 @@ type GatewayModules struct {
 
 // KubeAPIConfig indicates the configuration for interacting with k8s server
 type KubeAPIConfig struct {
-	cloudcorev1alpha1.KubeAPIConfig
+	// Master indicates the address of the Kubernetes API server (overrides any value in KubeConfig)
+	// such as https://127.0.0.1:8443
+	// default ""
+	Master string `json:"master,omitempty"`
+	// ContentType indicates the ContentType of message transmission when interacting with k8s
+	// default "application/vnd.kubernetes.protobuf"
+	ContentType string `json:"contentType,omitempty"`
+	// QPS to while talking with kubernetes apiserver
+	// default 100
+	QPS int32 `json:"qps,omitempty"`
+	// Burst to use while talking with kubernetes apiserver
+	// default 200
+	Burst int32 `json:"burst,omitempty"`
+	// KubeConfig indicates the path to kubeConfig file with authorization and master location information.
+	// default "/root/.kube/config"
+	KubeConfig string `json:"kubeConfig,omitempty"`
 	// Mode indicates the current running mode of container
 	// do not allow users to configure manually
 	// options ManualMode, CloudMode and EdgeMode
-	Mode defaults.RunningMode
+	Mode defaults.RunningMode `json:"mode,omitempty"`
 	// MetaServer indicates the config of EdgeCore's metaServer module
 	MetaServer *MetaServer `json:"metaServer,omitempty"`
 }
@@ -108,10 +122,10 @@ type EdgeDNSConfig struct {
 	Enable bool `json:"enable,omitempty"`
 	// KubeAPIConfig is equivalent to EdgeMeshAgentConfig.KubeAPIConfig
 	// do not allow users to configure manually
-	KubeAPIConfig *KubeAPIConfig
+	KubeAPIConfig *KubeAPIConfig `json:"kubeAPIConfig,omitempty"`
 	// ListenInterface indicates the listen interface of EdgeDNS
 	// do not allow users to configure manually
-	ListenInterface string
+	ListenInterface string `json:"listenInterface,omitempty"`
 	// ListenPort indicates the listen port of EdgeDNS
 	// default 53
 	ListenPort int `json:"listenPort,omitempty"`
@@ -141,7 +155,7 @@ type EdgeProxyConfig struct {
 	Enable bool `json:"enable,omitempty"`
 	// ListenInterface indicates the listen interface of EdgeProxy
 	// do not allow users to configure manually
-	ListenInterface string
+	ListenInterface string `json:"listenInterface,omitempty"`
 	// Socks5Proxy indicates the socks5 proxy config
 	Socks5Proxy *Socks5Proxy `json:"socks5Proxy,omitempty"`
 	// LoadBalancer indicates the load balance strategy
@@ -162,10 +176,10 @@ type Socks5Proxy struct {
 	ListenPort int `json:"listenPort,omitempty"`
 	// NodeName indicates name of host
 	// do not allow users to configure manually
-	NodeName string
+	NodeName string `json:"nodeName,omitempty"`
 	// Namespace indicates namespace of host
 	// do not allow users to configure manually
-	Namespace string
+	Namespace string `json:"namespace,omitempty"`
 }
 
 // EdgeGatewayConfig indicates the EdgeGateway config
@@ -197,10 +211,10 @@ type LoadBalancer struct {
 	// Caller indicates which module using LoadBalancer
 	// do not allow users to configure manually
 	// options: ProxyCaller, GatewayCaller
-	Caller defaults.LoadBalancerCaller
+	Caller defaults.LoadBalancerCaller `json:"caller,omitempty"`
 	// NodeName indicates name of host
 	// do not allow users to configure manually
-	NodeName string
+	NodeName string `json:"nodeName,omitempty"`
 	// ConsistentHash indicates the extension of the go-chassis loadbalancer
 	ConsistentHash *ConsistentHash `json:"consistentHash,omitempty"`
 }
@@ -228,10 +242,10 @@ type EdgeTunnelConfig struct {
 	// Mode indicates EdgeTunnel running mode
 	// do not allow users to configure manually
 	// options: ServerAndClient, ClientOnly
-	Mode defaults.TunnelMode
+	Mode defaults.TunnelMode `json:"mode,omitempty"`
 	// NodeName indicates the node name of EdgeTunnel
 	// do not allow users to configure manually
-	NodeName string
+	NodeName string `json:"nodeName,omitempty"`
 	// ListenPort indicates the listen port of EdgeTunnel
 	// default 20006
 	ListenPort int `json:"listenPort,omitempty"`

@@ -1,11 +1,13 @@
 package validation
 
 import (
+	"path/filepath"
+
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
-	"github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1/validation"
+	utilvalidation "github.com/kubeedge/kubeedge/pkg/util/validation"
 )
 
 func ValidateEdgeMeshAgentConfiguration(c *v1alpha1.EdgeMeshAgentConfig) field.ErrorList {
@@ -25,7 +27,12 @@ func ValidateEdgeMeshGatewayConfiguration(c *v1alpha1.EdgeMeshGatewayConfig) fie
 
 func ValidateKubeAPIConfig(c *v1alpha1.KubeAPIConfig) field.ErrorList {
 	allErrs := field.ErrorList{}
-	validation.ValidateKubeAPIConfig(c.KubeAPIConfig)
+	if c.KubeConfig != "" && !filepath.IsAbs(c.KubeConfig) {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("kubeconfig"), c.KubeConfig, "kubeconfig need abs path"))
+	}
+	if c.KubeConfig != "" && !utilvalidation.FileIsExist(c.KubeConfig) {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("kubeconfig"), c.KubeConfig, "kubeconfig not exist"))
+	}
 	// TODO validate metaServerAddress
 	return allErrs
 }
