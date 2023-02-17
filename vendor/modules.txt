@@ -239,8 +239,6 @@ github.com/kubeedge/beehive/pkg/core/model
 ## explicit
 github.com/kubeedge/kubeedge/cloud/pkg/devicecontroller/types
 github.com/kubeedge/kubeedge/common/constants
-github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1
-github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1/validation
 github.com/kubeedge/kubeedge/pkg/apis/devices/v1alpha2
 github.com/kubeedge/kubeedge/pkg/apis/rules/v1
 github.com/kubeedge/kubeedge/pkg/util

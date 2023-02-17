@@ -9,18 +9,15 @@ import (
 
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/kubeedge/common/constants"
-	cloudcorev1alpha1 "github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1"
 )
 
 var defaultKubeConfig = &KubeAPIConfig{
-	KubeAPIConfig: cloudcorev1alpha1.KubeAPIConfig{
-		Master:      "",
-		ContentType: runtime.ContentTypeProtobuf,
-		QPS:         constants.DefaultKubeQPS,
-		Burst:       constants.DefaultKubeBurst,
-		KubeConfig:  "",
-	},
-	Mode: defaults.ManualMode,
+	Master:      "",
+	ContentType: runtime.ContentTypeProtobuf,
+	QPS:         constants.DefaultKubeQPS,
+	Burst:       constants.DefaultKubeBurst,
+	KubeConfig:  "",
+	Mode:        defaults.ManualMode,
 	MetaServer: &MetaServer{
 		Server: defaults.MetaServerAddress,
 		Security: &MetaServerSecurity{
