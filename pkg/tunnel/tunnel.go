@@ -20,6 +20,7 @@ import (
 	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 	"github.com/libp2p/go-msgio/protoio"
 	ma "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr/net"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 
@@ -40,6 +41,17 @@ const (
 )
 
 type RelayMap map[string]*peer.AddrInfo
+
+func (r RelayMap) ContainsPublicIP() bool {
+	for _, p := range r {
+		for _, addr := range p.Addrs {
+			if manet.IsPublicAddr(addr) {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 // discoveryNotifee implement mdns interface
 type discoveryNotifee struct {
@@ -390,7 +402,6 @@ func tryDialEndpoint(protocol, ip string, port int) (conn net.Conn, err error) {
 
 // BootstrapConnect tries to connect to a list of bootstrap peers in a relay map.
 // The function runs a loop to attempt connecting to each peer, and will retry if some peers fail to connect.
-// If a peer fails to connect, it is removed from the relay map.
 // The function returns an error if it fails to connect to all bootstrap peers after a certain period of time.
 func BootstrapConnect(ctx context.Context, ph p2phost.Host, bootstrapPeers RelayMap) error {
 	var lock sync.Mutex
@@ -427,10 +438,8 @@ func BootstrapConnect(ctx context.Context, ph p2phost.Host, bootstrapPeers Relay
 		return true, nil
 	})
 
-	// delete bad relay from relayMap
 	for _, bad := range badRelays {
-		klog.Warningf("[Bootstrap] bootstrapping to %s : %s timeout, delete it from relayMap", bad, bootstrapPeers[bad])
-		delete(bootstrapPeers, bad)
+		klog.Warningf("[Bootstrap] bootstrapping to %s : %s timeout", bad, bootstrapPeers[bad])
 	}
 	return err
 }
@@ -472,6 +481,7 @@ func (t *EdgeTunnel) runRelayFinder(ddht *dual.DHT, peerSource chan peer.AddrInf
 		for _, relay := range t.relayMap {
 			select {
 			case peerSource <- *relay:
+				klog.Infoln("[Finder] send relayMap peer:", relay)
 			case <-t.hostCtx.Done():
 				return
 			}

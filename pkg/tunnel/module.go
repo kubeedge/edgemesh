@@ -79,7 +79,7 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 	}
 
 	if c.EnableIpfsLog {
-		ipfslog.SetAllLoggers(ipfslog.LevelInfo)
+		ipfslog.SetAllLoggers(ipfslog.LevelDebug)
 	}
 
 	ctx := context.Background()
@@ -113,6 +113,20 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 			maddrs = append(maddrs, myInfo.Addrs...)
 			return maddrs
 		}))
+	}
+
+	// If the relayMap does not contain any public IP, NATService will not be able to assist this non-relay node to
+	// identify its own network(public, private or unknown), so it needs to configure libp2p.ForceReachabilityPrivate()
+	if !isRelay && !relayMap.ContainsPublicIP() {
+		klog.Infof("Configure libp2p.ForceReachabilityPrivate()")
+		opts = append(opts, libp2p.ForceReachabilityPrivate())
+	}
+
+	relayNums := len(relayMap)
+	if c.MaxCandidates < relayNums {
+		klog.Infof("MaxCandidates=%d is less than len(relayMap)=%d, set MaxCandidates to len(relayMap)",
+			c.MaxCandidates, relayNums)
+		c.MaxCandidates = relayNums
 	}
 
 	// configures libp2p to use the given private network protector
