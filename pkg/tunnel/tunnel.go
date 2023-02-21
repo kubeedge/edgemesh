@@ -118,6 +118,7 @@ func (t *EdgeTunnel) discovery(discoverType defaults.DiscoveryType, pi peer.Addr
 	if pi.ID == t.p2pHost.ID() {
 		return
 	}
+	klog.Infof("[%s] Discovery found peer: %s", discoverType, pi)
 
 	// If dht discovery finds a non-relay peer, add the circuit address to this peer.
 	// This is done to avoid delays in RESERVATION https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md.
@@ -128,10 +129,9 @@ func (t *EdgeTunnel) discovery(discoverType defaults.DiscoveryType, pi peer.Addr
 			klog.Errorf("Failed to add circuit addrs to peer %s", addrInfo)
 			return
 		}
-		t.p2pHost.Peerstore().AddAddrs(pi.ID, addrInfo.Addrs, peerstore.TempAddrTTL)
+		t.p2pHost.Peerstore().AddAddrs(pi.ID, addrInfo.Addrs, peerstore.PermanentAddrTTL)
 	}
 
-	klog.Infof("[%s] Discovery found peer: %s", discoverType, t.p2pHost.Peerstore().PeerInfo(pi.ID))
 	stream, err := t.p2pHost.NewStream(network.WithUseTransient(t.hostCtx, "relay"), pi.ID, defaults.DiscoveryProtocol)
 	if err != nil {
 		klog.Errorf("[%s] New stream between peer %s err: %v", discoverType, pi, err)
@@ -252,7 +252,7 @@ func (t *EdgeTunnel) GetProxyStream(opts ProxyOptions) (*StreamConn, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to add circuit addrs to peer %s", destInfo)
 		}
-		t.p2pHost.Peerstore().AddAddrs(destInfo.ID, destInfo.Addrs, peerstore.TempAddrTTL)
+		t.p2pHost.Peerstore().AddAddrs(destInfo.ID, destInfo.Addrs, peerstore.PermanentAddrTTL)
 		// mapping nodeName and peerID
 		klog.Infof("Could not find peer %s in cache, auto generate peer info: %s", destName, t.p2pHost.Peerstore().PeerInfo(destID))
 		t.nodePeerMap[destName] = destID
