@@ -132,6 +132,11 @@ func (t *EdgeTunnel) discovery(discoverType defaults.DiscoveryType, pi peer.Addr
 		t.p2pHost.Peerstore().AddAddrs(pi.ID, addrInfo.Addrs, peerstore.PermanentAddrTTL)
 	}
 
+	if err := t.p2pHost.Connect(t.hostCtx, pi); err != nil {
+		klog.Errorf("[%s] Failed to connect to %s, err: %v", discoverType, pi, err)
+		return
+	}
+
 	stream, err := t.p2pHost.NewStream(network.WithUseTransient(t.hostCtx, "relay"), pi.ID, defaults.DiscoveryProtocol)
 	if err != nil {
 		klog.Errorf("[%s] New stream between peer %s err: %v", discoverType, pi, err)
