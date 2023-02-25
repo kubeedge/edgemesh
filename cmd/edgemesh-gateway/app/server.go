@@ -33,8 +33,8 @@ func NewEdgeMeshGatewayCommand() *cobra.Command {
 		Long: `edgemesh-gateway is the ingress gateway component of EdgeMesh.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			verflag.PrintAndExitIfRequested()
-			flag.PrintMinConfigAndExitIfRequested(v1alpha1.NewDefaultEdgeMeshGatewayConfig())
-			flag.PrintDefaultConfigAndExitIfRequested(v1alpha1.NewDefaultEdgeMeshGatewayConfig())
+			flag.PrintMinConfigAndExitIfRequested(v1alpha1.NewDefaultEdgeMeshGatewayConfig(""))
+			flag.PrintDefaultConfigAndExitIfRequested(v1alpha1.NewDefaultEdgeMeshGatewayConfig(""))
 			flag.PrintFlags(cmd.Flags())
 
 			if errs := opts.Validate(); len(errs) > 0 {

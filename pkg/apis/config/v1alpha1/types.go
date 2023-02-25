@@ -273,6 +273,8 @@ type EdgeTunnelConfig struct {
 	PSK *PSK `json:"psk,omitempty"`
 	// TunnelLimitConfig configures tunnel stream limit
 	TunnelLimitConfig *TunnelLimitConfig `json:"tunnelLimitConfig,omitempty"`
+	// ConfigPath indicates the config file path
+	ConfigPath string `json:"configPath,omitempty"`
 }
 
 type RelayNode struct {
