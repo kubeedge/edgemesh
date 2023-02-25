@@ -56,7 +56,7 @@ func (o *EdgeMeshGatewayOptions) Parse(cfg *v1alpha1.EdgeMeshGatewayConfig) erro
 
 // Config generates *v1alpha1.EdgeMeshGatewayConfig
 func (o *EdgeMeshGatewayOptions) Config() (*v1alpha1.EdgeMeshGatewayConfig, error) {
-	cfg := v1alpha1.NewDefaultEdgeMeshGatewayConfig()
+	cfg := v1alpha1.NewDefaultEdgeMeshGatewayConfig(o.ConfigFile)
 	if err := o.Parse(cfg); err != nil {
 		return nil, err
 	}

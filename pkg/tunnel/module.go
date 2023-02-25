@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	ipfslog "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
@@ -41,6 +42,7 @@ type EdgeTunnel struct {
 	relayService     *relayv2.Relay
 	holepunchService *holepunch.Service
 	stopCh           chan struct{}
+	cfgWatcher       *fsnotify.Watcher
 }
 
 // Name of EdgeTunnel
@@ -219,6 +221,16 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 		return nil, fmt.Errorf("init dht discovery error: %w", err)
 	}
 
+	// init config watcher
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return nil, fmt.Errorf("init config watcher errror: %w", err)
+	}
+	err = watcher.Add(c.ConfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add watch in %s, err: %w", c.ConfigPath, err)
+	}
+
 	edgeTunnel := &EdgeTunnel{
 		Config:           c,
 		p2pHost:          h,
@@ -231,6 +243,7 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 		relayService:     relayService,
 		holepunchService: holepunchService,
 		stopCh:           make(chan struct{}),
+		cfgWatcher:       watcher,
 	}
 
 	// run relay finder

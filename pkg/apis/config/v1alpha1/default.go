@@ -39,31 +39,34 @@ var defaultLoadBalancerConfig = &LoadBalancer{
 	},
 }
 
-var defaultEdgeTunnelConfig = &EdgeTunnelConfig{
-	Enable:          false,
-	Mode:            defaults.ServerClientMode,
-	ListenPort:      20006,
-	Transport:       "tcp",
-	Rendezvous:      defaults.Rendezvous,
-	EnableIpfsLog:   false,
-	MaxCandidates:   5,
-	HeartbeatPeriod: 120,
-	FinderPeriod:    60,
-	PSK: &PSK{
-		Enable: true,
-		Path:   defaults.PSKPath,
-	},
-	TunnelLimitConfig: &TunnelLimitConfig{
-		Enable:                  true,
-		TunnelBaseStreamIn:      defaults.TunnelBaseStreamIn,
-		TunnelBaseStreamOut:     defaults.TunnelBaseStreamOut,
-		TunnelPeerBaseStreamIn:  defaults.TunnelPeerBaseStreamIn,
-		TunnelPeerBaseStreamOut: defaults.TunnelPeerBaseStreamOut,
-	},
+func newDefaultEdgeTunnelConfig(configPath string) *EdgeTunnelConfig {
+	return &EdgeTunnelConfig{
+		Enable:          false,
+		Mode:            defaults.ServerClientMode,
+		ListenPort:      20006,
+		Transport:       "tcp",
+		Rendezvous:      defaults.Rendezvous,
+		EnableIpfsLog:   false,
+		MaxCandidates:   15,
+		HeartbeatPeriod: 120,
+		FinderPeriod:    60,
+		PSK: &PSK{
+			Enable: true,
+			Path:   defaults.PSKPath,
+		},
+		TunnelLimitConfig: &TunnelLimitConfig{
+			Enable:                  true,
+			TunnelBaseStreamIn:      defaults.TunnelBaseStreamIn,
+			TunnelBaseStreamOut:     defaults.TunnelBaseStreamOut,
+			TunnelPeerBaseStreamIn:  defaults.TunnelPeerBaseStreamIn,
+			TunnelPeerBaseStreamOut: defaults.TunnelPeerBaseStreamOut,
+		},
+		ConfigPath: configPath,
+	}
 }
 
 // NewDefaultEdgeMeshAgentConfig returns a full EdgeMeshAgentConfig object
-func NewDefaultEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
+func NewDefaultEdgeMeshAgentConfig(configPath string) *EdgeMeshAgentConfig {
 	c := &EdgeMeshAgentConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "EdgeMeshAgent",
@@ -93,7 +96,7 @@ func NewDefaultEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 				},
 				LoadBalancer: defaultLoadBalancerConfig,
 			},
-			EdgeTunnelConfig: defaultEdgeTunnelConfig,
+			EdgeTunnelConfig: newDefaultEdgeTunnelConfig(configPath),
 		},
 	}
 
@@ -102,7 +105,7 @@ func NewDefaultEdgeMeshAgentConfig() *EdgeMeshAgentConfig {
 }
 
 // NewDefaultEdgeMeshGatewayConfig returns a full EdgeMeshGatewayConfig object
-func NewDefaultEdgeMeshGatewayConfig() *EdgeMeshGatewayConfig {
+func NewDefaultEdgeMeshGatewayConfig(configPath string) *EdgeMeshGatewayConfig {
 	c := &EdgeMeshGatewayConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "EdgeMeshGateway",
@@ -117,7 +120,7 @@ func NewDefaultEdgeMeshGatewayConfig() *EdgeMeshGatewayConfig {
 				ExcludeIP:    "*",
 				LoadBalancer: defaultLoadBalancerConfig,
 			},
-			EdgeTunnelConfig: defaultEdgeTunnelConfig,
+			EdgeTunnelConfig: newDefaultEdgeTunnelConfig(configPath),
 		},
 	}
 
