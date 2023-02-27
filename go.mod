@@ -7,6 +7,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2
 	github.com/coredns/caddy v1.1.0
 	github.com/coredns/coredns v1.8.0
+	github.com/fsnotify/fsnotify v1.5.4
 	github.com/golang/protobuf v1.5.2
 	github.com/ipfs/go-datastore v0.5.1
 	github.com/ipfs/go-log/v2 v2.5.1

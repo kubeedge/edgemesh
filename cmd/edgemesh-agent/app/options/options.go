@@ -56,7 +56,7 @@ func (o *EdgeMeshAgentOptions) Parse(cfg *v1alpha1.EdgeMeshAgentConfig) error {
 
 // Config generates *v1alpha1.EdgeMeshAgentConfig
 func (o *EdgeMeshAgentOptions) Config() (*v1alpha1.EdgeMeshAgentConfig, error) {
-	cfg := v1alpha1.NewDefaultEdgeMeshAgentConfig()
+	cfg := v1alpha1.NewDefaultEdgeMeshAgentConfig(o.ConfigFile)
 	if err := o.Parse(cfg); err != nil {
 		return nil, err
 	}
