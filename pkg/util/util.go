@@ -62,7 +62,7 @@ func UpdateKubeConfig(c *v1alpha1.KubeAPIConfig) error {
 
 	data, err := yaml.Marshal(kubeConfig)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	f, err := os.OpenFile(kubeConfigPath, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0666)
