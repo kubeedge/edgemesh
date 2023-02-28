@@ -100,7 +100,7 @@ func NewDefaultEdgeMeshAgentConfig(configPath string) *EdgeMeshAgentConfig {
 		},
 	}
 
-	preConfigAgent(c, detectRunningMode())
+	preConfigAgent(c, DetectRunningMode())
 	return c
 }
 
@@ -124,7 +124,7 @@ func NewDefaultEdgeMeshGatewayConfig(configPath string) *EdgeMeshGatewayConfig {
 		},
 	}
 
-	preConfigGateway(c, detectRunningMode())
+	preConfigGateway(c, DetectRunningMode())
 	return c
 }
 
@@ -132,7 +132,7 @@ func NewDefaultEdgeMeshGatewayConfig(configPath string) *EdgeMeshGatewayConfig {
 // It will recognize whether there is KUBERNETES_PORT in the container environment variable, because
 // edged will not inject KUBERNETES_PORT environment variable into the container, but kubelet will.
 // What is edged: https://kubeedge.io/en/docs/architecture/edge/edged/
-func detectRunningMode() defaults.RunningMode {
+func DetectRunningMode() defaults.RunningMode {
 	_, exist := os.LookupEnv("KUBERNETES_PORT")
 	if exist {
 		return defaults.CloudMode
