@@ -73,6 +73,9 @@ type KubeAPIConfig struct {
 	Mode defaults.RunningMode `json:"mode,omitempty"`
 	// MetaServer indicates the config of EdgeCore's metaServer module
 	MetaServer *MetaServer `json:"metaServer,omitempty"`
+	// DeleteKubeConfig indicates whether to delete the kubeConfig file, in order to improve security
+	// default false
+	DeleteKubeConfig bool `json:"deleteKubeConfig,omitempty"`
 }
 
 // MetaServer indicates the config of EdgeCore's metaServer module
@@ -274,6 +277,7 @@ type EdgeTunnelConfig struct {
 	// TunnelLimitConfig configures tunnel stream limit
 	TunnelLimitConfig *TunnelLimitConfig `json:"tunnelLimitConfig,omitempty"`
 	// ConfigPath indicates the config file path
+	// do not allow users to configure manually
 	ConfigPath string `json:"configPath,omitempty"`
 }
 

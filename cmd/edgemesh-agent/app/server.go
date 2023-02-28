@@ -140,10 +140,15 @@ func prepareRun(c *v1alpha1.EdgeMeshAgentConfig) error {
 			if c.KubeAPIConfig.MetaServer.Security.RequireAuthorization {
 				c.KubeAPIConfig.MetaServer.Server = strings.ReplaceAll(c.KubeAPIConfig.MetaServer.Server, "http://", "https://")
 			}
-			err := util.UpdateKubeConfig(c.KubeAPIConfig)
-			if err != nil {
-				return fmt.Errorf("failed to update kubeConfig: %w", err)
+			// Create a kubeConfig file on local path for subsequent builds of K8s
+			// client-go's kubeClient. If it already exists, we don't create it again.
+			if _, err := os.Stat(defaults.TempKubeConfigPath); err != nil && os.IsNotExist(err) {
+				err = util.SaveKubeConfigFile(util.GenerateKubeClientConfig(c.KubeAPIConfig))
+				if err != nil {
+					return fmt.Errorf("failed to create kubeConfig: %w", err)
+				}
 			}
+			c.KubeAPIConfig.KubeConfig = defaults.TempKubeConfigPath
 		}
 	}
 

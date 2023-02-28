@@ -28,6 +28,7 @@ var defaultKubeConfig = &KubeAPIConfig{
 			TLSPrivateKeyFile:     defaults.MetaServerKeyFile,
 		},
 	},
+	DeleteKubeConfig: false,
 }
 
 var defaultLoadBalancerConfig = &LoadBalancer{
