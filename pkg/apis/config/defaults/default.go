@@ -24,6 +24,7 @@ const (
 	BridgeDeviceName = "edgemesh0"
 	BridgeDeviceIP   = "169.254.96.16"
 
+	TempKubeConfigPath = "/kubeconfig"
 	MetaServerAddress  = "http://127.0.0.1:10550"
 	MetaServerCertDir  = BaseDir + "metaserver/"
 	MetaServerCaFile   = MetaServerCertDir + "rootCA.crt"

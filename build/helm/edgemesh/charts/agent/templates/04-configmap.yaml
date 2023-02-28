@@ -49,6 +49,9 @@ data:
           {{- end }}
         {{- end }}
       {{- end }}
+      {{- if .Values.kubeAPIConfig.deleteKubeConfig }}
+      deleteKubeConfig: {{ .Values.kubeAPIConfig.deleteKubeConfig }}
+      {{- end }}
     {{- end }}
     {{- if .Values.commonConfig }}
     commonConfig:

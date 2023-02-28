@@ -57,6 +57,7 @@ kubeAPIConfig:
       tlsCaFile: /etc/edgemesh/metaserver/rootCA.crt
       tlsCertFile: /etc/edgemesh/metaserver/server.crt
       tlsPrivateKeyFile: /etc/edgemesh/metaserver/server.key
+  deleteKubeConfig: false
 commonConfig:
   bridgeDeviceName: edgemesh0
   bridgeDeviceIP: 169.254.96.16
@@ -129,6 +130,7 @@ kubeAPIConfig:
       tlsCaFile: /etc/edgemesh/metaserver/rootCA.crt
       tlsCertFile: /etc/edgemesh/metaserver/server.crt
       tlsPrivateKeyFile: /etc/edgemesh/metaserver/server.key
+  deleteKubeConfig: false
 modules:
   edgeGateway:
     enable: false

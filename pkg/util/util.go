@@ -7,19 +7,18 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
+	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
 )
 
 const (
-	clusterName    = "kubeedge-cluster"
-	contextName    = "kubeedge-context"
-	userName       = "edgemesh"
-	kubeConfigPath = "/kubeconfig"
-	saTokenPath    = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	clusterName = "kubeedge-cluster"
+	contextName = "kubeedge-context"
+	userName    = "edgemesh"
+	saTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 )
 
-// UpdateKubeConfig generate a kubeconfig file and set KubeConfig
-func UpdateKubeConfig(c *v1alpha1.KubeAPIConfig) error {
+func GenerateKubeClientConfig(c *v1alpha1.KubeAPIConfig) *clientcmdv1.Config {
 	namedCluster := clientcmdv1.NamedCluster{
 		Name: clusterName,
 		Cluster: clientcmdv1.Cluster{
@@ -50,7 +49,7 @@ func UpdateKubeConfig(c *v1alpha1.KubeAPIConfig) error {
 		}
 	}
 
-	kubeConfig := clientcmdv1.Config{
+	return &clientcmdv1.Config{
 		APIVersion:     "v1",
 		Kind:           "Config",
 		Clusters:       []clientcmdv1.NamedCluster{namedCluster},
@@ -59,13 +58,15 @@ func UpdateKubeConfig(c *v1alpha1.KubeAPIConfig) error {
 		Preferences:    clientcmdv1.Preferences{},
 		AuthInfos:      []clientcmdv1.NamedAuthInfo{namedAuthInfo},
 	}
+}
 
-	data, err := yaml.Marshal(kubeConfig)
+func SaveKubeConfigFile(kubeClientConfig *clientcmdv1.Config) error {
+	data, err := yaml.Marshal(kubeClientConfig)
 	if err != nil {
 		return err
 	}
 
-	f, err := os.OpenFile(kubeConfigPath, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0666)
+	f, err := os.OpenFile(defaults.TempKubeConfigPath, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
@@ -81,6 +82,5 @@ func UpdateKubeConfig(c *v1alpha1.KubeAPIConfig) error {
 		return err
 	}
 
-	c.KubeConfig = kubeConfigPath
 	return nil
 }
