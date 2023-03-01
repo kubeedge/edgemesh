@@ -54,8 +54,12 @@ func (gw *EdgeGateway) Start() {
 		return
 	}
 
-	// TODO graceful shutdown
 	<-beehiveContext.Done()
+}
+
+// Shutdown edgegateway
+func (gw *EdgeGateway) Shutdown() {
+	// TODO graceful shutdown
 }
 
 // Register register edgegateway to beehive modules

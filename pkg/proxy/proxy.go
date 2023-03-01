@@ -20,10 +20,5 @@ func (proxy *EdgeProxy) Run() {
 		return
 	}
 
-	// TODO graceful shutdown
 	<-beehiveContext.Done()
-	err = proxy.ProxyServer.CleanupAndExit()
-	if err != nil {
-		klog.ErrorS(err, "Cleanup iptables failed")
-	}
 }
