@@ -1,6 +1,8 @@
 package dns
 
 import (
+	"os"
+
 	"github.com/coredns/caddy"
 	"github.com/coredns/coredns/coremain"
 
@@ -25,6 +27,8 @@ import (
 	_ "github.com/coredns/coredns/plugin/trace"
 	_ "github.com/coredns/coredns/plugin/whoami"
 	"k8s.io/klog/v2"
+
+	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 )
 
 func (d *EdgeDNS) Run() {
@@ -41,5 +45,12 @@ func (d *EdgeDNS) Run() {
 	if err != nil {
 		klog.Exit(err)
 	}
+
+	if d.Config.KubeAPIConfig.DeleteKubeConfig {
+		if err = os.Remove(defaults.TempKubeConfigPath); err != nil {
+			klog.Errorf("Failed to delete %s", defaults.TempKubeConfigPath)
+		}
+	}
+
 	instance.Wait()
 }
