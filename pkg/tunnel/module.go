@@ -65,6 +65,10 @@ func (t *EdgeTunnel) Start() {
 	t.Run()
 }
 
+func (t *EdgeTunnel) Shutdown() {
+	close(t.stopCh)
+}
+
 // Register register EdgeTunnel to beehive modules
 func Register(c *v1alpha1.EdgeTunnelConfig) error {
 	agent, err := newEdgeTunnel(c)

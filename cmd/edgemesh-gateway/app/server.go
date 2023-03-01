@@ -16,6 +16,7 @@ import (
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1/validation"
+	"github.com/kubeedge/edgemesh/pkg/apis/module"
 	"github.com/kubeedge/edgemesh/pkg/clients"
 	"github.com/kubeedge/edgemesh/pkg/gateway"
 	"github.com/kubeedge/edgemesh/pkg/tunnel"
@@ -82,6 +83,8 @@ func NewEdgeMeshGatewayCommand() *cobra.Command {
 
 // Run runs edgemesh-gateway
 func Run(cfg *v1alpha1.EdgeMeshGatewayConfig) error {
+	klog.Infof("edgemesh-gateway exited")
+
 	trace := 1
 
 	klog.Infof("[%d] Prepare gateway to run", trace)
@@ -104,10 +107,16 @@ func Run(cfg *v1alpha1.EdgeMeshGatewayConfig) error {
 	}
 	trace++
 
+	klog.Infof("[%d] Cache beehive modules", trace)
+	if err = module.Initialize(core.GetModules()); err != nil {
+		return err
+	}
+	defer module.Shutdown()
+	trace++
+
 	klog.Infof("[%d] Start all modules", trace)
 	core.Run()
 
-	klog.Infof("edgemesh-gateway exited")
 	return nil
 }
 

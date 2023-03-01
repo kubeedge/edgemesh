@@ -3,6 +3,8 @@ package proxy
 import (
 	"fmt"
 
+	"k8s.io/klog/v2"
+
 	"github.com/kubeedge/beehive/pkg/core"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
@@ -35,6 +37,14 @@ func (proxy *EdgeProxy) Enable() bool {
 // Start edgeproxy
 func (proxy *EdgeProxy) Start() {
 	proxy.Run()
+}
+
+// Shutdown edgeproxy
+func (proxy *EdgeProxy) Shutdown() {
+	err := proxy.ProxyServer.CleanupAndExit()
+	if err != nil {
+		klog.ErrorS(err, "Cleanup iptables failed")
+	}
 }
 
 // Register register edgeproxy to beehive modules
