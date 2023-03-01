@@ -16,6 +16,7 @@ import (
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1/validation"
+	"github.com/kubeedge/edgemesh/pkg/apis/module"
 	"github.com/kubeedge/edgemesh/pkg/clients"
 	"github.com/kubeedge/edgemesh/pkg/dns"
 	"github.com/kubeedge/edgemesh/pkg/proxy"
@@ -84,6 +85,8 @@ func NewEdgeMeshAgentCommand() *cobra.Command {
 
 // Run runs edgemesh-agent
 func Run(cfg *v1alpha1.EdgeMeshAgentConfig) error {
+	defer klog.Infof("edgemesh-agent exited")
+
 	trace := 1
 
 	klog.Infof("[%d] Prepare agent to run", trace)
@@ -106,10 +109,16 @@ func Run(cfg *v1alpha1.EdgeMeshAgentConfig) error {
 	}
 	trace++
 
+	klog.Infof("[%d] Cache beehive modules", trace)
+	if err = module.Initialize(core.GetModules()); err != nil {
+		return err
+	}
+	defer module.Shutdown()
+	trace++
+
 	klog.Infof("[%d] Start all modules", trace)
 	core.Run()
 
-	klog.Infof("edgemesh-agent exited")
 	return nil
 }
 
