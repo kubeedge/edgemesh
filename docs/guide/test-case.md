@@ -201,7 +201,7 @@ deployment.apps/busybox-sleep-edge created
 **Cloud access edge**
 
 ```shell
-$ BUSYBOX_POD=$(kubectl get all -n cloudzone | grep pod/busybox | awk '{print $1}')
+$ export BUSYBOX_POD=$(kubectl get all -n cloudzone | grep pod/busybox | awk '{print $1}')
 $ kubectl -n cloudzone exec $BUSYBOX_POD -c busybox -i -t -- sh
 $ telnet tcp-echo-edge-svc.edgezone 2701
 Welcome, you are connected to node ke-edge1.
@@ -218,7 +218,7 @@ Hello Edge, I am Cloud.
 At the edge node, use `telnet` to access the service
 
 ```shell
-$ BUSYBOX_CID=$(docker ps | grep k8s_busybox_busybox-sleep-edge | awk '{print $1}')
+$ export BUSYBOX_CID=$(docker ps | grep k8s_busybox_busybox-sleep-edge | awk '{print $1}')
 $ docker exec -it $BUSYBOX_CID sh
 $ telnet tcp-echo-cloud-svc.cloudzone 2701
 Welcome, you are connected to node k8s-master.
