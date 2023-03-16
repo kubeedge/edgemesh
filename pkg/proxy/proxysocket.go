@@ -93,7 +93,7 @@ func (tcp *tcpProxySocket) ProxyLoop(service proxy.ServicePortName, myInfo *user
 			continue
 		}
 		klog.V(3).InfoS("Accepted TCP connection from remote", "remoteAddress", inConn.RemoteAddr(), "localAddress", inConn.LocalAddr())
-		outConn, err := internalLoadBalancer.TryConnectEndpoints(service, inConn.RemoteAddr(), "tcp", inConn)
+		outConn, err := internalLoadBalancer.TryConnectEndpoints(service, inConn.RemoteAddr(), "tcp", inConn, nil)
 		if err != nil {
 			klog.ErrorS(err, "Failed to connect to balancer")
 			err = inConn.Close()
@@ -179,7 +179,7 @@ func (udp *udpProxySocket) getBackendConn(activeClients *userspace.ClientCache, 
 		// and keep accepting inbound traffic.
 		klog.V(3).InfoS("New UDP connection from client", "address", cliAddr)
 		var err error
-		svrConn, err = internalLoadBalancer.TryConnectEndpoints(service, cliAddr, "udp", nil)
+		svrConn, err = internalLoadBalancer.TryConnectEndpoints(service, cliAddr, "udp", nil, nil)
 		if err != nil {
 			return nil, err
 		}

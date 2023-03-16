@@ -13,8 +13,6 @@ import (
 	networkingv1alpha3 "istio.io/api/networking/v1alpha3"
 	istioapi "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"k8s.io/klog/v2"
-
-	netutil "github.com/kubeedge/edgemesh/pkg/util/net"
 )
 
 // HTTP http
@@ -32,15 +30,9 @@ func (p *HTTP) Process() {
 		// parse http request
 		req, err := http.ReadRequest(bufio.NewReader(p.Conn))
 		if err != nil {
-			if errors.Is(err, io.EOF) {
-				klog.Infof("read http request EOF")
-				err = p.Conn.Close()
-				if err != nil {
-					klog.Errorf("close conn err: %v", err)
-				}
-				return
+			if !errors.Is(err, io.EOF) {
+				klog.Errorf("read http request err: %v", err)
 			}
-			klog.Errorf("read http request err: %v", err)
 			err = p.Conn.Close()
 			if err != nil {
 				klog.Errorf("close conn err: %v", err)
@@ -70,22 +62,13 @@ func (p *HTTP) Process() {
 			}
 		}
 
-		reqBytes, err := netutil.HttpRequestToBytes(req)
-		if err != nil {
-			klog.Errorf("request convert to bytes error: %v", err)
-			err = p.Conn.Close()
-			if err != nil {
-				klog.Errorf("close conn err: %v", err)
-			}
-			return
-		}
-
+		// passthrough
 		httpToTcp := &TCP{
 			Conn:         p.Conn,
 			SvcNamespace: p.SvcNamespace,
 			SvcName:      p.SvcName,
 			SvcPort:      p.SvcPort,
-			UpgradeReq:   reqBytes,
+			UpgradeReq:   req,
 		}
 		httpToTcp.Process()
 	}

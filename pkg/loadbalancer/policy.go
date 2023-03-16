@@ -27,7 +27,7 @@ const (
 type Policy interface {
 	Name() string
 	Update(oldDr, dr *istioapi.DestinationRule)
-	Pick(endpoints []string, srcAddr net.Addr, tcpConn net.Conn) (string, *http.Request, error)
+	Pick(endpoints []string, srcAddr net.Addr, tcpConn net.Conn, cliReq *http.Request) (string, *http.Request, error)
 	Sync(endpoints []string)
 	Release()
 }
@@ -46,7 +46,7 @@ func (*RoundRobinPolicy) Name() string {
 
 func (*RoundRobinPolicy) Update(oldDr, dr *istioapi.DestinationRule) {}
 
-func (*RoundRobinPolicy) Pick(endpoints []string, srcAddr net.Addr, netConn net.Conn) (string, *http.Request, error) {
+func (*RoundRobinPolicy) Pick(endpoints []string, srcAddr net.Addr, netConn net.Conn, cliReq *http.Request) (string, *http.Request, error) {
 	// RoundRobinPolicy is an empty implementation and we won't use it,
 	// the outer round-robin policy will be used next.
 	return "", nil, fmt.Errorf("call RoundRobinPolicy is forbidden")
@@ -70,7 +70,7 @@ func (rd *RandomPolicy) Name() string {
 
 func (rd *RandomPolicy) Update(oldDr, dr *istioapi.DestinationRule) {}
 
-func (rd *RandomPolicy) Pick(endpoints []string, srcAddr net.Addr, netConn net.Conn) (string, *http.Request, error) {
+func (rd *RandomPolicy) Pick(endpoints []string, srcAddr net.Addr, netConn net.Conn, cliReq *http.Request) (string, *http.Request, error) {
 	rd.lock.Lock()
 	k := rand.Int() % len(endpoints)
 	rd.lock.Unlock()
@@ -106,17 +106,20 @@ func (ch *ConsistentHashPolicy) Update(oldDr, dr *istioapi.DestinationRule) {
 	ch.lock.Unlock()
 }
 
-func (ch *ConsistentHashPolicy) Pick(endpoints []string, srcAddr net.Addr, netConn net.Conn) (endpoint string, req *http.Request, err error) {
+func (ch *ConsistentHashPolicy) Pick(endpoints []string, srcAddr net.Addr, netConn net.Conn, cliReq *http.Request) (endpoint string, req *http.Request, err error) {
 	ch.lock.Lock()
 	defer ch.lock.Unlock()
 
+	req = cliReq
 	var keyValue string
 	switch ch.hashKey.Type {
 	case HttpHeader:
-		req, err = http.ReadRequest(bufio.NewReader(netConn))
-		if err != nil {
-			klog.Errorf("read http request err: %v", err)
-			return "", nil, err
+		if req == nil {
+			req, err = http.ReadRequest(bufio.NewReader(netConn))
+			if err != nil {
+				klog.Errorf("read http request err: %v", err)
+				return "", nil, err
+			}
 		}
 		keyValue = req.Header.Get(ch.hashKey.Key)
 	case UserSourceIP:
