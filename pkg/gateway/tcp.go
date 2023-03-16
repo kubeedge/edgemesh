@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"net"
+	"net/http"
 
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
@@ -14,7 +15,7 @@ type TCP struct {
 	SvcName      string
 	SvcNamespace string
 	SvcPort      int
-	UpgradeReq   []byte
+	UpgradeReq   *http.Request
 }
 
 // Process process
@@ -29,7 +30,7 @@ func (p *TCP) Process() {
 	klog.Infof("destination service is %s", svcPort)
 
 	klog.V(3).InfoS("Accepted TCP connection from remote", "remoteAddress", p.Conn.RemoteAddr(), "localAddress", p.Conn.LocalAddr())
-	outConn, err := internalLoadBalancer.TryConnectEndpoints(svcPort, p.Conn.RemoteAddr(), "tcp", p.Conn)
+	outConn, err := internalLoadBalancer.TryConnectEndpoints(svcPort, p.Conn.RemoteAddr(), "tcp", p.Conn, p.UpgradeReq)
 	if err != nil {
 		klog.ErrorS(err, "Failed to connect to balancer")
 		err = p.Conn.Close()
@@ -37,18 +38,6 @@ func (p *TCP) Process() {
 			klog.Errorf("close conn err: %v", err)
 		}
 		return
-	}
-
-	if len(p.UpgradeReq) > 0 {
-		_, err = outConn.Write(p.UpgradeReq)
-		if err != nil {
-			klog.ErrorS(err, "Failed to write UpgradeReq")
-			err = p.Conn.Close()
-			if err != nil {
-				klog.Errorf("close conn err: %v", err)
-			}
-			return
-		}
 	}
 
 	go netutil.ProxyConn(p.Conn, outConn)

@@ -83,7 +83,7 @@ func NewEdgeMeshGatewayCommand() *cobra.Command {
 
 // Run runs edgemesh-gateway
 func Run(cfg *v1alpha1.EdgeMeshGatewayConfig) error {
-	klog.Infof("edgemesh-gateway exited")
+	defer klog.Infof("edgemesh-gateway exited")
 
 	trace := 1
 

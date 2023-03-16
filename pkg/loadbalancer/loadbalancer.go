@@ -581,7 +581,8 @@ func (lb *LoadBalancer) setLoadBalancerPolicy(dr *istioapi.DestinationRule, poli
 }
 
 // TryPickEndpoint try to pick a service endpoint from load-balance strategy.
-func (lb *LoadBalancer) tryPickEndpoint(svcPort proxy.ServicePortName, sessionAffinityEnabled bool, endpoints []string, srcAddr net.Addr, netConn net.Conn) (string, *http.Request, bool) {
+func (lb *LoadBalancer) tryPickEndpoint(svcPort proxy.ServicePortName, sessionAffinityEnabled bool, endpoints []string,
+	srcAddr net.Addr, netConn net.Conn, cliReq *http.Request) (string, *http.Request, bool) {
 	lb.policyMutex.Lock()
 	defer lb.policyMutex.Unlock()
 
@@ -593,14 +594,15 @@ func (lb *LoadBalancer) tryPickEndpoint(svcPort proxy.ServicePortName, sessionAf
 		klog.Warningf("LoadBalancer policy conflicted with sessionAffinity: ClientIP")
 		return "", nil, false
 	}
-	endpoint, req, err := policy.Pick(endpoints, srcAddr, netConn)
+	endpoint, req, err := policy.Pick(endpoints, srcAddr, netConn, cliReq)
 	if err != nil {
 		return "", req, false
 	}
 	return endpoint, req, true
 }
 
-func (lb *LoadBalancer) nextEndpointWithConn(svcPort proxy.ServicePortName, srcAddr net.Addr, sessionAffinityReset bool, netConn net.Conn) (string, *http.Request, error) {
+func (lb *LoadBalancer) nextEndpointWithConn(svcPort proxy.ServicePortName, srcAddr net.Addr, sessionAffinityReset bool,
+	netConn net.Conn, cliReq *http.Request) (string, *http.Request, error) {
 	// Coarse locking is simple. We can get more fine-grained if/when we
 	// can prove it matters.
 	lb.lock.Lock()
@@ -619,7 +621,7 @@ func (lb *LoadBalancer) nextEndpointWithConn(svcPort proxy.ServicePortName, srcA
 
 	// Note: because loadBalance strategy may have read http.Request from inConn,
 	// so here we need to return it to outConn!
-	endpoint, req, picked := lb.tryPickEndpoint(svcPort, sessionAffinityEnabled, state.endpoints, srcAddr, netConn)
+	endpoint, req, picked := lb.tryPickEndpoint(svcPort, sessionAffinityEnabled, state.endpoints, srcAddr, netConn, cliReq)
 	if picked {
 		return endpoint, req, nil
 	}
@@ -665,23 +667,25 @@ func (lb *LoadBalancer) nextEndpointWithConn(svcPort proxy.ServicePortName, srcA
 
 // TryConnectEndpoints attempts to connect to the next available endpoint for the given service, cycling
 // through until it is able to successfully connect, or it has tried with all timeouts in EndpointDialTimeouts.
-func (lb *LoadBalancer) TryConnectEndpoints(service proxy.ServicePortName, srcAddr net.Addr, protocol string, netConn net.Conn) (out net.Conn, err error) {
+func (lb *LoadBalancer) TryConnectEndpoints(service proxy.ServicePortName, srcAddr net.Addr, protocol string,
+	netConn net.Conn, cliReq *http.Request) (out net.Conn, err error) {
 	sessionAffinityReset := false
 	for _, dialTimeout := range userspace.EndpointDialTimeouts {
-		endpoint, req, err := lb.nextEndpointWithConn(service, srcAddr, sessionAffinityReset, netConn)
+		endpoint, req, err := lb.nextEndpointWithConn(service, srcAddr, sessionAffinityReset, netConn, cliReq)
 		if err != nil {
 			klog.ErrorS(err, "Couldn't find an endpoint for service", "service", service)
 			return nil, err
 		}
 		klog.V(3).InfoS("Mapped service to endpoint", "service", service, "endpoint", endpoint)
 		// NOTE: outConn can be a net.Conn(golang) or network.Stream(libp2p)
-		outConn, err := lb.dialEndpoint(protocol, endpoint, dialTimeout)
+		outConn, err := lb.dialEndpoint(protocol, endpoint)
 		if err != nil {
 			if netutil.IsTooManyFDsError(err) {
 				panic("Dial failed: " + err.Error())
 			}
 			klog.ErrorS(err, "Dial failed")
 			sessionAffinityReset = true
+			time.Sleep(dialTimeout)
 			continue
 		}
 		if req != nil {
@@ -699,10 +703,9 @@ func (lb *LoadBalancer) TryConnectEndpoints(service proxy.ServicePortName, srcAd
 }
 
 // dialEndpoint If the endpoint contains node name then try to dial stream conn or try to dial net conn.
-func (lb *LoadBalancer) dialEndpoint(protocol, endpoint string, dialTimeout time.Duration) (net.Conn, error) {
+func (lb *LoadBalancer) dialEndpoint(protocol, endpoint string) (net.Conn, error) {
 	targetNode, targetPod, targetIP, targetPort, ok := parseEndpoint(endpoint)
 	if !ok {
-		time.Sleep(dialTimeout)
 		return nil, fmt.Errorf("invalid endpoint %s", endpoint)
 	}
 
@@ -710,7 +713,7 @@ func (lb *LoadBalancer) dialEndpoint(protocol, endpoint string, dialTimeout time
 	case defaults.EmptyNodeName, lb.Config.NodeName:
 		// TODO: This could spin up a new goroutine to make the outbound connection,
 		// and keep accepting inbound traffic.
-		outConn, err := net.DialTimeout(protocol, net.JoinHostPort(targetIP, targetPort), dialTimeout)
+		outConn, err := net.Dial(protocol, net.JoinHostPort(targetIP, targetPort))
 		if err != nil {
 			return nil, err
 		}
@@ -719,13 +722,11 @@ func (lb *LoadBalancer) dialEndpoint(protocol, endpoint string, dialTimeout time
 	default:
 		targetPort, err := strconv.ParseInt(targetPort, 10, 32)
 		if err != nil {
-			time.Sleep(dialTimeout)
 			return nil, fmt.Errorf("invalid endpoint %s", endpoint)
 		}
 		proxyOpts := tunnel.ProxyOptions{Protocol: protocol, NodeName: targetNode, IP: targetIP, Port: int32(targetPort)}
 		streamConn, err := tunnel.Agent.GetProxyStream(proxyOpts)
 		if err != nil {
-			time.Sleep(dialTimeout)
 			return nil, fmt.Errorf("get proxy stream from %s error: %v", targetNode, err)
 		}
 		klog.Infof("Dial libp2p network between %s - {%s %s %s:%d}", targetPod, protocol, targetNode, targetIP, targetPort)
