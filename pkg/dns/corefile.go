@@ -15,6 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 
+	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
 	netutil "github.com/kubeedge/edgemesh/pkg/util/net"
 )
@@ -42,7 +43,6 @@ const (
     }`
 	defaultTTL            = 30
 	defaultUpstreamServer = "/etc/resolv.conf"
-	corefilePath          = "Corefile"
 	kubeSystem            = "kube-system"
 	coreDNS               = "coredns"
 	kubeDNS               = "kube-dns"
@@ -169,8 +169,8 @@ func UpdateCorefile(cfg *v1alpha1.EdgeDNSConfig, kubeClient kubernetes.Interface
 
 	newConfig := bytes.Buffer{}
 	newConfig.WriteString(stubDomainStr)
-	if err := ioutil.WriteFile(corefilePath, newConfig.Bytes(), 0666); err != nil {
-		return fmt.Errorf("failed to write %s, err %w", corefilePath, err)
+	if err := ioutil.WriteFile(defaults.TempCorefilePath, newConfig.Bytes(), 0666); err != nil {
+		return fmt.Errorf("failed to write %s, err %w", defaults.TempCorefilePath, err)
 	}
 
 	return nil
