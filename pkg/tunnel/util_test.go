@@ -2,6 +2,7 @@ package tunnel
 
 import (
 	"fmt"
+	"net"
 	"reflect"
 	"testing"
 
@@ -268,5 +269,67 @@ func BenchmarkAddCircuitAddrsToPeer(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
+	}
+}
+
+func TestGetIPsFromInterfaces(t *testing.T) {
+	eth0, err := net.InterfaceByName("eth0")
+	if err != nil {
+		t.Errorf("Failed to get eth0 interface, err: %v", err)
+	}
+	eth0Addrs, err := eth0.Addrs()
+	if err != nil {
+		t.Errorf("Failed to get eth0 addrs, err: %v", err)
+	}
+	eth0IPs := make([]string, 0)
+	for _, addr := range eth0Addrs {
+		if ip, ipnet, err := net.ParseCIDR(addr.String()); err == nil && len(ipnet.Mask) == 4 {
+			eth0IPs = append(eth0IPs, ip.String())
+		}
+	}
+
+	tests := []struct {
+		name             string
+		listenInterfaces string
+		want             []string
+		wantErr          bool
+	}{
+		{
+			name:             "lo",
+			listenInterfaces: "lo",
+			want:             []string{"127.0.0.1"},
+		},
+		{
+			name:             "eth0",
+			listenInterfaces: "eth0",
+			want:             eth0IPs,
+		},
+		{
+			name:             "eth0 and lo",
+			listenInterfaces: "eth0,lo",
+			want:             append(eth0IPs, "127.0.0.1"),
+		},
+		{
+			name:             "lo and eth0",
+			listenInterfaces: "lo,eth0",
+			want:             append([]string{"127.0.0.1"}, eth0IPs...),
+		},
+		{
+			name:             "invalid interface name",
+			listenInterfaces: "123",
+			wantErr:          true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetIPsFromInterfaces(tt.listenInterfaces)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetIPsFromInterfaces() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetIPsFromInterfaces() got = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

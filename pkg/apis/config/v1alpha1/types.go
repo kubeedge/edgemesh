@@ -191,7 +191,7 @@ type EdgeGatewayConfig struct {
 	// default false
 	Enable bool `json:"enable,omitempty"`
 	// NIC indicates the network interface controller that the edge gateway needs to listen to.
-	// empty or "*" stands for all netcards. You can also specify network adapters such as "lo,eth0"
+	// empty or "*" stands for all netcards. You can also specify network interfaces such as "lo,eth0"
 	// default "*"
 	NIC string `json:"nic,omitempty"`
 	// IncludeIP indicates the host IP that the edge gateway needs to listen to.
@@ -202,9 +202,6 @@ type EdgeGatewayConfig struct {
 	// empty or "*" stands for not exclude any ip. You can also specify ips such as "192.168.1.56,10.3.2.1"
 	// default "*"
 	ExcludeIP string `json:"excludeIP,omitempty"`
-	//// GoChassisConfig defines some configurations related to go-chassis
-	//// +Required
-	//GoChassisConfig *GoChassisConfig `json:"goChassisConfig,omitempty"`
 	// LoadBalancer indicates the load balance strategy
 	LoadBalancer *LoadBalancer `json:"loadBalancer,omitempty"`
 }
@@ -218,11 +215,11 @@ type LoadBalancer struct {
 	// NodeName indicates name of host
 	// do not allow users to configure manually
 	NodeName string `json:"nodeName,omitempty"`
-	// ConsistentHash indicates the extension of the go-chassis loadbalancer
+	// ConsistentHash indicates the extension of the loadbalancer
 	ConsistentHash *ConsistentHash `json:"consistentHash,omitempty"`
 }
 
-// ConsistentHash strategy is an extension of the go-chassis loadbalancer
+// ConsistentHash strategy is an extension of the loadbalancer
 // For more information about the consistentHash algorithm, please take a look at
 // https://research.googleblog.com/2017/04/consistent-hashing-with-bounded-loads.html
 type ConsistentHash struct {
@@ -279,6 +276,10 @@ type EdgeTunnelConfig struct {
 	// ConfigPath indicates the config file path
 	// do not allow users to configure manually
 	ConfigPath string `json:"configPath,omitempty"`
+	// ListenInterfaces indicates the network interface devices that EdgeTunnel needs to listen to.
+	// empty or "*" stands for all netcards. You can also specify network interfaces such as "lo,eth0"
+	// default "*"
+	ListenInterfaces string `json:"listenInterfaces,omitempty"`
 }
 
 type RelayNode struct {
