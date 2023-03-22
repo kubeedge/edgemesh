@@ -588,11 +588,11 @@ func (lb *LoadBalancer) tryPickEndpoint(svcPort proxy.ServicePortName, sessionAf
 
 	policy, exists := lb.policyMap[svcPort]
 	if !exists {
-		return "", nil, false
+		return "", cliReq, false
 	}
 	if exists && sessionAffinityEnabled {
 		klog.Warningf("LoadBalancer policy conflicted with sessionAffinity: ClientIP")
-		return "", nil, false
+		return "", cliReq, false
 	}
 	endpoint, req, err := policy.Pick(endpoints, srcAddr, netConn, cliReq)
 	if err != nil {
@@ -610,10 +610,10 @@ func (lb *LoadBalancer) nextEndpointWithConn(svcPort proxy.ServicePortName, srcA
 
 	state, exists := lb.services[svcPort]
 	if !exists || state == nil {
-		return "", nil, userspace.ErrMissingServiceEntry
+		return "", cliReq, userspace.ErrMissingServiceEntry
 	}
 	if len(state.endpoints) == 0 {
-		return "", nil, userspace.ErrMissingEndpoints
+		return "", cliReq, userspace.ErrMissingEndpoints
 	}
 	klog.V(4).InfoS("NextEndpoint for service", "servicePortName", svcPort, "address", srcAddr, "endpoints", state.endpoints)
 
