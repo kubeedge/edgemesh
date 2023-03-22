@@ -49,7 +49,7 @@ func (*RoundRobinPolicy) Update(oldDr, dr *istioapi.DestinationRule) {}
 func (*RoundRobinPolicy) Pick(endpoints []string, srcAddr net.Addr, netConn net.Conn, cliReq *http.Request) (string, *http.Request, error) {
 	// RoundRobinPolicy is an empty implementation and we won't use it,
 	// the outer round-robin policy will be used next.
-	return "", nil, fmt.Errorf("call RoundRobinPolicy is forbidden")
+	return "", cliReq, fmt.Errorf("call RoundRobinPolicy is forbidden")
 }
 
 func (*RoundRobinPolicy) Sync(endpoints []string) {}
@@ -74,7 +74,7 @@ func (rd *RandomPolicy) Pick(endpoints []string, srcAddr net.Addr, netConn net.C
 	rd.lock.Lock()
 	k := rand.Int() % len(endpoints)
 	rd.lock.Unlock()
-	return endpoints[k], nil, nil
+	return endpoints[k], cliReq, nil
 }
 
 func (rd *RandomPolicy) Sync(endpoints []string) {}
@@ -131,7 +131,7 @@ func (ch *ConsistentHashPolicy) Pick(endpoints []string, srcAddr net.Addr, netCo
 		klog.Errorf("Failed to get hash key value")
 		keyValue = ""
 	}
-	klog.Infof("get key value: %s", keyValue)
+	klog.Infof("Get key value: %s", keyValue)
 	member := ch.hashRing.LocateKey([]byte(keyValue))
 	if member == nil {
 		errMsg := fmt.Errorf("can't find a endpoint by given key: %s", keyValue)
