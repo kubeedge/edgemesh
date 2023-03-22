@@ -105,10 +105,9 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 		return nil, fmt.Errorf("failed to new conn manager: %w", err)
 	}
 
-	// Avoid using the same port
-	listenAddr := libp2p.ListenAddrStrings(GenerateMultiAddrString(c.Transport, "0.0.0.0", c.ListenPort))
-	if c.Mode == defaults.ClientMode {
-		listenAddr = libp2p.ListenAddrStrings(GenerateMultiAddrString(c.Transport, "0.0.0.0", c.ListenPort+1))
+	listenAddr, err := generateListenAddr(c)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate listenAddr: %w", err)
 	}
 
 	// If this host is a relay node, we need to add its advertiseAddress
@@ -260,4 +259,25 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 	}
 	Agent = edgeTunnel
 	return edgeTunnel, nil
+}
+
+func generateListenAddr(c *v1alpha1.EdgeTunnelConfig) (libp2p.Option, error) {
+	ips, err := GetIPsFromInterfaces(c.ListenInterfaces)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ips from listen interfaces: %w", err)
+	}
+
+	multiAddrStrings := make([]string, 0)
+	if c.Mode == defaults.ServerClientMode {
+		for _, ip := range ips {
+			multiAddrStrings = append(multiAddrStrings, GenerateMultiAddrString(c.Transport, ip, c.ListenPort))
+		}
+	} else {
+		for _, ip := range ips {
+			multiAddrStrings = append(multiAddrStrings, GenerateMultiAddrString(c.Transport, ip, c.ListenPort+1))
+		}
+	}
+
+	listenAddr := libp2p.ListenAddrStrings(multiAddrStrings...)
+	return listenAddr, nil
 }
