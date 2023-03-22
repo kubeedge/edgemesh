@@ -62,7 +62,8 @@ func newDefaultEdgeTunnelConfig(configPath string) *EdgeTunnelConfig {
 			TunnelPeerBaseStreamIn:  defaults.TunnelPeerBaseStreamIn,
 			TunnelPeerBaseStreamOut: defaults.TunnelPeerBaseStreamOut,
 		},
-		ConfigPath: configPath,
+		ConfigPath:       configPath,
+		ListenInterfaces: "*",
 	}
 }
 

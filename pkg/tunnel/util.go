@@ -231,3 +231,51 @@ func GeneratePSKReader(path string) (io.Reader, error) {
 	}
 	return buf, nil
 }
+
+func GetIPsFromInterfaces(listenInterfaces string) (ips []string, err error) {
+	ifis := make([]net.Interface, 0)
+	if listenInterfaces == "" || listenInterfaces == "*" {
+		ifis, err = net.Interfaces()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get all interfaces, err: %w", err)
+		}
+	} else {
+		ifaces := strings.Split(listenInterfaces, ",")
+		for _, iface := range ifaces {
+			ifi, err := net.InterfaceByName(iface)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get interface %s, err: %w", iface, err)
+			}
+			ifis = append(ifis, *ifi)
+		}
+	}
+
+	for _, ifi := range ifis {
+		if isFilterInterfaces(ifi.Name) {
+			klog.Infof("Listening to %s is meaningless, skip it.", ifi.Name)
+			continue
+		}
+		addrs, err := ifi.Addrs()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get interface %s addrs, err: %w", ifi.Name, err)
+		}
+		for _, addr := range addrs {
+			if ip, ipnet, err := net.ParseCIDR(addr.String()); err == nil && len(ipnet.Mask) == 4 {
+				ips = append(ips, ip.String())
+			}
+		}
+	}
+	return ips, nil
+}
+
+// Listening to them is meaningless
+var filterInterfaces = []string{"docker", "edgemesh", "tunl", "flannel", "cni", "br"}
+
+func isFilterInterfaces(iface string) bool {
+	for _, ifi := range filterInterfaces {
+		if strings.HasPrefix(iface, ifi) {
+			return true
+		}
+	}
+	return false
+}
