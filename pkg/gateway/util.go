@@ -77,7 +77,7 @@ func GetAllIPs() ([]net.IP, error) {
 		res, err := GetIPsByName(i.Name)
 		if err != nil {
 			klog.Errorf("GetIPsByName failed, err: %v", err)
-			return nil, err
+			continue
 		}
 		ips = append(ips, res...)
 	}

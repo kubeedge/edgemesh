@@ -130,7 +130,7 @@ func (p *HTTP) checkHost(requestHost string) error {
 
 	vsHosts := p.VirtualService.Spec.GetHosts()
 	if len(vsHosts) < 1 {
-		return fmt.Errorf("virtual service no hosts")
+		return errors.New("virtual service no hosts")
 	}
 
 	// check if allow all domain
