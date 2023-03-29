@@ -20,6 +20,11 @@ modules:
     enable: true
 ...
 ```
+In case you have installed cloudcore using keadm, the configuration file will not be present. Instead, you can enable it using 
+```
+keadm init --advertise-address="THE-EXPOSED-IP" --profile version=v1.12.1 --kube-config=/root/.kube/config --set cloudCore.modules.dynamicController.enable=true
+```
+
 
 - **Step 2**: At the edge node, open the metaServer module (if your KubeEdge < 1.8.0, you need to close the old edgeMesh module). After the configuration is complete, you need to restart edgecore
 
