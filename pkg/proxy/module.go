@@ -47,7 +47,7 @@ func (proxy *EdgeProxy) Shutdown() {
 	}
 }
 
-// Register register edgeproxy to beehive modules
+// Register edgeproxy to beehive modules
 func Register(c *v1alpha1.EdgeProxyConfig, cli *clients.Clients) error {
 	proxy, err := newEdgeProxy(c, cli)
 	if err != nil {

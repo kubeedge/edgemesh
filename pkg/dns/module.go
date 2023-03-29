@@ -39,7 +39,7 @@ func (d *EdgeDNS) Shutdown() {
 	// TODO graceful shutdown
 }
 
-// Register register edgedns to beehive modules
+// Register edgedns to beehive modules
 func Register(c *v1alpha1.EdgeDNSConfig, cli *clients.Clients) error {
 	dns, err := newEdgeDNS(c, cli)
 	if err != nil {
