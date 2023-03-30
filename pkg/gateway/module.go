@@ -62,7 +62,7 @@ func (gw *EdgeGateway) Shutdown() {
 	// TODO graceful shutdown
 }
 
-// Register register edgegateway to beehive modules
+// Register edgegateway to beehive modules
 func Register(c *v1alpha1.EdgeGatewayConfig, cli *clients.Clients) error {
 	gw, err := newEdgeGateway(c, cli)
 	if err != nil {

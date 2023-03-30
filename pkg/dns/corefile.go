@@ -87,7 +87,7 @@ func getKubernetesPluginStr(cfg *v1alpha1.EdgeDNSConfig) (string, error) {
 	var tpl bytes.Buffer
 	tmpl, err := template.New("kubernetesPluginBlock").Parse(kubernetesPluginBlock)
 	if err != nil {
-		return "", fmt.Errorf("failed to create kubernetesPlugin template, err : %w", err)
+		return "", fmt.Errorf("failed to parse kubernetesPluginBlock template, err : %w", err)
 	}
 	if err := tmpl.Execute(&tpl, *info); err != nil {
 		return "", fmt.Errorf("failed to create kubernetesPlugin template, err : %w", err)
@@ -101,7 +101,7 @@ func getStubDomainStr(stubDomainMap map[string][]string, info *stubDomainInfo) (
 	for domainName, servers := range stubDomainMap {
 		tmpl, err := template.New("stubDomainBlock").Parse(stubDomainBlock)
 		if err != nil {
-			return "", fmt.Errorf("failed to create stubDomain template, err : %w", err)
+			return "", fmt.Errorf("failed to parse stubDomainBlock template, err : %w", err)
 		}
 		info.DomainName = domainName
 		info.UpstreamServers = strings.Join(servers, " ")
@@ -128,7 +128,7 @@ func UpdateCorefile(cfg *v1alpha1.EdgeDNSConfig, kubeClient kubernetes.Interface
 	}
 
 	if cfg.CacheDNS.Enable {
-		// Reset upstream server
+		// reset upstream server
 		upstreamServers = []string{}
 		if cfg.CacheDNS.AutoDetect {
 			upstreamServers = append(upstreamServers, detectClusterDNS(kubeClient)...)
@@ -151,7 +151,7 @@ func UpdateCorefile(cfg *v1alpha1.EdgeDNSConfig, kubeClient kubernetes.Interface
 			klog.Infof("nodelocal dns upstream servers: %v", upstreamServers)
 		}
 		cacheTTL = cfg.CacheDNS.CacheTTL
-		// Disable coredns kubernetes plugin.
+		// disable coredns kubernetes plugin.
 		kubernetesPlugin = ""
 	}
 
