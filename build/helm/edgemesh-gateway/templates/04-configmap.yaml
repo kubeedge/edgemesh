@@ -148,6 +148,12 @@ data:
           tunnelPeerBaseStreamOut: {{ .Values.modules.edgeTunnel.tunnelLimitConfig.tunnelPeerBaseStreamOut }}
           {{- end }}
         {{- end }}
+        {{- if .Values.modules.edgeTunnel.listenInterfaces }}
+        listenInterfaces: {{ .Values.modules.edgeTunnel.listenInterfaces }}
+        {{- end }}
+        {{- if .Values.modules.edgeTunnel.extraFilteredInterfaces }}
+        extraFilteredInterfaces: {{ .Values.modules.edgeTunnel.extraFilteredInterfaces }}
+        {{- end }}
       {{- end }}
     {{- end }}
 ---

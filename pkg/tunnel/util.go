@@ -232,7 +232,10 @@ func GeneratePSKReader(path string) (io.Reader, error) {
 	return buf, nil
 }
 
-func GetIPsFromInterfaces(listenInterfaces string) (ips []string, err error) {
+// Listening to them is meaningless
+var defaultFilteredInterfaces = []string{"docker", "edgemesh", "tunl", "flannel", "cni", "br", "kube-ipvs"}
+
+func GetIPsFromInterfaces(listenInterfaces, extraFilteredInterfaces string) (ips []string, err error) {
 	ifis := make([]net.Interface, 0)
 	if listenInterfaces == "" || listenInterfaces == "*" {
 		ifis, err = net.Interfaces()
@@ -242,6 +245,10 @@ func GetIPsFromInterfaces(listenInterfaces string) (ips []string, err error) {
 	} else {
 		ifaces := strings.Split(listenInterfaces, ",")
 		for _, iface := range ifaces {
+			iface = strings.TrimSpace(iface)
+			if iface == "" {
+				continue
+			}
 			ifi, err := net.InterfaceByName(iface)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get interface %s, err: %w", iface, err)
@@ -250,8 +257,19 @@ func GetIPsFromInterfaces(listenInterfaces string) (ips []string, err error) {
 		}
 	}
 
+	// generate full filter interface list
+	filteredInterfaces := defaultFilteredInterfaces
+	if extraFilteredInterfaces != "" {
+		for _, filterInf := range strings.Split(extraFilteredInterfaces, ",") {
+			filterInf = strings.TrimSpace(filterInf)
+			if filterInf != "" {
+				filteredInterfaces = append(filteredInterfaces, filterInf)
+			}
+		}
+	}
+
 	for _, ifi := range ifis {
-		if isFilterInterfaces(ifi.Name) {
+		if isFilterInterfaces(ifi.Name, filteredInterfaces) {
 			klog.Infof("Listening to %s is meaningless, skip it.", ifi.Name)
 			continue
 		}
@@ -268,11 +286,8 @@ func GetIPsFromInterfaces(listenInterfaces string) (ips []string, err error) {
 	return ips, nil
 }
 
-// Listening to them is meaningless
-var filterInterfaces = []string{"docker", "edgemesh", "tunl", "flannel", "cni", "br"}
-
-func isFilterInterfaces(iface string) bool {
-	for _, ifi := range filterInterfaces {
+func isFilterInterfaces(iface string, filteredInterfaces []string) bool {
+	for _, ifi := range filteredInterfaces {
 		if strings.HasPrefix(iface, ifi) {
 			return true
 		}

@@ -289,40 +289,52 @@ func TestGetIPsFromInterfaces(t *testing.T) {
 	}
 
 	tests := []struct {
-		name             string
-		listenInterfaces string
-		want             []string
-		wantErr          bool
+		name                    string
+		listenInterfaces        string
+		extraFilteredInterfaces string
+		want                    []string
+		wantErr                 bool
 	}{
 		{
-			name:             "lo",
-			listenInterfaces: "lo",
-			want:             []string{"127.0.0.1"},
+			name:                    "lo",
+			listenInterfaces:        "lo",
+			extraFilteredInterfaces: "",
+			want:                    []string{"127.0.0.1"},
 		},
 		{
-			name:             "eth0",
-			listenInterfaces: "eth0",
-			want:             eth0IPs,
+			name:                    "eth0",
+			listenInterfaces:        "eth0",
+			extraFilteredInterfaces: "",
+			want:                    eth0IPs,
 		},
 		{
-			name:             "eth0 and lo",
-			listenInterfaces: "eth0,lo",
-			want:             append(eth0IPs, "127.0.0.1"),
+			name:                    "eth0 and lo",
+			listenInterfaces:        "eth0,lo",
+			extraFilteredInterfaces: "",
+			want:                    append(eth0IPs, "127.0.0.1"),
 		},
 		{
-			name:             "lo and eth0",
-			listenInterfaces: "lo,eth0",
-			want:             append([]string{"127.0.0.1"}, eth0IPs...),
+			name:                    "lo and eth0",
+			listenInterfaces:        "lo,eth0",
+			extraFilteredInterfaces: "",
+			want:                    append([]string{"127.0.0.1"}, eth0IPs...),
 		},
 		{
-			name:             "invalid interface name",
-			listenInterfaces: "123",
-			wantErr:          true,
+			name:                    "invalid interface name",
+			listenInterfaces:        "123",
+			extraFilteredInterfaces: "",
+			wantErr:                 true,
+		},
+		{
+			name:                    "eth0 and lo, lo filtered",
+			listenInterfaces:        "eth0,lo",
+			extraFilteredInterfaces: "lo",
+			want:                    eth0IPs,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetIPsFromInterfaces(tt.listenInterfaces)
+			got, err := GetIPsFromInterfaces(tt.listenInterfaces, tt.extraFilteredInterfaces)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetIPsFromInterfaces() error = %v, wantErr %v", err, tt.wantErr)
 				return
