@@ -262,7 +262,7 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 }
 
 func generateListenAddr(c *v1alpha1.EdgeTunnelConfig) (libp2p.Option, error) {
-	ips, err := GetIPsFromInterfaces(c.ListenInterfaces)
+	ips, err := GetIPsFromInterfaces(c.ListenInterfaces, c.ExtraFilteredInterfaces)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get ips from listen interfaces: %w", err)
 	}

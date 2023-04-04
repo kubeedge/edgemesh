@@ -277,9 +277,14 @@ type EdgeTunnelConfig struct {
 	// do not allow users to configure manually
 	ConfigPath string `json:"configPath,omitempty"`
 	// ListenInterfaces indicates the network interface devices that EdgeTunnel needs to listen to.
-	// empty or "*" stands for all netcards. You can also specify network interfaces such as "lo,eth0"
+	// empty or "*" stands for all NICs. You can also specify network interfaces such as "lo,eth0"
 	// default "*"
 	ListenInterfaces string `json:"listenInterfaces,omitempty"`
+	// ExtraFilteredInterfaces indicates user defined network interface devices that EdgeTunnel not to listen to.
+	// by default, interfaces prefixed with "docker", "edgemesh", "tunl", "flannel", "cni", "br" and "kube-ipvs" will be filtered.
+	// empty stands for no additional NICs to be filtered. You can specify network interfaces separated with comma such as "lo,eth0"
+	// default ""
+	ExtraFilteredInterfaces string `json:"extraFilteredInterfaces,omitempty"`
 }
 
 type RelayNode struct {
