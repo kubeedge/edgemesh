@@ -19,6 +19,7 @@ import (
 const (
 	LabelKubeedge string = "kubeedge=edgemesh-agent"
 	AgentPodName  string = "edgemesh-agent"
+	TCP           string = "tcp"
 
 	// Version is socks5 version
 	Version byte = 0x05
@@ -199,7 +200,7 @@ func NewSocks5Proxy(config *v1alpha1.Socks5Proxy, ip net.IP, kubeClient kubernet
 		IP:   ip,
 		Port: config.ListenPort,
 	}
-	listener, err := net.ListenTCP("tcp", addr)
+	listener, err := net.ListenTCP(TCP, addr)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +249,7 @@ func (s *Socks5Proxy) HandleSocksProxy(conn net.Conn) {
 
 func proxyConnectToRemote(host string, targetIP string, port int32, conn net.Conn) {
 	proxyOpts := tunnel.ProxyOptions{
-		Protocol: "tcp",
+		Protocol: TCP,
 		NodeName: host,
 		IP:       targetIP,
 		Port:     port,
