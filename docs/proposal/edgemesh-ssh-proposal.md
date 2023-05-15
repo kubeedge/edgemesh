@@ -15,7 +15,7 @@
 The ssh client initiates a request through the socks5 proxy and proxy the traffic to the socks5 proxy.
 
 **step1:**  
-In the socks5 proxy, get the target host and target port. Convert the targat host to the target IP through k8s api. The edgemesh-agent on the node uses hostnetwork, so just take its pod id directly.
+In the socks5 proxy, get the target host and target port. Convert the target host to the target IP through k8s api. The edgemesh-agent on the node uses hostNetwork, so just take its pod id directly.
 
 **step2:**  
 Encapsulate the converted target ip and target port and transmit them to the tunnel module
