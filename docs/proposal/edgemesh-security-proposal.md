@@ -24,7 +24,7 @@ Return CA certificate directly to EdgeMesh without verifying identity.
 Hash the CA certificate, and compare it with the cahash in the token to verify the validness of CA certificate.
 
 **step4:**  
-Generate a pair of key and store the private key locally. Submit the certificate signing request(CSR) to CloudCore with token in the http header(this time only EdgeCore varifies the certificate of CloudCore using cacert from step2).
+Generate a pair of key and store the private key locally. Submit the certificate signing request(CSR) to CloudCore with token in the http header(this time only EdgeCore verifies the certificate of CloudCore using cacert from step2).
 Unlike EdgeCore, EdgeMesh requires the types of certificates to be {x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth} rather than {x509.ExtKeyUsageClientAuth}
 
 **step5:**  
@@ -59,7 +59,7 @@ Then the edgemesh-server and edgemesh-agent, edgemesh-agent and edgemesh-agent c
 ```
 
 # Future development tasks
-1. certification rotation: The certification roration will affect the connection between edgemesh-server and edgemesh-agent, edgemesh-agent and edgemesh-agent, we need think more about this.
+1. certification rotation: The certification rotation will affect the connection between edgemesh-server and edgemesh-agent, edgemesh-agent and edgemesh-agent, we need think more about this.
 
 # Related Link
 1. kubeedge edge authentication: https://github.com/kubeedge/kubeedge/blob/master/docs/proposals/edge-authentication.md
