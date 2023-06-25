@@ -393,17 +393,19 @@ func tryDialEndpoint(protocol, ip string, port int) (conn net.Conn, err error) {
 			if err == nil {
 				return conn, nil
 			}
+			klog.Errorf("dial conn err: %v", err)
 			time.Sleep(DailSleepTime)
 		}
 	case UDP:
 		for i := 0; i < DailRetryTime; i++ {
 			conn, err = net.DialUDP(UDP, nil, &net.UDPAddr{
 				IP:   net.ParseIP(ip),
-				Port: int(port),
+				Port: port,
 			})
 			if err == nil {
 				return conn, nil
 			}
+			klog.Errorf("dial conn err: %v", err)
 			time.Sleep(DailSleepTime)
 		}
 	default:
