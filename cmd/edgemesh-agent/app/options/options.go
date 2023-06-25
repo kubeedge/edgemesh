@@ -27,14 +27,14 @@ func NewEdgeMeshAgentOptions() *EdgeMeshAgentOptions {
 
 func (o *EdgeMeshAgentOptions) Flags() (fss cliflag.NamedFlagSets) {
 	fs := fss.FlagSet("global")
-	fs.StringVar(&o.ConfigFile, "config-file", o.ConfigFile, "The path to the configuration file. Flags override values in this file.")
+	fs.StringVar(&o.ConfigFile, defaults.ConfigFilePath, o.ConfigFile, "The path to the configuration file. Flags override values in this file.")
 	return
 }
 
 func (o *EdgeMeshAgentOptions) Validate() []error {
 	var errs []error
 	if !validation.FileIsExist(o.ConfigFile) {
-		errs = append(errs, field.Required(field.NewPath("config-file"),
+		errs = append(errs, field.Required(field.NewPath(defaults.ConfigFilePath),
 			fmt.Sprintf("config file %v not exist", o.ConfigFile)))
 	}
 	return errs
