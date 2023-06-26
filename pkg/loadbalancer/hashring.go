@@ -23,8 +23,8 @@ func (i ringItem) String() string {
 }
 
 func newHashRing(config *v1alpha1.ConsistentHash, endpoints []string) *consistent.Consistent {
-	members := []consistent.Member{}
-	for i := 0; i < len(endpoints); i++ {
+	members := make([]consistent.Member, len(endpoints))
+	for i := range endpoints {
 		member := ringItem(endpoints[i]) // alloc new string memory here.
 		members = append(members, member)
 	}
