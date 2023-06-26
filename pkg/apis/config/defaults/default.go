@@ -13,6 +13,7 @@ type ServiceFilterMode string
 const (
 	BaseDir                   = "/etc/edgemesh/"
 	ConfigDir                 = BaseDir + "config/"
+	ConfigFilePath            = "config-file"
 	EdgeMeshAgentConfigName   = "edgemesh-agent.yaml"
 	EdgeMeshGatewayConfigName = "edgemesh-gateway.yaml"
 
