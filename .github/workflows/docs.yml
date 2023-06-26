@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           # fetch all commits to get last updated time or other git log info
           fetch-depth: 0
@@ -25,7 +25,7 @@ jobs:
 
       # cache node_modules
       - name: Cache dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: yarn-cache
         with:
           path: |
