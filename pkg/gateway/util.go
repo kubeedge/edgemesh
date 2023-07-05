@@ -7,6 +7,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
+	netutil "github.com/kubeedge/edgemesh/pkg/util/net"
 )
 
 // GetIPsNeedListen get Ips need listen
@@ -98,7 +99,7 @@ func GetIPsByName(name string) ([]net.IP, error) {
 		return nil, err
 	}
 	for _, v := range addresses {
-		if ip, ipnet, err := net.ParseCIDR(v.String()); err == nil && len(ipnet.Mask) == 4 {
+		if ip, ipnet, err := net.ParseCIDR(v.String()); err == nil && len(ipnet.Mask) == netutil.IPv4Mask {
 			ips = append(ips, ip)
 		}
 	}
