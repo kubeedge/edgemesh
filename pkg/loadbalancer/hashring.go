@@ -23,9 +23,9 @@ func (i ringItem) String() string {
 }
 
 func newHashRing(config *v1alpha1.ConsistentHash, endpoints []string) *consistent.Consistent {
-	members := make([]consistent.Member, len(endpoints))
-	for i := range endpoints {
-		member := ringItem(endpoints[i]) // alloc new string memory here.
+	members := make([]consistent.Member, 0, len(endpoints))
+	for _, endpoint := range endpoints {
+		member := ringItem(endpoint) // alloc new string memory here.
 		members = append(members, member)
 	}
 	// TODO read from container config
