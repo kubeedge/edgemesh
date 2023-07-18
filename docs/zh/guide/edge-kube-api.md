@@ -20,6 +20,19 @@ modules:
     enable: true
 ...
 ```
+ 如果使用 keadm 安裝了 cloudcore，配置文件可能不存在，可以使用命令启用它
+```
+keadm init --advertise-address="THE-EXPOSED-IP" --profile version=v1.12.1 --kube-config=/root/.kube/config --set cloudCore.modules.dynamicController.enable=true
+```
+ 如果云端是helm安装，修改cloudcore configmap，需要重启cloudcore pod
+```yaml
+$ kubectl edit cm cloudcore -n kubeedge
+modules:
+  ...
+  dynamicController:
+    enable: true
+...
+```
 
 - **步骤2**: 在边缘节点，打开 metaServer 模块（如果你的 KubeEdge < 1.8.0，还需关闭旧版 edgeMesh 模块），配置完成后，需要重启 edgecore
 
