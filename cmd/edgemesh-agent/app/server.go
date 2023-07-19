@@ -36,7 +36,7 @@ func NewEdgeMeshAgentCommand() *cobra.Command {
 		Long: `edgemesh-agent is the data plane component of EdgeMesh.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			verflag.PrintAndExitIfRequested()
-			flag.PrintMinConfigAndExitIfRequested(v1alpha1.NewDefaultEdgeMeshAgentConfig(""))
+			flag.PrintMinConfigAndExitIfRequested(v1alpha1.NewDefaultEdgeMeshAgentMinConfig())
 			flag.PrintDefaultConfigAndExitIfRequested(v1alpha1.NewDefaultEdgeMeshAgentConfig(""))
 			flag.PrintFlags(cmd.Flags())
 
