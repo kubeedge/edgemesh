@@ -1,5 +1,5 @@
 agent:
-  image: kubeedge/edgemesh-agent:v1.13.2
+  image: kubeedge/edgemesh-agent:v1.14.0
   affinity: {}
   nodeSelector: {}
   tolerations: []
