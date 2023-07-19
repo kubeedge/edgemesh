@@ -67,6 +67,27 @@ func newDefaultEdgeTunnelConfig(configPath string) *EdgeTunnelConfig {
 	}
 }
 
+// NewDefaultEdgeMeshAgentMinConfig returns a min EdgeMeshAgentConfig object
+func NewDefaultEdgeMeshAgentMinConfig() *EdgeMeshAgentConfig {
+	c := &EdgeMeshAgentConfig{
+		Modules: &AgentModules{
+			EdgeProxyConfig: &EdgeProxyConfig{
+				Enable: true,
+			},
+			EdgeTunnelConfig: &EdgeTunnelConfig{
+				Enable: true,
+				RelayNodes: []*RelayNode{
+					{
+						NodeName:         "your relay node name",
+						AdvertiseAddress: []string{"address1", "address2", "address3"},
+					},
+				},
+			},
+		},
+	}
+	return c
+}
+
 // NewDefaultEdgeMeshAgentConfig returns a full EdgeMeshAgentConfig object
 func NewDefaultEdgeMeshAgentConfig(configPath string) *EdgeMeshAgentConfig {
 	c := &EdgeMeshAgentConfig{
