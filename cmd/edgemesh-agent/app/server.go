@@ -19,6 +19,7 @@ import (
 	"github.com/kubeedge/edgemesh/pkg/apis/module"
 	"github.com/kubeedge/edgemesh/pkg/clients"
 	"github.com/kubeedge/edgemesh/pkg/dns"
+	"github.com/kubeedge/edgemesh/pkg/profile"
 	"github.com/kubeedge/edgemesh/pkg/proxy"
 	"github.com/kubeedge/edgemesh/pkg/tunnel"
 	"github.com/kubeedge/edgemesh/pkg/util"
@@ -139,6 +140,9 @@ func registerModules(c *v1alpha1.EdgeMeshAgentConfig, cli *clients.Clients) []er
 
 // prepareRun prepares edgemesh-agent to run
 func prepareRun(c *v1alpha1.EdgeMeshAgentConfig) error {
+	// start pprof server
+	profile.ListenAndServer(c.CommonConfig.PprofConfig)
+
 	// Enter manual mode if user set Master or KubeConfig
 	if c.KubeAPIConfig.Master != "" || c.KubeAPIConfig.KubeConfig != "" {
 		c.KubeAPIConfig.Mode = defaults.ManualMode
