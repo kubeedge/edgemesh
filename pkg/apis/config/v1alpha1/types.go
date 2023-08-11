@@ -39,6 +39,8 @@ type EdgeMeshGatewayConfig struct {
 	// Modules indicates EdgeMeshAgent modules config
 	// +Required
 	Modules *GatewayModules `json:"modules,omitempty"`
+	// PprofConfig provides configuration for pprof monitoring
+	PprofConfig *PprofConfig `json:"pprofConfig,omitempty"`
 }
 
 // GatewayModules indicates the modules of EdgeMeshGateway will be use
@@ -116,6 +118,8 @@ type CommonConfig struct {
 	// BridgeDeviceIP indicates the IP bound to the bridge device
 	// default "169.254.96.16"
 	BridgeDeviceIP string `json:"bridgeDeviceIP,omitempty"`
+	// PprofConfig provides configuration for pprof monitoring tools
+	PprofConfig *PprofConfig `json:"pprofConfig,omitempty"`
 }
 
 // EdgeDNSConfig indicates the EdgeDNS config
@@ -319,4 +323,13 @@ type TunnelLimitConfig struct {
 	// Tunnel Proxy each Peer Stream OutBound count
 	// default:1024
 	TunnelPeerBaseStreamOut int `json:"tunnelPeerBaseStreamOut,omitempty"`
+}
+
+type PprofConfig struct {
+	// Enables pprof at profilingAddress:profilingPort/debug/pprof.
+	EnableProfiling bool `json:"enableProfiling,omitempty"`
+	// ProfilingAddress is the IP address for the profiling server to serve on.
+	ProfilingAddress string `json:"profilingAddress,omitempty"`
+	// ProfilingPort is the port of the localhost profiling endpoint
+	ProfilingPort int `json:"profilingPort,omitempty"`
 }
