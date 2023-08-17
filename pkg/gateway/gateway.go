@@ -100,7 +100,7 @@ func (gw *EdgeGateway) OnGatewayAdd(gateway *istiv1alpha3.Gateway) {
 				continue
 			}
 			gatewayServers = append(gatewayServers, gatewayServer)
-			klog.Infof("gateway `%s` add server on %s:%d", key, ip.String(), s.Port.Number)
+			klog.Infof("gateway `%s` add server on %s:%d", key, ip, s.Port.Number)
 		}
 	}
 
