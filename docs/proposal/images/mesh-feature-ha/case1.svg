@@ -248,11 +248,11 @@
 			<text x="9.57" y="286.84" class="st12" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>A disconnect from R1</text>		</g>
 		<g id="shape20-62" v:mID="20" v:groupContext="shape" transform="translate(515.195,-3.21181)">
 			<title>工作表.20</title>
-			<desc>A use R2 as the new Realy to connect B sustaining Service:Lin...</desc>
+			<desc>A use R2 as the new Relay to connect B sustaining Service:Lin...</desc>
 			<v:textBlock v:margins="rect(4,4,4,4)" v:tabSpace="42.5197"/>
 			<v:textRect cx="96.9208" cy="275.389" width="193.85" height="58.227"/>
 			<rect x="0" y="246.275" width="193.842" height="58.227" class="st9"/>
-			<text x="9.03" y="264.59" class="st12" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>A use R2 as the new Realy <tspan
+			<text x="9.03" y="264.59" class="st12" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>A use R2 as the new Relay <tspan
 						x="12.55" dy="1.2em" class="st13">to connect B  sustaining </tspan><tspan x="47.7" dy="1.2em" class="st13">Service:Linkab</tspan></text>		</g>
 		<g id="shape21-67" v:mID="21" v:groupContext="shape" transform="translate(132.148,-245.996)">
 			<title>工作表.21</title>
@@ -623,11 +623,11 @@
 			<text x="19.43" y="252.75" class="st18" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>Linkab</text>		</g>
 		<g id="shape55-190" v:mID="55" v:groupContext="shape" transform="translate(109.2,-0.375)">
 			<title>工作表.55</title>
-			<desc>A use R1 as Realy to connect B providing Service:Linkab</desc>
+			<desc>A use R1 as Relay to connect B providing Service:Linkab</desc>
 			<v:textBlock v:margins="rect(4,4,4,4)" v:tabSpace="42.5197"/>
 			<v:textRect cx="81.805" cy="275.389" width="163.62" height="58.227"/>
 			<rect x="0" y="246.275" width="163.61" height="58.227" class="st9"/>
-			<text x="11.49" y="264.59" class="st12" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>A use R1 as Realy to <tspan
+			<text x="11.49" y="264.59" class="st12" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>A use R1 as Relay to <tspan
 						x="11.49" dy="1.2em" class="st13">connect B  providing </tspan><tspan x="32.59" dy="1.2em" class="st13">Service:Linkab</tspan></text>		</g>
 	</g>
 </svg>
