@@ -21,13 +21,15 @@ GO_LDFLAGS='$(shell hack/make-rules/version.sh)'
 # make all builds both agent and server binaries
 
 BINARIES=edgemesh-agent \
-         edgemesh-gateway
+         edgemesh-gateway \
+         edgemesh-cni
 
 # the env PLATFORMS defines to generate linux images for amd 64-bit, arm 64-bit and armv7 architectures
 # the full list of PLATFORMS is linux/amd64,linux/arm64,linux/arm/v7
 PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7
 COMPONENTS=agent \
-           gateway
+           gateway \
+           cni
 
 .EXPORT_ALL_VARIABLES:
 OUT_DIR ?= _output/local

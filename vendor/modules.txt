@@ -27,6 +27,15 @@ github.com/cheekybits/genny/parse
 # github.com/containerd/cgroups v1.0.4
 github.com/containerd/cgroups
 github.com/containerd/cgroups/stats/v1
+# github.com/containernetworking/cni v0.8.1
+## explicit
+github.com/containernetworking/cni/pkg/invoke
+github.com/containernetworking/cni/pkg/skel
+github.com/containernetworking/cni/pkg/types
+github.com/containernetworking/cni/pkg/types/020
+github.com/containernetworking/cni/pkg/types/current
+github.com/containernetworking/cni/pkg/utils
+github.com/containernetworking/cni/pkg/version
 # github.com/coredns/caddy v1.1.0
 ## explicit
 github.com/coredns/caddy

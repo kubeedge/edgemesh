@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/buraksezer/consistent v0.9.0
 	github.com/cespare/xxhash/v2 v2.1.2
+	github.com/containernetworking/cni v0.8.1
 	github.com/coredns/caddy v1.1.0
 	github.com/coredns/coredns v1.8.0
 	github.com/fsnotify/fsnotify v1.5.4
