@@ -289,6 +289,9 @@ type EdgeTunnelConfig struct {
 	// empty stands for no additional NICs to be filtered. You can specify network interfaces separated with comma such as "lo,eth0"
 	// default ""
 	ExtraFilteredInterfaces string `json:"extraFilteredInterfaces,omitempty"`
+
+	// MetricConfig provides metrics for prometheus
+	MetricConfig *MetricConfig `json:"metricConfig,omitempty"`
 }
 
 type RelayNode struct {
@@ -332,4 +335,12 @@ type PprofConfig struct {
 	ProfilingAddress string `json:"profilingAddress,omitempty"`
 	// ProfilingPort is the port of the localhost profiling endpoint
 	ProfilingPort int `json:"profilingPort,omitempty"`
+}
+
+type MetricConfig struct {
+	// defaults false
+	Enable bool `json:"enable,omitempty"`
+	// Port is the port of the metrics server endpoint
+	// default is 9999
+	Port int `json:"port,omitempty"`
 }

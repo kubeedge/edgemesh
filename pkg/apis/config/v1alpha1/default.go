@@ -64,6 +64,11 @@ func newDefaultEdgeTunnelConfig(configPath string) *EdgeTunnelConfig {
 		},
 		ConfigPath:       configPath,
 		ListenInterfaces: "*",
+
+		MetricConfig: &MetricConfig{
+			Enable: false,
+			Port:   9999,
+		},
 	}
 }
 
