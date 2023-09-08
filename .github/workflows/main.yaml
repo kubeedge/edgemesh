@@ -21,7 +21,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.17.x
+          go-version: 1.19.x
 
       - name: Checkout code
         uses: actions/checkout@v3
@@ -53,7 +53,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.17.x
+          go-version: 1.19.x
 
       - uses: actions/cache@v3
         with:
@@ -77,7 +77,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.17.x
+          go-version: 1.19.x
 
       - uses: actions/cache@v3
         with:
@@ -91,8 +91,8 @@ jobs:
 
       - name: Install dependences
         run: |
-          command -v ginkgo || go get github.com/onsi/ginkgo/ginkgo
-          go get sigs.k8s.io/kind@v0.11.1
+          command -v ginkgo || go install github.com/onsi/ginkgo/ginkgo@v1.16.5
+          go install sigs.k8s.io/kind@v0.11.1
           curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.19.3/bin/linux/amd64/kubectl && sudo install kubectl /usr/local/bin/kubectl
           type keadm || {
             curl -LO https://github.com/kubeedge/kubeedge/releases/download/$KUBEEDGE_VERSION/keadm-$KUBEEDGE_VERSION-linux-amd64.tar.gz
@@ -115,7 +115,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.17.x
+          go-version: 1.19.x
 
       - uses: actions/cache@v3
         with:
@@ -137,7 +137,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.17.x
+          go-version: 1.19.x
 
       - uses: actions/cache@v3
         with:

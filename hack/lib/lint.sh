@@ -63,6 +63,7 @@ edgemesh::lint::check() {
     fi
 
     [[ $(git diff --name-only) ]] && {
+      echo $(git diff --name-only)
       echo "Some files have white noise issue, please run \`make lint\` to solve this issue"
       return 1
     }
