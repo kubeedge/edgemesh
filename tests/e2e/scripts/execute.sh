@@ -25,7 +25,7 @@ curpath=$PWD
 echo $PWD
 
 which ginkgo &> /dev/null || (
-    go get github.com/onsi/ginkgo/ginkgo
+    go install github.com/onsi/ginkgo/ginkgo
 )
 
 cleanup() {
