@@ -50,9 +50,15 @@ func LoadNetConf(argsStdin []byte) (*NetConf, error) {
 	if !hasItem(n.Delegate, bridge) {
 		n.Delegate[bridge] = defaultBrName
 	}
-	if !hasItem(n.Delegate, "ipam") {
+	if n.IPAM.Type == "" {
+		if !hasItem(n.Delegate, "ipam") {
+			n.Delegate["ipam"] = map[string]interface{}{
+				"type": ipamSpiderpool,
+			}
+		}
+	} else {
 		n.Delegate["ipam"] = map[string]interface{}{
-			"type": ipamSpiderpool,
+			"type": n.IPAM.Type,
 		}
 	}
 
