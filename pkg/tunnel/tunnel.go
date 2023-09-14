@@ -3,8 +3,12 @@ package tunnel
 import (
 	"context"
 	"fmt"
+	"github.com/libp2p/go-libp2p/p2p/host/resource-manager/obs"
+	"github.com/prometheus/client_golang/prometheus"
+	"go.opencensus.io/stats/view"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"sync"
 	"time"
 
@@ -28,6 +32,7 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
+	ocprom "contrib.go.opencensus.io/exporter/prometheus"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/defaults"
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
 	discoverypb "github.com/kubeedge/edgemesh/pkg/tunnel/pb/discovery"
@@ -697,8 +702,33 @@ func (t *EdgeTunnel) doReload(configPath string) {
 }
 
 func (t *EdgeTunnel) Run() {
+	go t.runMetricsServer()
 	go t.runMdnsDiscovery()
 	go t.runDhtDiscovery()
 	go t.runConfigWatcher()
 	t.runHeartbeat()
+}
+
+func (t *EdgeTunnel) runMetricsServer() {
+	if !t.Config.MetricConfig.Enable {
+		klog.Infof("not relay, skip metrics server!")
+		return
+	}
+
+	klog.Infof("Starting Metrics service")
+	err := view.Register(obs.DefaultViews...)
+	if err != nil {
+		klog.Errorf("Failed to register view error: %v", err)
+		return
+	}
+	exporter, err := ocprom.NewExporter(ocprom.Options{
+		Registry: prometheus.DefaultRegisterer.(*prometheus.Registry),
+	})
+	if err != nil {
+		klog.Errorf("Failed to create exporter error: %v", err)
+		return
+	}
+	http.Handle("/metrics", exporter)
+	port := fmt.Sprintf(":%d", t.Config.MetricConfig.Port)
+	klog.Error(http.ListenAndServe(port, nil))
 }
