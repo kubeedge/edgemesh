@@ -337,7 +337,6 @@ type PprofConfig struct {
 	ProfilingPort int `json:"profilingPort,omitempty"`
 }
 
-
 type MetricConfig struct {
 	// defaults false
 	Enable bool `json:"enable,omitempty"`
