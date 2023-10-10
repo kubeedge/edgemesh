@@ -3,6 +3,8 @@ package tunnel
 import (
 	"context"
 	"fmt"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
+	"github.com/libp2p/go-libp2p/p2p/host/resource-manager/obs"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -170,8 +172,14 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 		libp2p.EnableNATService(),
 		libp2p.EnableHolePunching(),
 	}...)
+
+	rcMgrOpts := make([]rcmgr.Option, 0)
+	if c.MetricConfig.Enable {
+		reporter, _ := obs.NewStatsTraceReporter()
+		rcMgrOpts = append(rcMgrOpts, rcmgr.WithTraceReporter(reporter))
+	}
 	//Adjust stream limit
-	if limitOpt, err := CreateLimitOpt(c.TunnelLimitConfig); err == nil {
+	if limitOpt, err := CreateLimitOpt(c.TunnelLimitConfig, rcMgrOpts...); err == nil {
 		opts = append(opts, limitOpt)
 	}
 	h, err := libp2p.New(opts...)

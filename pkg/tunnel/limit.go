@@ -42,7 +42,7 @@ func useNoLimit() *rcmgr.ScalingLimitConfig {
 	return &scalingLimits
 }
 
-func buildLimitOpt(scalingLimits *rcmgr.ScalingLimitConfig) (libp2p.Option, error) {
+func buildLimitOpt(scalingLimits *rcmgr.ScalingLimitConfig, opts ...rcmgr.Option) (libp2p.Option, error) {
 	// Add limits around included libp2p protocols
 	libp2p.SetDefaultServiceLimits(scalingLimits)
 	// Turn the scaling limits into a static set of limits using `.AutoScale`. This
@@ -51,14 +51,14 @@ func buildLimitOpt(scalingLimits *rcmgr.ScalingLimitConfig) (libp2p.Option, erro
 	// The resource manager expects a limiter, se we create one from our limits.
 	limiter := rcmgr.NewFixedLimiter(limits)
 	// Initialize the resource manager
-	if rm, err := rcmgr.NewResourceManager(limiter); err != nil {
+	if rm, err := rcmgr.NewResourceManager(limiter, opts...); err != nil {
 		return nil, err
 	} else {
 		return libp2p.ResourceManager(rm), nil
 	}
 }
 
-func CreateLimitOpt(config *v1alpha1.TunnelLimitConfig) (libp2p.Option, error) {
+func CreateLimitOpt(config *v1alpha1.TunnelLimitConfig, opts ...rcmgr.Option) (libp2p.Option, error) {
 	// Start with the default scaling limits.
 	var scaleLimit *rcmgr.ScalingLimitConfig
 	// Adjust limit if need:
@@ -67,5 +67,5 @@ func CreateLimitOpt(config *v1alpha1.TunnelLimitConfig) (libp2p.Option, error) {
 	} else {
 		scaleLimit = useLimit(config)
 	}
-	return buildLimitOpt(scaleLimit)
+	return buildLimitOpt(scaleLimit, opts...)
 }
