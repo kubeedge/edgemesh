@@ -179,7 +179,8 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 		rcMgrOpts = append(rcMgrOpts, rcmgr.WithTraceReporter(reporter))
 	}
 	//Adjust stream limit
-	if limitOpt, err := CreateLimitOpt(c.TunnelLimitConfig, rcMgrOpts); err == nil {
+
+	if limitOpt, err := CreateLimitOpt(c.TunnelLimitConfig, rcMgrOpts...); err == nil {
 		opts = append(opts, limitOpt)
 	}
 	h, err := libp2p.New(opts...)
