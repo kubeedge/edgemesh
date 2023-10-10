@@ -2,7 +2,7 @@
 
 ## 依赖环境
 
-[KubeEdge 所需的依赖](https://kubeedge.io/en/docs/#dependencies)
+[KubeEdge 所需的依赖](https://kubeedge.io/zh/docs/#dependencies)
 
 [KubeEdge >= v1.7.0](https://github.com/kubeedge/kubeedge/releases)
 
