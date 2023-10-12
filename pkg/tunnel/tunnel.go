@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"sync"
 	"time"
 
+	ocprom "contrib.go.opencensus.io/exporter/prometheus"
 	"github.com/fsnotify/fsnotify"
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
@@ -20,10 +22,13 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
+	"github.com/libp2p/go-libp2p/p2p/host/resource-manager/obs"
 	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 	"github.com/libp2p/go-msgio/protoio"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
+	"github.com/prometheus/client_golang/prometheus"
+	"go.opencensus.io/stats/view"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
@@ -697,8 +702,33 @@ func (t *EdgeTunnel) doReload(configPath string) {
 }
 
 func (t *EdgeTunnel) Run() {
+	go t.runMetricsServer()
 	go t.runMdnsDiscovery()
 	go t.runDhtDiscovery()
 	go t.runConfigWatcher()
 	t.runHeartbeat()
+}
+
+func (t *EdgeTunnel) runMetricsServer() {
+	if !t.Config.MetricConfig.Enable {
+		klog.Infof("not relay, skip metrics server!")
+		return
+	}
+
+	klog.Infof("Starting Metrics service")
+	err := view.Register(obs.DefaultViews...)
+	if err != nil {
+		klog.Errorf("Failed to register view error: %v", err)
+		return
+	}
+	exporter, err := ocprom.NewExporter(ocprom.Options{
+		Registry: prometheus.DefaultRegisterer.(*prometheus.Registry),
+	})
+	if err != nil {
+		klog.Errorf("Failed to create exporter error: %v", err)
+		return
+	}
+	http.Handle("/metrics", exporter)
+	port := fmt.Sprintf(":%d", t.Config.MetricConfig.Port)
+	klog.Error(http.ListenAndServe(port, nil))
 }
