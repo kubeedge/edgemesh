@@ -92,7 +92,11 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 	opts := make([]libp2p.Option, 0) // libp2p options
 	peerSource := make(chan peer.AddrInfo, c.MaxCandidates)
 
-	privKey, err := GenerateKeyPairWithString(c.NodeName)
+	hostName := c.NodeName
+	if c.Mode == defaults.ClientMode {
+		hostName += "-gateway"
+	}
+	privKey, err := GenerateKeyPairWithString(hostName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate private key: %w", err)
 	}
