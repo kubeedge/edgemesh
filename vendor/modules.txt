@@ -1,8 +1,5 @@
 # cloud.google.com/go v0.81.0
 cloud.google.com/go/compute/metadata
-# contrib.go.opencensus.io/exporter/prometheus v0.4.2
-## explicit
-contrib.go.opencensus.io/exporter/prometheus
 # github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1
 github.com/Azure/go-ansiterm
 github.com/Azure/go-ansiterm/winterm
@@ -30,6 +27,15 @@ github.com/cheekybits/genny/parse
 # github.com/containerd/cgroups v1.0.4
 github.com/containerd/cgroups
 github.com/containerd/cgroups/stats/v1
+# github.com/containernetworking/cni v0.8.1
+## explicit
+github.com/containernetworking/cni/pkg/invoke
+github.com/containernetworking/cni/pkg/skel
+github.com/containernetworking/cni/pkg/types
+github.com/containernetworking/cni/pkg/types/020
+github.com/containernetworking/cni/pkg/types/current
+github.com/containernetworking/cni/pkg/utils
+github.com/containernetworking/cni/pkg/version
 # github.com/coredns/caddy v1.1.0
 ## explicit
 github.com/coredns/caddy
@@ -125,11 +131,6 @@ github.com/francoispqt/gojay
 # github.com/fsnotify/fsnotify v1.5.4
 ## explicit
 github.com/fsnotify/fsnotify
-# github.com/go-kit/log v0.2.1
-github.com/go-kit/log
-github.com/go-kit/log/level
-# github.com/go-logfmt/logfmt v0.5.1
-github.com/go-logfmt/logfmt
 # github.com/go-logr/logr v1.2.3
 github.com/go-logr/logr
 # github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0
@@ -560,14 +561,13 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/prometheus/statsd_exporter v0.22.7
-github.com/prometheus/statsd_exporter/pkg/level
-github.com/prometheus/statsd_exporter/pkg/mapper
-github.com/prometheus/statsd_exporter/pkg/mapper/fsm
 # github.com/raulk/go-watchdog v1.3.0
 github.com/raulk/go-watchdog
 # github.com/satori/go.uuid v1.2.0
 github.com/satori/go.uuid
+# github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
+## explicit
+github.com/songgao/water
 # github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572
 github.com/spacemonkeygo/spacelog
 # github.com/spaolacci/murmur3 v1.1.0
@@ -589,21 +589,14 @@ github.com/vishvananda/netns
 # github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1
 github.com/whyrusleeping/go-keyspace
 # go.opencensus.io v0.23.0
-## explicit
-go.opencensus.io
-go.opencensus.io/internal
 go.opencensus.io/internal/tagencoding
 go.opencensus.io/metric/metricdata
-go.opencensus.io/metric/metricexport
 go.opencensus.io/metric/metricproducer
 go.opencensus.io/resource
 go.opencensus.io/stats
 go.opencensus.io/stats/internal
 go.opencensus.io/stats/view
 go.opencensus.io/tag
-go.opencensus.io/trace
-go.opencensus.io/trace/internal
-go.opencensus.io/trace/tracestate
 # go.uber.org/atomic v1.10.0
 go.uber.org/atomic
 # go.uber.org/multierr v1.8.0
