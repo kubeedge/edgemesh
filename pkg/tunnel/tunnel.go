@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"net/http"
 	"sync"
 	"time"
 
-	ocprom "contrib.go.opencensus.io/exporter/prometheus"
 	"github.com/fsnotify/fsnotify"
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
@@ -22,13 +20,10 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
-	"github.com/libp2p/go-libp2p/p2p/host/resource-manager/obs"
 	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 	"github.com/libp2p/go-msgio/protoio"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
-	"github.com/prometheus/client_golang/prometheus"
-	"go.opencensus.io/stats/view"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
@@ -38,6 +33,7 @@ import (
 	discoverypb "github.com/kubeedge/edgemesh/pkg/tunnel/pb/discovery"
 	proxypb "github.com/kubeedge/edgemesh/pkg/tunnel/pb/proxy"
 	netutil "github.com/kubeedge/edgemesh/pkg/util/net"
+	"github.com/kubeedge/edgemesh/pkg/util/tunutils"
 )
 
 const (
@@ -398,19 +394,17 @@ func tryDialEndpoint(protocol, ip string, port int) (conn net.Conn, err error) {
 			if err == nil {
 				return conn, nil
 			}
-			klog.Errorf("dial conn err: %v", err)
 			time.Sleep(DailSleepTime)
 		}
 	case UDP:
 		for i := 0; i < DailRetryTime; i++ {
 			conn, err = net.DialUDP(UDP, nil, &net.UDPAddr{
 				IP:   net.ParseIP(ip),
-				Port: port,
+				Port: int(port),
 			})
 			if err == nil {
 				return conn, nil
 			}
-			klog.Errorf("dial conn err: %v", err)
 			time.Sleep(DailSleepTime)
 		}
 	default:
@@ -702,33 +696,141 @@ func (t *EdgeTunnel) doReload(configPath string) {
 }
 
 func (t *EdgeTunnel) Run() {
-	go t.runMetricsServer()
 	go t.runMdnsDiscovery()
 	go t.runDhtDiscovery()
 	go t.runConfigWatcher()
 	t.runHeartbeat()
 }
 
-func (t *EdgeTunnel) runMetricsServer() {
-	if !t.Config.MetricConfig.Enable {
-		klog.Infof("not relay, skip metrics server!")
+// GetCNIAdapterStream establishes a new stream with a destination peer, either directly or through a relay node,
+// use net.conn to get income data
+func (t *EdgeTunnel) GetCNIAdapterStream(opts ProxyOptions) (*StreamConn, error) {
+	var destInfo peer.AddrInfo
+	var err error
+
+	destName := opts.NodeName
+	destID, exists := t.nodePeerMap[destName]
+	if !exists {
+		destID, err = PeerIDFromString(destName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate peer id for %s err: %w", destName, err)
+		}
+		destInfo = peer.AddrInfo{ID: destID, Addrs: []ma.Multiaddr{}}
+		// mapping nodeName and peerID
+		klog.Infof("[CNI]Could not find peer %s in cache, auto generate peer info: %s", destName, destInfo)
+		t.nodePeerMap[destName] = destID
+	} else {
+		destInfo = t.p2pHost.Peerstore().PeerInfo(destID)
+	}
+	if err = AddCircuitAddrsToPeer(&destInfo, t.relayMap); err != nil {
+		return nil, fmt.Errorf("failed to add circuit addrs to peer %s", destInfo)
+	}
+	t.p2pHost.Peerstore().AddAddrs(destInfo.ID, destInfo.Addrs, peerstore.PermanentAddrTTL)
+
+	stream, err := t.p2pHost.NewStream(network.WithUseTransient(t.hostCtx, "relay"), destID, defaults.CNIProtocol)
+	if err != nil {
+		return nil, fmt.Errorf("new stream between %s: %s err: %w", destName, destInfo, err)
+	}
+	klog.Infof("【CNI】New stream between peer %s: %s success", destName, destInfo)
+	// defer stream.Close() // will close the stream elsewhere
+
+	streamWriter := protoio.NewDelimitedWriter(stream)
+	streamReader := protoio.NewDelimitedReader(stream, MaxReadSize)
+
+	// handshake with dest peer
+	opt := &ProxyOptions{
+		Protocol: opts.Protocol,
+		NodeName: opts.NodeName,
+	}
+	msg := &proxypb.Proxy{
+		Type:     proxypb.Proxy_CONNECT.Enum(),
+		Protocol: &opt.Protocol,
+		NodeName: &opt.NodeName,
+		Ip:       &opt.IP,
+		Port:     &opt.Port,
+	}
+	if err = streamWriter.WriteMsg(msg); err != nil {
+		resetErr := stream.Reset()
+		if resetErr != nil {
+			return nil, fmt.Errorf("stream between %s reset err: %w", opts.NodeName, resetErr)
+		}
+		return nil, fmt.Errorf("write conn msg to %s err: %w", opts.NodeName, err)
+	}
+
+	// read response
+	msg.Reset()
+	if err = streamReader.ReadMsg(msg); err != nil {
+		resetErr := stream.Reset()
+		if resetErr != nil {
+			return nil, fmt.Errorf("stream between %s reset err: %w", opts.NodeName, resetErr)
+		}
+		return nil, fmt.Errorf("read conn result msg from %s err: %w", opts.NodeName, err)
+	}
+	if msg.GetType() == proxypb.Proxy_FAILED {
+		resetErr := stream.Reset()
+		if resetErr != nil {
+			return nil, fmt.Errorf("stream between %s reset err: %w", opts.NodeName, err)
+		}
+		return nil, fmt.Errorf("libp2p dial %v err: Proxy.type is %s", opts, msg.GetType())
+	}
+
+	msg.Reset()
+	klog.V(4).Infof("libp2p dial %v success", opts)
+
+	return NewStreamConn(stream), nil
+}
+
+func (t *EdgeTunnel) CNIAdapterStreamHandler(stream network.Stream) {
+	remotePeer := peer.AddrInfo{
+		ID:    stream.Conn().RemotePeer(),
+		Addrs: []ma.Multiaddr{stream.Conn().RemoteMultiaddr()},
+	}
+	klog.Infof("[CNI]Adapter service got a new stream from %s", remotePeer)
+
+	streamWriter := protoio.NewDelimitedWriter(stream)
+	streamReader := protoio.NewDelimitedReader(stream, MaxReadSize) // TODO get maxSize from default
+
+	// read handshake
+	// tempUse
+	msg := new(proxypb.Proxy)
+	err := streamReader.ReadMsg(msg)
+	if err != nil {
+		klog.Errorf("Read msg from %s err: %v", remotePeer, err)
+		return
+	}
+	if msg.GetType() != proxypb.Proxy_CONNECT {
+		klog.Errorf("Read msg from %s type should be CONNECT", remotePeer)
+		return
+	}
+	targetProto := msg.GetProtocol()
+	targetNode := msg.GetNodeName()
+	targetIP := msg.GetIp()
+	targetPort := msg.GetPort()
+	targetAddr := fmt.Sprintf("%s:%d", targetIP, targetPort)
+
+	klog.Infof("[CNI] calls cni Dial")
+	if err != nil {
+		klog.Errorf("l3 CNI proxy connect to %v err: %v", msg, err)
+		msg.Reset()
+		msg.Type = proxypb.Proxy_FAILED.Enum()
+		if err = streamWriter.WriteMsg(msg); err != nil {
+			klog.Errorf("Write msg to %s err: %v", remotePeer, err)
+			return
+		}
 		return
 	}
 
-	klog.Infof("Starting Metrics service")
-	err := view.Register(obs.DefaultViews...)
+	// write response
+	msg.Type = proxypb.Proxy_SUCCESS.Enum()
+	err = streamWriter.WriteMsg(msg)
 	if err != nil {
-		klog.Errorf("Failed to register view error: %v", err)
+		klog.Errorf("Write msg to %s err: %v", remotePeer, err)
 		return
 	}
-	exporter, err := ocprom.NewExporter(ocprom.Options{
-		Registry: prometheus.DefaultRegisterer.(*prometheus.Registry),
-	})
-	if err != nil {
-		klog.Errorf("Failed to create exporter error: %v", err)
-		return
-	}
-	http.Handle("/metrics", exporter)
-	port := fmt.Sprintf(":%d", t.Config.MetricConfig.Port)
-	klog.Error(http.ListenAndServe(port, nil))
+	msg.Reset()
+
+	streamConn := NewStreamConn(stream)
+	klog.Infof("Get Tunnel data")
+	go cni.DialTun(streamConn, defaults.TunDeviceName)
+	klog.Infof("[CNI]Success proxy CNI data for {%s %s %s}", targetProto, targetNode, targetAddr)
 }

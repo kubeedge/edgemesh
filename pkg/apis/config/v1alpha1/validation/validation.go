@@ -15,6 +15,7 @@ func ValidateEdgeMeshAgentConfiguration(c *v1alpha1.EdgeMeshAgentConfig) field.E
 	allErrs = append(allErrs, ValidateKubeAPIConfig(c.KubeAPIConfig)...)
 	allErrs = append(allErrs, ValidateModuleEdgeTunnel(c.Modules.EdgeTunnelConfig)...)
 	allErrs = append(allErrs, ValidateModuleEdgeProxy(c.Modules.EdgeProxyConfig)...)
+	allErrs = append(allErrs, ValidateModuleEdgeCNI(c.Modules.EdgeCNIConfig)...)
 	return allErrs
 }
 
@@ -74,6 +75,16 @@ func ValidateModuleEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) field.ErrorList {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("Transport"), c.Transport, m))
 		}
 	}
+
+	return allErrs
+}
+
+func ValidateModuleEdgeCNI(c *v1alpha1.EdgeCNIConfig) field.ErrorList {
+	if !c.Enable {
+		return field.ErrorList{}
+	}
+
+	allErrs := field.ErrorList{}
 
 	return allErrs
 }

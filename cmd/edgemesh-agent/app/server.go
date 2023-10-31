@@ -18,6 +18,7 @@ import (
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1/validation"
 	"github.com/kubeedge/edgemesh/pkg/apis/module"
 	"github.com/kubeedge/edgemesh/pkg/clients"
+	"github.com/kubeedge/edgemesh/pkg/cni"
 	"github.com/kubeedge/edgemesh/pkg/dns"
 	"github.com/kubeedge/edgemesh/pkg/profile"
 	"github.com/kubeedge/edgemesh/pkg/proxy"
@@ -133,6 +134,9 @@ func registerModules(c *v1alpha1.EdgeMeshAgentConfig, cli *clients.Clients) []er
 		errs = append(errs, err)
 	}
 	if err := tunnel.Register(c.Modules.EdgeTunnelConfig); err != nil {
+		errs = append(errs, err)
+	}
+	if err := cni.Register(c.Modules.EdgeCNIConfig, cli); err != nil {
 		errs = append(errs, err)
 	}
 	return errs

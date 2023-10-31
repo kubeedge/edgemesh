@@ -3,9 +3,9 @@ module github.com/kubeedge/edgemesh
 go 1.16
 
 require (
-	contrib.go.opencensus.io/exporter/prometheus v0.4.2
 	github.com/buraksezer/consistent v0.9.0
 	github.com/cespare/xxhash/v2 v2.1.2
+	github.com/containernetworking/cni v0.8.1
 	github.com/coredns/caddy v1.1.0
 	github.com/coredns/coredns v1.8.0
 	github.com/fsnotify/fsnotify v1.5.4
@@ -20,11 +20,11 @@ require (
 	github.com/multiformats/go-multiaddr v0.6.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.16.0
-	github.com/prometheus/client_golang v1.13.0
+	github.com/prometheus/client_golang v1.13.0 // indirect
+	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
-	go.opencensus.io v0.23.0
 	istio.io/api v0.0.0-20220124163811-3adce9124ae7
 	istio.io/client-go v1.12.3
 	k8s.io/api v0.23.1
