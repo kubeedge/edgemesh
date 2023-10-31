@@ -197,6 +197,21 @@ data:
         extraFilteredInterfaces: {{ .Values.modules.edgeTunnel.extraFilteredInterfaces }}
         {{- end }}
       {{- end }}
+      {{- if .Values.modules.edgeCNI }}
+      edgeCNI:
+        {{- if .Values.modules.edgeCNI.enable }}
+        enable: {{ .Values.modules.edgeCNI.enable }}
+        {{- end }}
+        meshCIDRConfig:
+          cloudCIDR:
+           {{- range .Values.cloudCIDR }}
+            - {{ . | title }}
+           {{- end }}
+          edgeCIDR:
+           {{- range .Values.edgeCIDR }}
+            - {{ . | title }}
+           {{- end }}
+      {{- end }}
     {{- end }}
 ---
 apiVersion: v1
