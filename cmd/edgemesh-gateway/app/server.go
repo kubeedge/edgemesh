@@ -161,6 +161,9 @@ func prepareRun(c *v1alpha1.EdgeMeshGatewayConfig) error {
 	if !exists {
 		return fmt.Errorf("env NODE_NAME not exist")
 	}
+	// In order to prevent the agent and gateway from having the same peerID on the same node,
+	// you need to add a -gateway suffix to the nodeName.
+	nodeName += "-gateway"
 	c.Modules.EdgeGatewayConfig.LoadBalancer.NodeName = nodeName
 	c.Modules.EdgeTunnelConfig.NodeName = nodeName
 
