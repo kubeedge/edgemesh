@@ -16,7 +16,7 @@ import (
 const (
 	tunDevice   = "/dev/net/tun"
 	ifnameSize  = 16
-	packetSize  = 65536
+	PacketSize  = 65536
 	ReceiveSize = 50
 	SendSize    = 50
 )
@@ -48,6 +48,8 @@ type TunConn struct {
 
 // Get tun instance once ,if created then return the exist-one
 func getTun(name string) (*water.Interface, error) {
+	var err error
+
 	if tunDev == nil {
 		once.Do(
 			func() {
@@ -58,18 +60,23 @@ func getTun(name string) (*water.Interface, error) {
 					},
 				})
 				if err != nil {
-					klog.Errorf("create TunInterface failed:", err)
-				}
-				klog.Infof("Create TunInterface: %s", name)
-				err = ExecCommand(fmt.Sprintf("ip link set dev %s up", name))
-				if err != nil {
+					err = fmt.Errorf("failed to create TunInterface, error: %v", err)
 					return
 				}
-				klog.Infof("set dev %s up succeed", name)
+				klog.Infof("create TunInterface %s successfully", name)
+
+				err = ExecCommand(fmt.Sprintf("ip link set dev %s up", name))
+				if err != nil {
+					err = fmt.Errorf("failed to set up TunInterface %s, error: %v", name, err)
+					return
+				}
+
+				klog.Infof("set dev %s up successfully", name)
 			})
 	} else {
 		klog.Infof("already create TunInterface")
 	}
+
 	return tunDev, err
 }
 
@@ -77,15 +84,13 @@ func getTun(name string) (*water.Interface, error) {
 func NewTunConn(name string) (*TunConn, error) {
 	tun, err := getTun(name)
 	if err != nil {
-		klog.Errorf("Get TunInterface failed:", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to get TunInterface, error: %v", err)
 	}
 
 	// create raw socket for communication
 	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, syscall.IPPROTO_RAW)
 	if err != nil {
-		klog.Errorf("failed to create raw socket", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to create raw socket, error: %v", err)
 	}
 
 	klog.Infof("Tun Interface Name: %s\n", name)
@@ -103,8 +108,9 @@ func NewTunConn(name string) (*TunConn, error) {
 func SetupTunDevice(name string) error {
 	err = ExecCommand(fmt.Sprintf("ip link set dev %s up", name))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to set up TunInterface %s, error: %v", name, err)
 	}
+
 	klog.Infof("set dev %s up succeed", name)
 	return nil
 }
@@ -127,9 +133,10 @@ func ExecCommand(command string) error {
 
 // AddRouteToTun route data to tun device , witch dst IP belongs to  the cidr
 func AddRouteToTun(cidr string, name string) error {
-	err := ExecCommand(fmt.Sprintf("ip route add  %s dev %s", cidr, name))
+	cmdStr := fmt.Sprintf("ip route add %s dev %s", cidr, name)
+	err := ExecCommand(cmdStr)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to exec '%s', error: %v", cmdStr, err)
 	}
 	klog.Infof("ip route add table main %s dev %s succeed", cidr, name)
 	return nil
@@ -139,21 +146,21 @@ func AddRouteToTun(cidr string, name string) error {
 func (tun *TunConn) CleanTunDevice() error {
 	err := ExecCommand(fmt.Sprintf("ip link del dev %s mode tun", tun.tunName))
 	if err != nil {
-		klog.Errorf("Delete Tun Device  failed", err)
-		return err
+		return fmt.Errorf("failed to delete tun device %s, error: %v", tun.tunName, err)
 	}
-	klog.Infof("Set dev %s down\n", tun.tunName)
+
+	klog.Infof("delete tun device %s successfully", tun.tunName)
 	return nil
 }
 
 // CleanTunRoute Delete All Routes attach to Tun
-func (tun *TunConn) CleanTunRoute(name string) error {
+func (tun *TunConn) CleanTunRoute() error {
 	err := ExecCommand(fmt.Sprintf("ip route flush dev %s", tun.tunName))
 	if err != nil {
-		klog.Errorf("Delete Tun Route  failed", err)
-		return err
+		return fmt.Errorf("failed to clean tun device %s routes, error: %v", tun.tunName, err)
 	}
-	klog.Infof("Removed route from dev %s\n", tun.tunName)
+
+	klog.Infof("remove route from dev %s successfully", tun.tunName)
 	return nil
 }
 
@@ -161,10 +168,9 @@ func (tun *TunConn) CleanTunRoute(name string) error {
 func (tun *TunConn) CleanSingleTunRoute(cidr string) error {
 	err := ExecCommand(fmt.Sprintf("ip route del table main %s dev %s", cidr, tun.tunName))
 	if err != nil {
-		klog.Errorf("Delete Tun Route  failed", err)
-		return err
+		return fmt.Errorf("failed to clean tun device %s single route %s, error: %v", tun.tunName, cidr, err)
 	}
-	klog.Infof("Removed route for %s from dev %s\n", cidr, tun.tunName)
+	klog.Infof("remove route for %s from dev %s successfully", cidr, tun.tunName)
 	return nil
 }
 
@@ -178,8 +184,7 @@ func (tun *TunConn) Read(packet []byte) (int, error) {
 			return 0, io.EOF
 		}
 		if len(data) > 65535 {
-			klog.Error("data length exceeds the maximum allowed size", err)
-			return 0, err
+			return 0, fmt.Errorf("data length exceeds the maximum allowed size")
 		}
 		// put data into cni
 		copy(packet, data)
@@ -194,22 +199,19 @@ func (tun *TunConn) Read(packet []byte) (int, error) {
 // data flow as : tun <---data--- tunConn.WritePipe <---Write(cni)--- cni
 // when you need to directly write to tun ,you could try tunConn.tun.Write(b []byte)
 func (tun *TunConn) Write(packet []byte) (int, error) {
-	var err error
 	n := len(packet)
 	if n == 0 {
-		klog.Error("Write none to TunConn", err)
-		return 0, err
+		return 0, fmt.Errorf("it's invalid to write none to TunConn")
 	}
 	if n > 65535 {
-		klog.Error("cni length exceeds the maximum allowed size", err)
-		return n, err
+		return n, fmt.Errorf("cni length exceeds the maximum allowed size")
 	}
+
 	select {
 	case tun.WritePipe <- packet:
 		return n, nil
 	default:
-		klog.Error("Failed to write cni to WritePipe channel", err)
-		return 0, err
+		return 0, fmt.Errorf("failed to send packet to WritePipe channel")
 	}
 }
 
@@ -220,8 +222,8 @@ func (tun *TunConn) TunReceiveLoop() {
 	// buffer to receive data
 	// TODO: add SetReadDeadline implement
 	// buffer to receive data
-	buffer := NewRecycleByteBuffer(65536)
-	packet := make([]byte, 65536)
+	buffer := NewRecycleByteBuffer(PacketSize)
+	packet := make([]byte, PacketSize)
 	for {
 		// read from tun Dev
 		n, err := tun.tun.Read(packet)
@@ -256,14 +258,15 @@ func (tun *TunConn) TunReceiveLoop() {
 // TunWriteLoop()  works like consumer and Write acts as producer, when TunConn start, WriteLoop should also start to dial tun
 func (tun *TunConn) TunWriteLoop() {
 	// buffer to write data
-	buffer := NewRecycleByteBuffer(65536)
-	packet := make([]byte, 65536)
+	buffer := NewRecycleByteBuffer(PacketSize)
+	packet := make([]byte, PacketSize)
 	for {
 		//tun.TcpReceivePipe <- frame.ToBytes()
 		packet = <-tun.WritePipe
 		n := len(packet)
 		if n == 0 {
 			klog.Error("TunWriteLoop get empty cni ,can not write into tun")
+			continue
 		}
 		buffer.Write(packet[:n])
 		for {
@@ -271,13 +274,10 @@ func (tun *TunConn) TunWriteLoop() {
 			frame, err := ParseIPFrame(buffer)
 			if err != nil {
 				klog.Errorf("failed to parse ip package from WritePipe", err)
-			}
-
-			if err != nil {
-				klog.Errorf("TunWriteLoop Parse frame failed:", err)
 				buffer.Clean()
 				break
 			}
+
 			if frame == nil {
 				break
 			}
@@ -299,8 +299,7 @@ func (tun *TunConn) TunWriteLoop() {
 func (tun *TunConn) Close() error {
 	err := tun.tun.Close()
 	if err != nil {
-		klog.Errorf("Close Tun falied", err)
-		return err
+		return fmt.Errorf("failed to close tun interface, error: %v", err)
 	}
 	return nil
 }
@@ -325,9 +324,11 @@ func DialTun(stream net.Conn, name string) {
 	p2p2Tun, err := NewTunConn(name)
 	if err != nil {
 		klog.Errorf("p2p handler create TunConn failed", err)
+		return
 	}
-	packet := make([]byte, packetSize)
-	buffer := NewRecycleByteBuffer(packetSize)
+
+	packet := make([]byte, PacketSize)
+	buffer := NewRecycleByteBuffer(PacketSize)
 	// TODO: separate below as P2P handler and add SetWriteDeadline
 	go func() {
 		for {
@@ -342,13 +343,10 @@ func DialTun(stream net.Conn, name string) {
 				frame, err := ParseIPFrame(buffer)
 				if err != nil {
 					klog.Errorf("failed to parse ip package from tcp tunnel", err)
-				}
-
-				if err != nil {
-					klog.Errorf("P2P2TUN connection Parse frame failed:", err)
 					buffer.Clean()
 					break
 				}
+
 				if frame == nil {
 					break
 				}
