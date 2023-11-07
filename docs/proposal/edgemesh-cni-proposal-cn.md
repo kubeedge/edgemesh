@@ -69,7 +69,7 @@ EdgeMesh 仓库位置：https://github.com/kubeedge/edgemesh
 ​	依据 CNI 的[规范](https://github.com/containernetworking/cni/blob/master/SPEC.md)，CNI 具有以下几点特征：
 
 - CNI 需提供网络管理员**定义网络配置的文件格式**
-- CNI 需提供 Container Runtime（CRI） 调用功能的**协议/API**。
+- CNI 需提供 Container Runtime Interface（CRI） 调用功能的**协议/API**。
 - 当 CNI 被 CRI 调用时，需依据配置文件执行网络配置功能
 - CNI 需预留可调用其他插件的能力
 - CNI 需规范统一返回给CRI 的数据格式

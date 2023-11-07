@@ -54,7 +54,7 @@ Firstly, CNI is a set of standard interfaces that belong to the [CNCF (Cloud Nat
 ​	According to the CNI [specification](https://github.com/containernetworking/cni/blob/master/SPEC.md), CNI has the following features:
 
 - CNI must provide a **file format for network administrators to define network configurations**
-- CNI must provide a **protocol/API** for Container Runtime (CRI) to invoke functionality.
+- CNI must provide a **protocol/API** for Container Runtime Interface (CRI) to invoke functionality.
 - When CNI is called by CRI, it must execute network configuration functionality according to the configuration file
 - CNI must reserve the capability to invoke other plugins
 - CNI must standardize the data format returned to CRI
