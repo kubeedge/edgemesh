@@ -108,7 +108,7 @@ func (gw *EdgeGateway) OnGatewayAdd(gateway *istiv1alpha3.Gateway) {
 }
 
 // OnGatewayUpdate update a gateway server
-func (gw *EdgeGateway) OnGatewayUpdate(oldGateway, gateway *istiv1alpha3.Gateway) {
+func (gw *EdgeGateway) OnGatewayUpdate(_, gateway *istiv1alpha3.Gateway) {
 	gw.lock.Lock()
 	defer gw.lock.Unlock()
 

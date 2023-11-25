@@ -32,7 +32,6 @@
 # - File derived from kubernetes v1.19.0-beta.2
 # - Changed KUBE_ROOT value to use absolute path
 
-# copy from https://github.com/kubeedge/kubeedge/blob/231a52442bde834132fae929a0e5974647e56404/hack/update-vendor-licenses.sh
 
 set -o errexit
 set -o nounset
@@ -111,6 +110,7 @@ process_content () {
   IFS=" " read -r -a local_files <<< "$(
     for dir_root in ${package} ${package_root}; do
       [[ -d ${DEPS_DIR}/${dir_root} ]] || continue
+
       # One (set) of these is fine
       find "${DEPS_DIR}/${dir_root}" \
           -xdev -follow -maxdepth ${find_maxdepth} \
@@ -142,7 +142,7 @@ process_content () {
 #############################################################################
 
 export GO111MODULE=on
-export GOFLAGS=-mod=mod
+export GOFLAGS=-mod=readonly
 
 # Check bash version
 if (( BASH_VERSINFO[0] < 4 )); then
@@ -164,7 +164,7 @@ cd "${LICENSE_ROOT}"
 
 kube::util::ensure-temp-dir
 
-# Save the genreated LICENSE file for each package temporarily
+# Save the generated LICENSE file for each package temporarily
 TMP_LICENSE_FILE="${KUBE_TEMP}/LICENSES.$$"
 
 # The directory to save all the LICENSE files
@@ -192,8 +192,10 @@ if [ -f "${LICENSE_ROOT}/LICENSE" ]; then
   mv "${TMP_LICENSE_FILE}" "${TMP_LICENSES_DIR}/LICENSE"
 fi
 
+# Capture all module dependencies
+modules=$(go list -m -json all | jq -r .Path | sort -f)
 # Loop through every vendored package
-for PACKAGE in $(go list -m -json all | jq -r .Path | sort -f); do
+for PACKAGE in ${modules}; do
   if [[ -e "staging/src/${PACKAGE}" ]]; then
     echo "${PACKAGE} is a staging package, skipping" >&2
     continue
@@ -202,31 +204,15 @@ for PACKAGE in $(go list -m -json all | jq -r .Path | sort -f); do
     echo "${PACKAGE} doesn't exist in ${DEPS_DIR}, skipping" >&2
     continue
   fi
-  # Skip a directory if 1) it has no files and 2) all the subdirectories contain a go.mod file.
-  misses_go_mod=false
-  DEPS_SUBDIR="${DEPS_DIR}/${PACKAGE}"
-  search_for_mods () {
-    if [[ -z "$(find "${DEPS_SUBDIR}/" -mindepth 1 -maxdepth 1 -type f)" ]]; then
-      while read -d "" -r SUBDIR; do
-          if [[ ! -e "${SUBDIR}/go.mod" ]]; then
-              DEPS_SUBDIR=${SUBDIR}
-              search_for_mods
-          fi
-      done < <(find "${DEPS_SUBDIR}/" -mindepth 1 -maxdepth 1 -type d -print0)
-    else
-      misses_go_mod=true
-    fi
-  }
-  search_for_mods
-  if [[ $misses_go_mod = false ]]; then
-      echo "${PACKAGE} has no files, skipping" >&2
+  # if there are no files vendored under this package...
+  if [[ -z "$(find "${DEPS_DIR}/${PACKAGE}" -mindepth 1 -maxdepth 1 -type f)" ]]; then
+    # and we have the same number of submodules as subdirectories...
+    if [[ "$(find "${DEPS_DIR}/${PACKAGE}/" -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq "$(echo "${modules}" | grep -cE "^${PACKAGE}/")" ]]; then
+      echo "Only submodules of ${PACKAGE} are vendored, skipping" >&2
       continue
+    fi
   fi
-  if [[ "${PACKAGE}" = "go.etcd.io/etcd" ]]; then
-    # temporarily treat this way until find out a better rule
-    echo "${PACKAGE}, temporarily skipping" >&2
-    continue
-  fi
+  
   echo "${PACKAGE}"
 
   process_content "${PACKAGE}" LICENSE
@@ -249,6 +235,7 @@ for PACKAGE in $(go list -m -json all | jq -r .Path | sort -f); do
     if [[ -z "${file}" ]]; then
       cat >&2 << __EOF__
 No license could be found for ${PACKAGE} - aborting.
+
 Options:
 1. Check if the upstream repository has a newer version with LICENSE, COPYRIGHT and/or
    COPYING files.

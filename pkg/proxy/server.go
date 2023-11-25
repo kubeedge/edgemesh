@@ -31,8 +31,8 @@ import (
 // Copy and update from https://github.com/kubernetes/kubernetes/blob/v1.23.0/cmd/kube-proxy/app/server.go and
 // https://github.com/kubernetes/kubernetes/blob/v1.23.0/cmd/kube-proxy/app/server_others.go.
 
-// ProxyServer represents all the parameters required to start the Kubernetes proxy server.
-type ProxyServer struct {
+// Server represents all the parameters required to start the Kubernetes proxy server.
+type Server struct {
 	kubeClient        clientset.Interface
 	istioClient       istioclientset.Interface
 	IptInterface      utiliptables.Interface
@@ -64,7 +64,7 @@ func newProxyServer(
 	lbConfig *v1alpha1.LoadBalancer,
 	client clientset.Interface,
 	istioClient istioclientset.Interface,
-	serviceFilterMode defaults.ServiceFilterMode) (*ProxyServer, error) {
+	serviceFilterMode defaults.ServiceFilterMode) (*Server, error) {
 	klog.V(0).Info("Using userspace Proxier.")
 
 	// Create a iptables utils.
@@ -91,7 +91,7 @@ func newProxyServer(
 		return nil, fmt.Errorf("unable to create proxier: %v", err)
 	}
 
-	return &ProxyServer{
+	return &Server{
 		kubeClient:        client,
 		istioClient:       istioClient,
 		IptInterface:      iptInterface,
@@ -103,7 +103,7 @@ func newProxyServer(
 	}, nil
 }
 
-func (s *ProxyServer) Run() error {
+func (s *Server) Run() error {
 	// Determine the service filter mode.
 	// By default, we will proxy all services that are not labeled with the LabelEdgeMeshServiceProxyName label.
 	operation := selection.DoesNotExist
@@ -159,7 +159,7 @@ func (s *ProxyServer) Run() error {
 }
 
 // CleanupAndExit remove iptables rules
-func (s *ProxyServer) CleanupAndExit() error {
+func (s *Server) CleanupAndExit() error {
 	ipts := []utiliptables.Interface{
 		utiliptables.New(s.execer, utiliptables.ProtocolIPv4),
 	}

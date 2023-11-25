@@ -50,8 +50,8 @@ func TestParseIPFrame(t *testing.T) {
 		t.Errorf("Expected Offset to be 0, got %d", frame.Offset)
 	}
 
-	if frame.Ttl != 64 {
-		t.Errorf("Expected Ttl to be 64, got %d", frame.Ttl)
+	if frame.TTL != 64 {
+		t.Errorf("Expected Ttl to be 64, got %d", frame.TTL)
 	}
 
 	if frame.Protocol != 6 {

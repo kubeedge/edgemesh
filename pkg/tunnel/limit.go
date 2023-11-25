@@ -51,11 +51,11 @@ func buildLimitOpt(scalingLimits *rcmgr.ScalingLimitConfig, opts ...rcmgr.Option
 	// The resource manager expects a limiter, se we create one from our limits.
 	limiter := rcmgr.NewFixedLimiter(limits)
 	// Initialize the resource manager
-	if rm, err := rcmgr.NewResourceManager(limiter, opts...); err != nil {
+	rm, err := rcmgr.NewResourceManager(limiter, opts...)
+	if err != nil {
 		return nil, err
-	} else {
-		return libp2p.ResourceManager(rm), nil
 	}
+	return libp2p.ResourceManager(rm), nil
 }
 
 func CreateLimitOpt(config *v1alpha1.TunnelLimitConfig, opts ...rcmgr.Option) (libp2p.Option, error) {

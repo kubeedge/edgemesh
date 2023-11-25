@@ -16,8 +16,6 @@
 #limitations under the License.
 ###
 
-# copy from https://github.com/kubeedge/kubeedge/blob/081d4f245725d44f23d9a2919db99a01c56a83e9/hack/make-rules/lint.sh
-
 set -o errexit
 set -o nounset
 set -o pipefail

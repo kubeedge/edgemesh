@@ -35,7 +35,7 @@ type IPFrame struct {
 	Offset uint16
 
 	// 8 bits
-	Ttl byte
+	TTL byte
 
 	// 8 bits
 	Protocol byte
@@ -151,7 +151,7 @@ func ParseIPFrame(buffer ByteBuffer) (*IPFrame, error) {
 	// 5-headerLen: options(32...)
 	if headerLen > minimumHeaderLen {
 		options = make([]Option, headerLen-minimumHeaderLen)
-		for line := minimumHeaderLen; line < int(headerLen); line += 1 {
+		for line := minimumHeaderLen; line < int(headerLen); line++ {
 			index := line * 4
 			options[line-minimumHeaderLen] = Option{
 				Key:   BytesToUint16(bytes, index),
@@ -171,7 +171,7 @@ func ParseIPFrame(buffer ByteBuffer) (*IPFrame, error) {
 		Identification: identification,
 		Flag:           flag,
 		Offset:         offset,
-		Ttl:            ttl,
+		TTL:            ttl,
 		Protocol:       protocol,
 		HeaderCheckSum: headerCheckSum,
 		Source:         source,
@@ -204,7 +204,7 @@ func (frame *IPFrame) Strings() string {
 		frame.Identification,
 		frame.Flag,
 		frame.Offset,
-		frame.Ttl,
+		frame.TTL,
 		frame.Protocol,
 		frame.HeaderCheckSum,
 		frame.Source.String(),
@@ -242,7 +242,7 @@ func (frame *IPFrame) ToBytes() []byte {
 	bytes = append(bytes, byte(frame.Offset&0xff))
 
 	// 2: ttl(8) / protocol(8) / headerCheckSum(16)
-	bytes = append(bytes, frame.Ttl)
+	bytes = append(bytes, frame.TTL)
 	bytes = append(bytes, frame.Protocol)
 	bytes = append(bytes, 0x00, 0x00)
 
@@ -274,7 +274,7 @@ func toBytes(options []Option) []byte {
 
 	bytes := make([]byte, 0)
 
-	for i := 0; i < len(options); i += 1 {
+	for i := 0; i < len(options); i++ {
 		bytes = append(bytes, options[i].toBytes()...)
 	}
 
@@ -291,11 +291,11 @@ func (option Option) toBytes() []byte {
 }
 
 func toCheckSum(bytes []byte) uint16 {
-	var checkSum uint32 = 0
+	var checkSum uint32
 
 	num := len(bytes) >> 1
 
-	for i := 0; i < num; i += 1 {
+	for i := 0; i < num; i++ {
 		checkSum += uint32(BytesToUint16(bytes, i*2))
 	}
 

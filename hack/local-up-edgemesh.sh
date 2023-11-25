@@ -45,7 +45,7 @@ CLUSTER_NAME=test
 MASTER_NODENAME=${CLUSTER_NAME}-control-plane
 HOST_IP=`hostname -I | awk '{print $1}'`
 EDGE_NODENAME=edge-node
-KUBEEDGE_VERSION=1.8.2
+KUBEEDGE_VERSION=1.13.3
 NAMESPACE=kubeedge
 LOG_DIR=${LOG_DIR:-"/tmp"}
 TIMEOUT=${TIMEOUT:-120}s
@@ -56,7 +56,7 @@ if [[ "${CLUSTER_NAME}x" == "x" ]];then
     CLUSTER_NAME="test"
 fi
 
-export CLUSTER_CONTEXT="--name ${CLUSTER_NAME}"
+export CLUSTER_CONTEXT="--name ${CLUSTER_NAME} --config kind-cfg.yaml"
 
 
 TMP_DIR="$(realpath local-up-tmp)"
@@ -70,6 +70,17 @@ get_kubeedge_pid() {
 
 # spin up cluster with kind command
 function kind_up_cluster {
+  cat <<EOF > kind-cfg.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  extraPortMappings:
+  - containerPort: 10000
+    hostPort: 10000
+  - containerPort: 10002
+    hostPort: 10002
+EOF
   echo "Running kind: [kind create cluster ${CLUSTER_CONTEXT}]"
   kind create cluster ${CLUSTER_CONTEXT}
   add_cleanup '
@@ -121,15 +132,14 @@ localup_kubeedge() {
   token=$(sudo keadm gettoken --kube-config=${KUBECONFIG})
   echo $token
 
-  # turn off edgemesh and turn on local apiserver featuren and resart edgeocre
-  export CHECK_EDGECORE_ENVIRONMENT="false"
-  sudo -E keadm join --cloudcore-ipport=${HOST_IP}:10000 --kubeedge-version=${KUBEEDGE_VERSION} --token=${token} --edgenode-name=${EDGE_NODENAME}
+  # turn off edgemesh and turn on local apiserver feature and restart edgecore
+  sudo -E systemctl set-environment CHECK_EDGECORE_ENVIRONMENT="false"
+  sudo -E keadm join --cloudcore-ipport=${HOST_IP}:10000 --kubeedge-version=${KUBEEDGE_VERSION} --token=${token} --edgenode-name=${EDGE_NODENAME} --with-mqtt=false --runtimetype=docker
 
   EDGE_BIN=/usr/local/bin/edgecore
   EDGE_CONFIGFILE=/etc/kubeedge/config/edgecore.yaml
   EDGECORE_LOG=${LOG_DIR}/edgecore.log
-  sudo sed -i 's/clusterDNS:\ \"\"/clusterDNS:\ 169.254.96.16/g' ${EDGE_CONFIGFILE}
-  sudo sed -i 's/clusterDomain:\ \"\"/clusterDomain:\ cluster.local/g' ${EDGE_CONFIGFILE}
+  sudo sed -i 's/clusterDomain:\ cluster.local/clusterDomain:\ cluster.local\n\ \ \ \ \ \ clusterDNS:\n\ \ \ \ \ \ -\ 169.254.96.16/g' ${EDGE_CONFIGFILE}
 
   ps -aux | grep edgecore
 
@@ -138,6 +148,7 @@ localup_kubeedge() {
   EDGECORE_PID=$!
   sleep 15
   ps -aux | grep edgecore
+
   check_node_ready ${EDGE_NODENAME}
 }
 

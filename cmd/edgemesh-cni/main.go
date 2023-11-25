@@ -12,5 +12,5 @@ var (
 )
 
 func main() {
-	skel.PluginMain(cmd.CmdAdd, nil, cmd.CmdDel, cni.All, "EdgeMesh CNI plugin "+version)
+	skel.PluginMain(cmd.Add, nil, cmd.Del, cni.All, "EdgeMesh CNI plugin "+version)
 }

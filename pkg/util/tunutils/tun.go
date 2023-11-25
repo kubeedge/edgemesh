@@ -309,11 +309,11 @@ func (tun *TunConn) LocalAddr() net.Addr { return nil }
 
 func (tun *TunConn) RemoteAddr() net.Addr { return nil }
 
-func (tun *TunConn) SetDeadline(t time.Time) error { return nil }
+func (tun *TunConn) SetDeadline(_ time.Time) error { return nil }
 
-func (tun *TunConn) SetReadDeadline(t time.Time) error { return nil }
+func (tun *TunConn) SetReadDeadline(_ time.Time) error { return nil }
 
-func (tun *TunConn) SetWriteDeadline(t time.Time) error { return nil }
+func (tun *TunConn) SetWriteDeadline(_ time.Time) error { return nil }
 
 func Accept() (*TunConn, error) { return nil, nil }
 

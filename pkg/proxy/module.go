@@ -15,7 +15,7 @@ import (
 // EdgeProxy is used for traffic proxy
 type EdgeProxy struct {
 	Config      *v1alpha1.EdgeProxyConfig
-	ProxyServer *ProxyServer
+	ProxyServer *Server
 	Socks5Proxy *Socks5Proxy
 }
 

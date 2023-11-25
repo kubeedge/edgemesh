@@ -110,7 +110,7 @@ func getConsistentHashKey(dr *istioapi.DestinationRule) HashKey {
 		}
 		switch consistentHashLb := lbPolicy.ConsistentHash.HashKey.(type) {
 		case *istiov1alpha3.LoadBalancerSettings_ConsistentHashLB_HttpHeaderName:
-			return HashKey{Type: HttpHeader, Key: consistentHashLb.HttpHeaderName}
+			return HashKey{Type: HTTPHeader, Key: consistentHashLb.HttpHeaderName}
 		case *istiov1alpha3.LoadBalancerSettings_ConsistentHashLB_HttpCookie:
 			klog.Errorf("http cookie is not supported as a hash key")
 			return HashKey{}
