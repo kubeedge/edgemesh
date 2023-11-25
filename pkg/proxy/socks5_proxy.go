@@ -233,7 +233,7 @@ func (s *Socks5Proxy) HandleSocksProxy(conn net.Conn) {
 		return
 	}
 
-	targetIP, err := s.getTargetIpByNodeName(s.SocksHandle.Request.DstAddr)
+	targetIP, err := s.getTargetIPByNodeName(s.SocksHandle.Request.DstAddr)
 	if err != nil {
 		klog.Errorf("Unable to get destination IP, %v", err)
 		return
@@ -271,10 +271,10 @@ func proxyConnectToRemote(host string, targetIP string, port int32, conn net.Con
 	klog.Infof("Success proxy to %v", host)
 }
 
-// getTargetIpByNodeName Returns the real IP address of the node
+// getTargetIPByNodeName Returns the real IP address of the node
 // We must obtain the real IP address of the node to communicate, so we need to query the IP address of the edgemesh-agent on the node
 // Because users may modify the IP addresses of edgemesh-0 and edgecore. If used directly, it may cause errors
-func (s *Socks5Proxy) getTargetIpByNodeName(nodeName string) (targetIP string, err error) {
+func (s *Socks5Proxy) getTargetIPByNodeName(nodeName string) (targetIP string, err error) {
 	pods, err := s.kubeClient.CoreV1().Pods(s.Config.Namespace).List(context.Background(), metav1.ListOptions{FieldSelector: "spec.nodeName=" + nodeName, LabelSelector: LabelKubeedge})
 	if err != nil {
 		return "", err

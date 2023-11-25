@@ -326,7 +326,7 @@ func (lb *LoadBalancer) OnServiceAdd(service *v1.Service) {
 	lb.cleanupStaleStickySessions()
 }
 
-func (lb *LoadBalancer) OnServiceUpdate(oldService, service *v1.Service) {
+func (lb *LoadBalancer) OnServiceUpdate(_, service *v1.Service) {
 	lb.mu.Lock()
 	defer lb.mu.Unlock()
 
@@ -689,7 +689,7 @@ func (lb *LoadBalancer) TryConnectEndpoints(service proxy.ServicePortName, srcAd
 			continue
 		}
 		if req != nil {
-			reqBytes, err := netutil.HttpRequestToBytes(req)
+			reqBytes, err := netutil.HTTPRequestToBytes(req)
 			if err == nil {
 				_, err = outConn.Write(reqBytes)
 				if err != nil {
@@ -735,6 +735,7 @@ func (lb *LoadBalancer) dialEndpoint(protocol, endpoint string) (net.Conn, error
 }
 
 func (lb *LoadBalancer) NextEndpoint(svcPort proxy.ServicePortName, srcAddr net.Addr, sessionAffinityReset bool) (string, error) {
+	klog.V(4).InfoS("", svcPort, srcAddr, sessionAffinityReset)
 	return "", nil
 }
 

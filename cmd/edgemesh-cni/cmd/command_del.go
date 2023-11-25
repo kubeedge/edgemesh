@@ -11,7 +11,7 @@ import (
 )
 
 // TODO: file log
-func CmdDel(args *skel.CmdArgs) (err error) {
+func Del(args *skel.CmdArgs) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			msg := fmt.Sprintf("EdgeMesh CNI panicked during DEL: %s", e)

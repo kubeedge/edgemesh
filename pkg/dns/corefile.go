@@ -147,9 +147,8 @@ func UpdateCorefile(cfg *v1alpha1.EdgeDNSConfig, kubeClient kubernetes.Interface
 		upstreamServers = removeDuplicate(upstreamServers)
 		if len(upstreamServers) == 0 {
 			return fmt.Errorf("failed to get nodelocal dns upstream servers")
-		} else {
-			klog.Infof("nodelocal dns upstream servers: %v", upstreamServers)
 		}
+		klog.Infof("nodelocal dns upstream servers: %v", upstreamServers)
 		cacheTTL = cfg.CacheDNS.CacheTTL
 		// disable coredns kubernetes plugin.
 		kubernetesPlugin = ""

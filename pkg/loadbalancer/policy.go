@@ -20,7 +20,7 @@ const (
 	Random         = "RANDOM"
 	ConsistentHash = "CONSISTENT_HASH"
 
-	HttpHeader   = "HTTP_HEADER"
+	HTTPHeader   = "HTTP_HEADER"
 	UserSourceIP = "USER_SOURCE_IP"
 )
 
@@ -44,15 +44,15 @@ func (*RoundRobinPolicy) Name() string {
 	return RoundRobin
 }
 
-func (*RoundRobinPolicy) Update(oldDr, dr *istioapi.DestinationRule) {}
+func (*RoundRobinPolicy) Update(_, _ *istioapi.DestinationRule) {}
 
-func (*RoundRobinPolicy) Pick(endpoints []string, srcAddr net.Addr, netConn net.Conn, cliReq *http.Request) (string, *http.Request, error) {
+func (*RoundRobinPolicy) Pick(_ []string, _ net.Addr, _ net.Conn, cliReq *http.Request) (string, *http.Request, error) {
 	// RoundRobinPolicy is an empty implementation and we won't use it,
 	// the outer round-robin policy will be used next.
 	return "", cliReq, fmt.Errorf("call RoundRobinPolicy is forbidden")
 }
 
-func (*RoundRobinPolicy) Sync(endpoints []string) {}
+func (*RoundRobinPolicy) Sync(_ []string) {}
 
 func (*RoundRobinPolicy) Release() {}
 
@@ -68,16 +68,16 @@ func (rd *RandomPolicy) Name() string {
 	return Random
 }
 
-func (rd *RandomPolicy) Update(oldDr, dr *istioapi.DestinationRule) {}
+func (rd *RandomPolicy) Update(_, _ *istioapi.DestinationRule) {}
 
-func (rd *RandomPolicy) Pick(endpoints []string, srcAddr net.Addr, netConn net.Conn, cliReq *http.Request) (string, *http.Request, error) {
+func (rd *RandomPolicy) Pick(endpoints []string, _ net.Addr, _ net.Conn, cliReq *http.Request) (string, *http.Request, error) {
 	rd.lock.Lock()
 	k := rand.Int() % len(endpoints)
 	rd.lock.Unlock()
 	return endpoints[k], cliReq, nil
 }
 
-func (rd *RandomPolicy) Sync(endpoints []string) {}
+func (rd *RandomPolicy) Sync(_ []string) {}
 
 func (rd *RandomPolicy) Release() {}
 
@@ -100,20 +100,20 @@ func (ch *ConsistentHashPolicy) Name() string {
 	return ConsistentHash
 }
 
-func (ch *ConsistentHashPolicy) Update(oldDr, dr *istioapi.DestinationRule) {
+func (ch *ConsistentHashPolicy) Update(_, dr *istioapi.DestinationRule) {
 	ch.lock.Lock()
 	ch.hashKey = getConsistentHashKey(dr)
 	ch.lock.Unlock()
 }
 
-func (ch *ConsistentHashPolicy) Pick(endpoints []string, srcAddr net.Addr, netConn net.Conn, cliReq *http.Request) (endpoint string, req *http.Request, err error) {
+func (ch *ConsistentHashPolicy) Pick(_ []string, srcAddr net.Addr, netConn net.Conn, cliReq *http.Request) (endpoint string, req *http.Request, err error) {
 	ch.lock.Lock()
 	defer ch.lock.Unlock()
 
 	req = cliReq
 	var keyValue string
 	switch ch.hashKey.Type {
-	case HttpHeader:
+	case HTTPHeader:
 		if req == nil {
 			req, err = http.ReadRequest(bufio.NewReader(netConn))
 			if err != nil {

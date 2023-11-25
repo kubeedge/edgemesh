@@ -10,8 +10,8 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// CmdAdd TODO: file log
-func CmdAdd(args *skel.CmdArgs) (err error) {
+// Add TODO: file log
+func Add(args *skel.CmdArgs) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			msg := fmt.Sprintf("EdgeMesh CNI panicked during ADD: %s", e)

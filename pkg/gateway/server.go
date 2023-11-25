@@ -193,9 +193,8 @@ func (srv *Server) newProto(conn net.Conn) (Protocol, error) {
 				}
 			}
 			return nil, fmt.Errorf("no match virtual service")
-		} else {
-			return nil, fmt.Errorf("protocol %s not supported", srv.options.Protocol)
 		}
+		return nil, fmt.Errorf("protocol %s not supported", srv.options.Protocol)
 	}
 	return nil, fmt.Errorf("egress traffic not supported")
 }

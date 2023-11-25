@@ -63,14 +63,14 @@ func (p *HTTP) Process() {
 		}
 
 		// passthrough
-		httpToTcp := &TCP{
+		httpToTCP := &TCP{
 			Conn:         p.Conn,
 			SvcNamespace: p.SvcNamespace,
 			SvcName:      p.SvcName,
 			SvcPort:      p.SvcPort,
 			UpgradeReq:   req,
 		}
-		httpToTcp.Process()
+		httpToTCP.Process()
 	}
 }
 

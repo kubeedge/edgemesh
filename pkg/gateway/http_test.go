@@ -15,16 +15,16 @@ func TestUriMatch(t *testing.T) {
 		{MatchType: &networkingv1alpha3.StringMatch_Prefix{Prefix: "/hello*"}},
 		{MatchType: &networkingv1alpha3.StringMatch_Prefix{Prefix: "/)(j3*a0"}},
 	}
-	reqUris := []string{
+	reqURIs := []string{
 		"/",
 		"/abc",
 		"/abcd",
 		"/xyz",
 		"/hello-world",
 	}
-	for _, reqUri := range reqUris {
+	for _, reqURI := range reqURIs {
 		for _, uriRule := range uriRules {
-			t.Log(uriMatch(uriRule, reqUri))
+			t.Log(uriMatch(uriRule, reqURI))
 		}
 	}
 }

@@ -69,7 +69,7 @@ func (tcp *tcpProxySocket) ListenPort() int {
 	return tcp.port
 }
 
-func (tcp *tcpProxySocket) ProxyLoop(service proxy.ServicePortName, myInfo *userspace.ServiceInfo, loadBalancer userspace.LoadBalancer) {
+func (tcp *tcpProxySocket) ProxyLoop(service proxy.ServicePortName, myInfo *userspace.ServiceInfo, _ userspace.LoadBalancer) {
 	for {
 		if !myInfo.IsAlive() {
 			// The service port was closed or replaced.
@@ -123,7 +123,7 @@ func (udp *udpProxySocket) Addr() net.Addr {
 	return udp.LocalAddr()
 }
 
-func (udp *udpProxySocket) ProxyLoop(service proxy.ServicePortName, myInfo *userspace.ServiceInfo, loadBalancer userspace.LoadBalancer) {
+func (udp *udpProxySocket) ProxyLoop(service proxy.ServicePortName, myInfo *userspace.ServiceInfo, _ userspace.LoadBalancer) {
 	var buffer [4096]byte // 4KiB should be enough for most whole-packets
 	for {
 		if !myInfo.IsAlive() {

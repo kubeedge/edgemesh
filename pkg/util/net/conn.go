@@ -12,8 +12,8 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// HttpRequestToBytes transforms http.Request to bytes
-func HttpRequestToBytes(req *http.Request) ([]byte, error) {
+// HTTPRequestToBytes transforms http.Request to bytes
+func HTTPRequestToBytes(req *http.Request) ([]byte, error) {
 	if req == nil {
 		return nil, fmt.Errorf("http request nil")
 	}
