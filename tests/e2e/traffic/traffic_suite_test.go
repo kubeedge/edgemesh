@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
 	"github.com/spf13/pflag"
 
 	"github.com/kubeedge/edgemesh/tests/e2e/k8s"
@@ -32,8 +32,8 @@ func TestMain(m *testing.M) {
 
 func TestEdgeMeshTraffic(t *testing.T) {
 	rand.Seed(time.Now().Unix())
-	RegisterFailHandler(Fail)
-	BeforeSuite(func() {
+	gomega.RegisterFailHandler(ginkgo.Fail)
+	ginkgo.BeforeSuite(func() {
 		utils.Infof("Before Suite Execution")
 		ctx = utils.NewTestContext(utils.LoadConfig())
 		lan2NodeNames = make(map[string][]string)
@@ -43,14 +43,14 @@ func TestEdgeMeshTraffic(t *testing.T) {
 		nodeSelector := map[string]string{"lan": "edge-lan-01"}
 		labels := map[string]string{"app": "busybox"}
 		busyboxPod, err := k8s.CreateBusyboxTool(busyboxToolName, labels, nodeSelector, ctx)
-		Expect(err).To(BeNil())
+		gomega.Expect(err).To(gomega.BeNil())
 		// delete "docker://" in docker://8f2e9eb669d42c09dae3901286e1e09709059090fed49e411042662d0666735d
 		busyboxToolContainerID = busyboxPod.Status.ContainerStatuses[0].ContainerID[9:]
 	})
-	AfterSuite(func() {
-		By("After Suite Execution....!")
+	ginkgo.AfterSuite(func() {
+		ginkgo.By("After Suite Execution....!")
 		err := k8s.CleanBusyBoxTool(busyboxToolName, ctx)
-		Expect(err).To(BeNil())
+		gomega.Expect(err).To(gomega.BeNil())
 	})
-	RunSpecs(t, "EdgeMesh App Traffic Suite")
+	ginkgo.RunSpecs(t, "EdgeMesh App Traffic Suite")
 }

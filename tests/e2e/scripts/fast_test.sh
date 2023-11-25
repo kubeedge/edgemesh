@@ -43,3 +43,6 @@ else
     --test.v \
     2>&1 | tee -a  /tmp/testcase.log
 fi
+
+EDGEMESH_CID=$(docker ps -a | grep k8s_edgemesh | awk '{print $1}')
+docker logs $EDGEMESH_CID

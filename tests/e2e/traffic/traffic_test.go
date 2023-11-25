@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 
 	"github.com/kubeedge/edgemesh/tests/e2e/k8s"
@@ -21,31 +21,31 @@ const (
 
 var DeploymentTestTimerGroup = utils.NewTestTimerGroup()
 
-var _ = Describe("Traffic", func() {
+var _ = ginkgo.Describe("Traffic", func() {
 	var UID string
 	var testTimer *utils.TestTimer
-	var testDescription GinkgoTestDescription
+	var testDescription ginkgo.GinkgoTestDescription
 
-	Context("Test same lan features", func() {
-		BeforeEach(func() {
+	ginkgo.Context("Test same lan features", func() {
+		ginkgo.BeforeEach(func() {
 			// Get current test description
-			testDescription = CurrentGinkgoTestDescription()
+			testDescription = ginkgo.CurrentGinkgoTestDescription()
 			// Start test timer
 			testTimer = DeploymentTestTimerGroup.NewTestTimer(testDescription.TestText)
 			time.Sleep(intervalTime)
 		})
-		AfterEach(func() {
+		ginkgo.AfterEach(func() {
 			// End test timer
 			testTimer.End()
 			// Print result
 			testTimer.PrintResult()
 			var deploymentList appsv1.DeploymentList
 			err := utils.GetDeployments(&deploymentList, ctx.Cfg.K8SMasterForKubeEdge+constants.DeploymentHandler)
-			Expect(err).To(BeNil())
+			gomega.Expect(err).To(gomega.BeNil())
 			for _, deployment := range deploymentList.Items {
 				if deployment.Name == UID {
 					err := k8s.CleanupApplication(UID, ctx)
-					Expect(err).To(BeNil())
+					gomega.Expect(err).To(gomega.BeNil())
 					break
 				}
 			}
@@ -53,18 +53,18 @@ var _ = Describe("Traffic", func() {
 		})
 
 		// whether the service discovery feature work
-		It("E2E_TRAFFIC_SAME_LAN_SERVICE_DISCOVERY: Create hostname service and busybox pod to check the service "+
+		ginkgo.It("E2E_TRAFFIC_SAME_LAN_SERVICE_DISCOVERY: Create hostname service and busybox pod to check the service "+
 			"discovery feature", func() {
 			// 1. start hostname application
 			UID = "hostname-applicatioin-" + utils.GetRandomString(5)
 			nodeSelector := map[string]string{"lan": "edge-lan-01"}
 			servicePort := int32(12345)
 			err := CreateHostnameApplication(UID, nodeSelector, servicePort, 1, ctx)
-			Expect(err).To(BeNil())
+			gomega.Expect(err).To(gomega.BeNil())
 
 			// 2. get clusterIP
 			service, err := k8s.GetService(k8s.GenServiceNameFromUID(UID), ctx)
-			Expect(err).To(BeNil())
+			gomega.Expect(err).To(gomega.BeNil())
 			clusterIP := service.Spec.ClusterIP
 
 			// 3. use busybox pod exec dig <hostname-svc>.<namespace>.svc.cluster.local.
@@ -82,25 +82,25 @@ var _ = Describe("Traffic", func() {
 					continue
 				}
 				//4. fetch resultIP and check
-				resultIP = k8s.FetchIPFromDigOutput(outStr, domain)
+				resultIP = k8s.FetchIPFromDigOutput(outStr)
 				if resultIP != "" {
 					break
 				}
 			}
-			Expect(err).To(BeNil())
+			gomega.Expect(err).To(gomega.BeNil())
 			utils.Infof("OutStr: %v, domain: %v", outStr, domain)
-			utils.Infof("Expect IP %v, domain IP: %v", resultIP, clusterIP)
-			Expect(resultIP).To(Equal(clusterIP))
+			utils.Infof("gomega.Expect IP %v, domain IP: %v", resultIP, clusterIP)
+			gomega.Expect(resultIP).To(gomega.Equal(clusterIP))
 		})
 
 		// whether the http traffic governance feature work
-		It("E2E_TRAFFIC_SAME_LAN_HTTP_TRAFFIC_Governance", func() {
+		ginkgo.It("E2E_TRAFFIC_SAME_LAN_HTTP_TRAFFIC_Governance", func() {
 			// 1. start hostname application
 			UID = "hostname-application-" + utils.GetRandomString(5)
 			nodeSelector := map[string]string{"lan": "edge-lan-01"}
 			servicePort := int32(12345)
 			err := CreateHostnameApplication(UID, nodeSelector, servicePort, 1, ctx)
-			Expect(err).To(BeNil())
+			gomega.Expect(err).To(gomega.BeNil())
 
 			// 2. use busybox pod exec curl <hostname-svc>.<namespace>:<svc-port>
 			domain := k8s.GenServiceNameFromUID(UID) + "." + defaultNamespace
@@ -122,21 +122,21 @@ var _ = Describe("Traffic", func() {
 				}
 				break
 			}
-			Expect(err).To(BeNil())
+			gomega.Expect(err).To(gomega.BeNil())
 			utils.Infof("outStr: %v", outStr)
 
 			// 3. check the http status equal OK
-			Expect(statusCode).To(Equal(http.StatusOK))
+			gomega.Expect(statusCode).To(gomega.Equal(http.StatusOK))
 		})
 
 		// whether the tcp traffic governance feature work
-		It("E2E_TRAFFIC_SAME_LAN_TCP_TRAFFIC_Governance", func() {
+		ginkgo.It("E2E_TRAFFIC_SAME_LAN_TCP_TRAFFIC_Governance", func() {
 			// 1. start tcp-reply-edgemesh application
 			UID = "tcp-reply-edgemesh-application-" + utils.GetRandomString(5)
 			nodeSelector := map[string]string{"lan": "edge-lan-01"}
 			servicePort := int32(12345)
 			err := CreateTCPReplyEdgemeshApplication(UID, nodeSelector, servicePort, 1, ctx)
-			Expect(err).To(BeNil())
+			gomega.Expect(err).To(gomega.BeNil())
 
 			// 2. use busybox pod exec curl <tcp-reply-edgemesh-svc>.<namespace> <svc-port>
 			domain := k8s.GenServiceNameFromUID(UID) + "." + defaultNamespace
@@ -152,13 +152,13 @@ var _ = Describe("Traffic", func() {
 					break
 				}
 			}
-			Expect(err).To(BeNil())
+			gomega.Expect(err).To(gomega.BeNil())
 			utils.Infof("outStr: %v", outStr)
 
 			// 3. check whether the reply equals to "edgemesh"
 			reply := k8s.FetchTCPReplyFromOutput(outStr)
 			utils.Infof("reply: %v", reply)
-			Expect(reply).To(Equal("edgemesh"))
+			gomega.Expect(reply).To(gomega.Equal("edgemesh"))
 		})
 	})
 })

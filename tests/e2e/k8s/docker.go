@@ -24,7 +24,7 @@ func CallSysCommand(command string) (string, error) {
 	return out.String(), nil
 }
 
-func FetchIPFromDigOutput(outStr, domain string) string {
+func FetchIPFromDigOutput(outStr string) string {
 	// delete space and tab
 	outStr = strings.Replace(outStr, " ", "", -1)
 	outStr = strings.Replace(outStr, "\t", "", -1)
