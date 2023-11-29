@@ -917,7 +917,7 @@ func (lb *LoadBalancer) TryConnectEndpoints(service proxy.ServicePortName, srcAd
 			if netutil.IsTooManyFDsError(err) {
 				panic("Dial failed: " + err.Error())
 			}
-			klog.ErrorS(err, "Dial failed")
+			klog.ErrorS(err, "Dial failed", "endpoint:", endpoint)
 			sessionAffinityReset = true
 			time.Sleep(dialTimeout)
 			continue
