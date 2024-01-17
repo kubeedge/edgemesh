@@ -10,6 +10,7 @@ const guide = {
     '/zh/guide/ssh.md',
     '/zh/guide/edge-kube-api.md',
     '/zh/guide/ha.md',
+    '/zh/guide/cni.md',
   ],
 }
 
