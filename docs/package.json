@@ -4,8 +4,8 @@
   "description": "EdgeMesh Documentation",
   "license": "Apache",
   "scripts": {
-    "docs:dev": "vuepress dev .",
-    "docs:build": "vuepress build ."
+    "docs:dev": "export NODE_OPTIONS=--openssl-legacy-provider && vuepress dev .",
+    "docs:build": "export NODE_OPTIONS=--openssl-legacy-provider && vuepress build ."
   },
   "devDependencies": {
     "vuepress": "^2.0.0-beta.24"

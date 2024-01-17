@@ -4,6 +4,7 @@ import { navbar, sidebar } from './configs'
 
 export default defineUserConfig<DefaultThemeOptions>({
   base: '/',
+  pagePatterns: ['!proposal'],
 
   head: [
     [
