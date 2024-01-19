@@ -1,0 +1,439 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "type": "object",
+    "properties": {
+        "spiderpool": {
+            "title": "The spiderpool Schema",
+            "type": "object",
+            "properties": {
+                "global": {
+                    "title": "Global Setting",
+                    "type": "object",
+                    "required": [
+                        "imageRegistryOverride"
+                    ],
+                    "properties": {
+                        "imageRegistryOverride": {
+                            "title": "global image Registry",
+                            "type": "string",
+                            "default": "ghcr.m.daocloud.io",
+                            "examples": [
+                                "ghcr.m.daocloud.io"
+                            ]
+                        }
+                    }
+                },
+                "spiderpoolAgent": {
+                    "title": "Spiderpool Agent Setting",
+                    "description": "spiderpool agent is a daemonset",
+                    "type": "object",
+                    "properties": {
+                        "image": {
+                            "title": "Spiderpool Agent Image",
+                            "type": "object",
+                            "required": [
+                                "repository"
+                            ],
+                            "properties": {
+                                "repository": {
+                                    "title": "repository",
+                                    "type": "string",
+                                    "default": "spidernet-io/spiderpool/spiderpool-agent",
+                                    "examples": [
+                                        "spidernet-io/spiderpool/spiderpool-agent"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "spiderpoolController": {
+                    "title": "Spiderpool Controller Setting",
+                    "description": "spiderpool controller is a deployment",
+                    "type": "object",
+                    "required": [
+                        "replicas"
+                    ],
+                    "properties": {
+                        "replicas": {
+                            "title": "replicas number",
+                            "type": "integer",
+                            "default": 1,
+                            "minimum": 1,
+                            "examples": [
+                                1
+                            ]
+                        },
+                        "image": {
+                            "title": "Spiderpool Controller Image",
+                            "type": "object",
+                            "required": [
+                                "repository"
+                            ],
+                            "properties": {
+                                "repository": {
+                                    "title": "repository",
+                                    "type": "string",
+                                    "default": "spidernet-io/spiderpool/spiderpool-controller"
+                                }
+                            }
+                        }
+                    }
+                },
+                "multus": {
+                    "type": "object",
+                    "title": "Multus Setting",
+                    "properties": {
+                        "multusCNI": {
+                            "type": "object",
+                            "required": [
+                                "install"
+                            ],
+                            "properties": {
+                                "install": {
+                                    "type": "boolean",
+                                    "title": "Install Multus CNI",
+                                    "description": "If you already have multus installed, you can set it to false. Default to true",
+                                    "default": true,
+                                    "examples": [
+                                        {
+                                            "install": true
+                                        }
+                                    ]
+                                },
+                                "defaultCniCRName": {
+                                    "type": "string",
+                                    "title": "Default CNI Name",
+                                    "description": "The name of cluster default CNI name. Default is \"\", If this value is empty, spiderpool will automatically get default CNI according to the existed CNI conf file in /etc/cni/net.d/"
+                                },
+                                "image": {
+                                    "type": "object",
+                                    "title": "Multus Image",
+                                    "properties": {
+                                        "repository": {
+                                            "title": "repository",
+                                            "type": "string",
+                                            "default": "k8snetworkplumbingwg/multus-cni"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "sriov": {
+                    "type": "object",
+                    "title": "SriovCNI",
+                    "properties": {
+                        "install": {
+                            "type": "boolean",
+                            "title": "Install Sriov-CNI",
+                            "description": "Install all SR-IOV components on-demand through the SRIOV operator."
+                        },
+                        "image": {
+                            "type": "object",
+                            "properties": {
+                                "operator": {
+                                    "type": "object",
+                                    "properties": {
+                                        "repository": {
+                                            "title": "repository",
+                                            "type": "string",
+                                            "default": "k8snetworkplumbingwg/sriov-network-operator",
+                                            "examples": [
+                                                "k8snetworkplumbingwg/sriov-network-operator"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "sriovCni": {
+                                    "type": "object",
+                                    "properties": {
+                                        "repository": {
+                                            "title": "repository",
+                                            "type": "string",
+                                            "default": "k8snetworkplumbingwg/sriov-cni",
+                                            "examples": [
+                                                "k8snetworkplumbingwg/sriov-cni"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "sriovDevicePlugin": {
+                                    "type": "object",
+                                    "properties": {
+                                        "repository": {
+                                            "title": "repository",
+                                            "type": "string",
+                                            "default": "k8snetworkplumbingwg/sriov-network-device-plugin",
+                                            "examples": [
+                                                "k8snetworkplumbingwg/sriov-network-device-plugin"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "sriovConfigDaemon": {
+                                    "type": "object",
+                                    "properties": {
+                                        "repository": {
+                                            "title": "repository",
+                                            "type": "string",
+                                            "default": "k8snetworkplumbingwg/sriov-network-operator-config-daemon",
+                                            "examples": [
+                                                "k8snetworkplumbingwg/sriov-network-operator-config-daemon"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "ibSriovCni": {
+                                    "type": "object",
+                                    "properties": {
+                                        "repository": {
+                                            "title": "repository",
+                                            "type": "string",
+                                            "default": "k8snetworkplumbingwg/ib-sriov-cni",
+                                            "examples": [
+                                                "k8snetworkplumbingwg/ib-sriov-cni"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "resourcesInjector": {
+                                    "type": "object",
+                                    "properties": {
+                                        "repository": {
+                                            "title": "repository",
+                                            "type": "string",
+                                            "default": "k8snetworkplumbingwg/network-resources-injector",
+                                            "examples": [
+                                                "k8snetworkplumbingwg/network-resources-injector"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "webhook": {
+                                    "type": "object",
+                                    "properties": {
+                                        "repository": {
+                                            "title": "repository",
+                                            "type": "string",
+                                            "default": "k8snetworkplumbingwg/sriov-network-operator-webhook",
+                                            "examples": [
+                                                "k8snetworkplumbingwg/sriov-network-operator-webhook"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "rdma": {
+                    "type": "object",
+                    "properties": {
+                        "rdmaSharedDevicePlugin": {
+                            "type": "object",
+                            "title": "RdmaSharedDevicePlugin",
+                            "properties": {
+                                "install": {
+                                    "type": "boolean",
+                                    "title": "Install RdmaSharedDevicePlugin",
+                                    "description": "RdmaSharedDevicePlugin can be used with macvlan for RDMA"
+                                },
+                                "image": {
+                                    "type": "object",
+                                    "properties": {
+                                        "repository": {
+                                            "title": "repository",
+                                            "type": "string",
+                                            "default": "mellanox/k8s-rdma-shared-dev-plugin",
+                                            "examples": [
+                                                "mellanox/k8s-rdma-shared-dev-plugin"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "deviceConfig": {
+                                    "type": "object",
+                                    "title": "RdmaSharedDevicePlugin Config",
+                                    "properties": {
+                                        "resourceName": {
+                                            "type": "string",
+                                            "default": "hca_shared_devices",
+                                            "description": "Endpoint resource name. Should not contain special characters, must be unique in the scope of the resource prefix.",
+                                            "examples": [
+                                                "hca_shared_devices"
+                                            ]
+                                        },
+                                        "vendors": {
+                                            "type": "string",
+                                            "default": "15b3",
+                                            "description": "Target device's vendor Hex code as string, Example: \"15b3\"."
+                                        },
+                                        "deviceIDs": {
+                                            "type": "string",
+                                            "description": "A list of devices IDs to be selected. Examples: \"1017\".",
+                                            "default": "1017",
+                                            "examples": [
+                                                "1017"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "plugins": {
+                    "type": "object",
+                    "title": "CNI-Plugins",
+                    "properties": {
+                        "image": {
+                            "type": "object",
+                            "properties": {
+                                "repository": {
+                                    "title": "repository",
+                                    "type": "string",
+                                    "default": "spidernet-io/spiderpool/spiderpool-plugins",
+                                    "examples": [
+                                        "spidernet-io/spiderpool/spiderpool-plugins"
+                                    ]
+                                }
+                            }
+                        },
+                        "installCNI": {
+                            "type": "boolean",
+                            "title": "install CNI-Plugins",
+                            "description": "install CNI-Plugins binary(macvlan, ipvlan, etc.) to each node. If you haven't installed it, you can set it to true. Default to false",
+                            "default": false,
+                            "examples": [
+                                false
+                            ]
+                        },
+                        "installRdmaCNI": {
+                            "type": "boolean",
+                            "title": "install RDMA-CNI",
+                            "description": "install RDMA-CNI plugin binary to each node. If you haven't installed it, you can set it to true. Default to true",
+                            "default": true,
+                            "examples": [
+                                false
+                            ]
+                        }
+                    }
+                },
+                "ipam": {
+                    "title": "IP Family Setting",
+                    "type": "object",
+                    "default": {},
+                    "required": [
+                        "enableIPv4",
+                        "enableIPv6"
+                    ],
+                    "properties": {
+                        "enableIPv4": {
+                            "title": "enable IPv4",
+                            "description": "enable IPAM IPv4 feature. Notice: required to create IPv4 ippool",
+                            "type": "boolean",
+                            "default": true,
+                            "examples": [
+                                true
+                            ]
+                        },
+                        "enableIPv6": {
+                            "title": "enable IPv6",
+                            "description": "enable IPAM IPv6 feature. Notice: required to create IPv6 ippool",
+                            "type": "boolean",
+                            "default": false,
+                            "examples": [
+                                true
+                            ]
+                        }
+                    }
+                },
+                "clusterDefaultPool": {
+                    "title": "Cluster Default Ippool Installation",
+                    "type": "object",
+                    "default": {},
+                    "required": [
+                        "installIPv4IPPool",
+                        "installIPv6IPPool"
+                    ],
+                    "properties": {
+                        "installIPv4IPPool": {
+                            "title": "install IPv4 ippool",
+                            "description": "when 'enable IPv4', required to install IPv4 ippool",
+                            "type": "boolean",
+                            "default": false,
+                            "examples": [
+                                false
+                            ]
+                        },
+                        "installIPv6IPPool": {
+                            "title": "install IPv6 ippool",
+                            "description": "when 'enable IPv6', required to install IPv6 ippool",
+                            "type": "boolean",
+                            "default": false,
+                            "examples": [
+                                false
+                            ]
+                        },
+                        "ipv4Subnet": {
+                            "title": "IPv4 ippool subnet",
+                            "type": "string",
+                            "default": "192.168.1.0/24",
+                            "examples": [
+                                "192.168.1.0/24"
+                            ]
+                        },
+                        "ipv6Subnet": {
+                            "title": "IPv6 ippool subnet",
+                            "type": "string",
+                            "default": "fd00::/64",
+                            "examples": [
+                                "fd00::/64"
+                            ]
+                        },
+                        "ipv4Gateway": {
+                            "title": "IPv4 ippool gateway",
+                            "default": "192.168.1.1",
+                            "type": "string"
+                        },
+                        "ipv6Gateway": {
+                            "title": "IPv6 ippool gateway",
+                            "default": "fd00::1",
+                            "type": "string"
+                        },
+                        "ipv4IPRanges": {
+                            "title": "IP Ranges for default IPv4 ippool",
+                            "type": "array",
+                            "description": "each item could be range format like '192.168.0.10-192.168.0.100', or comma format like '192.168.0.10,192.168.0.11,192.168.0.12'. Notice: all IP address must belong to ipv4Subnet",
+                            "default": [],
+                            "items": {
+                                "type": "string"
+                            },
+                            "examples": [
+                                [
+                                    "192.168.1.10-192.168.1.200"
+                                ]
+                            ]
+                        },
+                        "ipv6IPRanges": {
+                            "title": "IP Ranges for default IPv6 ippool",
+                            "type": "array",
+                            "description": "each item could be range format like 'fd00::10-fd00::200', or comma format like 'fd00::10,fd00::20,fd00::30'. Notice: all IP address must belong to ipv6Subnet ",
+                            "default": [],
+                            "items": {
+                                "type": "string"
+                            },
+                            "examples": [
+                                [
+                                    "fd00::10-fd00::200"
+                                ]
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

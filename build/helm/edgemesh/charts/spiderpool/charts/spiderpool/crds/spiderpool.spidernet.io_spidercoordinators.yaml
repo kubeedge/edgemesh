@@ -1,0 +1,101 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (unknown)
+  name: spidercoordinators.spiderpool.spidernet.io
+spec:
+  group: spiderpool.spidernet.io
+  names:
+    categories:
+    - spiderpool
+    kind: SpiderCoordinator
+    listKind: SpiderCoordinatorList
+    plural: spidercoordinators
+    shortNames:
+    - scc
+    singular: spidercoordinator
+  scope: Cluster
+  versions:
+  - name: v2beta1
+    schema:
+      openAPIV3Schema:
+        description: SpiderCoordinator is the Schema for the spidercoordinators API.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CoordinationSpec defines the desired state of SpiderCoordinator.
+            properties:
+              detectGateway:
+                type: boolean
+              detectIPConflict:
+                type: boolean
+              hijackCIDR:
+                items:
+                  type: string
+                type: array
+              hostRPFilter:
+                type: integer
+              hostRuleTable:
+                type: integer
+              mode:
+                enum:
+                - auto
+                - underlay
+                - overlay
+                - disabled
+                type: string
+              podCIDRType:
+                description: CoordinatorSpec is used by SpiderCoordinator and SpiderMultusConfig
+                  in spidermultusconfig CRD , podCIDRType should not be required,
+                  which could be merged from SpiderCoordinator CR but in SpiderCoordinator
+                  CRD, podCIDRType should be required
+                enum:
+                - auto
+                - cluster
+                - calico
+                - cilium
+                - none
+                type: string
+              podDefaultRouteNIC:
+                type: string
+              podMACPrefix:
+                type: string
+              tunePodRoutes:
+                type: boolean
+              txQueueLen:
+                type: integer
+            type: object
+          status:
+            description: CoordinationStatus defines the observed state of SpiderCoordinator.
+            properties:
+              overlayPodCIDR:
+                items:
+                  type: string
+                type: array
+              phase:
+                type: string
+              serviceCIDR:
+                items:
+                  type: string
+                type: array
+            required:
+            - phase
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
