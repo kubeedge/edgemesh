@@ -33,3 +33,18 @@ agent:
       enable: true
     edgeTunnel:
       enable: true
+
+spiderpool:
+  multus:
+    enableMultusConfig: false
+    multusCNI:
+      install: false
+  plugins:
+    installCNI: false
+    installRdmaCNI: false
+    installOvsCNI: false
+    installibSriovCNI: false
+    installIpoibCNI: false
+  coordinator:
+    enabled: false
+  
