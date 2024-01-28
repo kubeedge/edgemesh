@@ -33,8 +33,9 @@ agent:
       enable: true
     edgeTunnel:
       enable: true
-
 spiderpool:
+  coordinator:
+    enabled: false
   multus:
     enableMultusConfig: false
     multusCNI:
@@ -45,6 +46,5 @@ spiderpool:
     installOvsCNI: false
     installibSriovCNI: false
     installIpoibCNI: false
-  coordinator:
-    enabled: false
-  
+  sriov:
+    install: false

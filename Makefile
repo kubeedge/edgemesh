@@ -182,3 +182,7 @@ push: images
 # push multi-platform images
 push-multi-platform-images:
 	bash hack/make-rules/push.sh
+
+# update spiderpool helm charts
+update-spiderpool-charts:
+	bash hack/update-spiderpool-charts.sh
