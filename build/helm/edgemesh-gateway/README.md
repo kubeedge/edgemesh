@@ -8,6 +8,7 @@ Visit https://edgemesh.netlify.app/reference/config-items.html#helm-configuratio
 
 ```
 helm install edgemesh-gateway --namespace kubeedge \
+--set nodeName=<your node name> \
 --set psk=<your psk string> \
 --set relayNodes[0].nodeName=<your node name>,relayNodes[0].advertiseAddress=<your advertise address list> \
 https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh-gateway.tgz
@@ -20,6 +21,7 @@ You need to generate a PSK cipher first, please refer to: https://edgemesh.netli
 Start with a relay node:
 ```
 helm install edgemesh-gateway --namespace kubeedge \
+--set nodeName=k8s-master \
 --set psk=<your psk string> \
 --set relayNodes[0].nodeName=k8s-master,relayNodes[0].advertiseAddress="{1.1.1.1}" \
 https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh-gateway.tgz
@@ -28,6 +30,7 @@ https://raw.githubusercontent.com/kubeedge/edgemesh/main/build/helm/edgemesh-gat
 Start with two relay nodes:
 ```
 helm install edgemesh-gateway --namespace kubeedge \
+--set nodeName=k8s-master \
 --set psk=<your psk string> \
 --set relayNodes[0].nodeName=k8s-master,relayNodes[0].advertiseAddress="{1.1.1.1}" \
 --set relayNodes[1].nodeName=ke-edge1,relayNodes[1].advertiseAddress="{2.2.2.2,3.3.3.3}" \
