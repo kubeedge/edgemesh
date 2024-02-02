@@ -1,0 +1,323 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (unknown)
+  name: spidermultusconfigs.spiderpool.spidernet.io
+spec:
+  group: spiderpool.spidernet.io
+  names:
+    categories:
+    - spiderpool
+    kind: SpiderMultusConfig
+    listKind: SpiderMultusConfigList
+    plural: spidermultusconfigs
+    shortNames:
+    - smc
+    singular: spidermultusconfig
+  scope: Namespaced
+  versions:
+  - name: v2beta1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec is the specification of the MultusCNIConfig
+            properties:
+              cniType:
+                default: custom
+                enum:
+                - macvlan
+                - ipvlan
+                - sriov
+                - ovs
+                - ib-sriov
+                - ipoib
+                - custom
+                type: string
+              coordinator:
+                description: CoordinationSpec defines the desired state of SpiderCoordinator.
+                properties:
+                  detectGateway:
+                    type: boolean
+                  detectIPConflict:
+                    type: boolean
+                  hijackCIDR:
+                    items:
+                      type: string
+                    type: array
+                  hostRPFilter:
+                    type: integer
+                  hostRuleTable:
+                    type: integer
+                  mode:
+                    enum:
+                    - auto
+                    - underlay
+                    - overlay
+                    - disabled
+                    type: string
+                  podCIDRType:
+                    description: CoordinatorSpec is used by SpiderCoordinator and
+                      SpiderMultusConfig in spidermultusconfig CRD , podCIDRType should
+                      not be required, which could be merged from SpiderCoordinator
+                      CR but in SpiderCoordinator CRD, podCIDRType should be required
+                    enum:
+                    - auto
+                    - cluster
+                    - calico
+                    - cilium
+                    - none
+                    type: string
+                  podDefaultRouteNIC:
+                    type: string
+                  podMACPrefix:
+                    type: string
+                  tunePodRoutes:
+                    type: boolean
+                  txQueueLen:
+                    type: integer
+                type: object
+              customCNI:
+                description: OtherCniTypeConfig only used for CniType custom, valid
+                  json format, can be empty
+                type: string
+              disableIPAM:
+                default: false
+                type: boolean
+              enableCoordinator:
+                default: true
+                description: if CniType was set to custom, we'll mutate this field
+                  to be false
+                type: boolean
+              ibsriov:
+                properties:
+                  ibKubernetesEnabled:
+                    default: false
+                    type: boolean
+                  ippools:
+                    description: SpiderpoolPools could specify the IPAM spiderpool
+                      CNI configuration default IPv4&IPv6 pools.
+                    properties:
+                      ipv4:
+                        items:
+                          type: string
+                        type: array
+                      ipv6:
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  linkState:
+                    default: enable
+                    enum:
+                    - auto
+                    - enable
+                    - disable
+                    type: string
+                  pkey:
+                    type: string
+                  rdmaIsolation:
+                    default: true
+                    type: boolean
+                  resourceName:
+                    type: string
+                required:
+                - resourceName
+                type: object
+              ipoib:
+                properties:
+                  ippools:
+                    description: SpiderpoolPools could specify the IPAM spiderpool
+                      CNI configuration default IPv4&IPv6 pools.
+                    properties:
+                      ipv4:
+                        items:
+                          type: string
+                        type: array
+                      ipv6:
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  master:
+                    type: string
+                type: object
+              ipvlan:
+                properties:
+                  bond:
+                    properties:
+                      mode:
+                        format: int32
+                        maximum: 6
+                        minimum: 0
+                        type: integer
+                      name:
+                        type: string
+                      options:
+                        type: string
+                    required:
+                    - mode
+                    - name
+                    type: object
+                  ippools:
+                    description: SpiderpoolPools could specify the IPAM spiderpool
+                      CNI configuration default IPv4&IPv6 pools.
+                    properties:
+                      ipv4:
+                        items:
+                          type: string
+                        type: array
+                      ipv6:
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  master:
+                    items:
+                      type: string
+                    type: array
+                  vlanID:
+                    format: int32
+                    maximum: 4094
+                    minimum: 0
+                    type: integer
+                required:
+                - master
+                type: object
+              macvlan:
+                properties:
+                  bond:
+                    properties:
+                      mode:
+                        format: int32
+                        maximum: 6
+                        minimum: 0
+                        type: integer
+                      name:
+                        type: string
+                      options:
+                        type: string
+                    required:
+                    - mode
+                    - name
+                    type: object
+                  ippools:
+                    description: SpiderpoolPools could specify the IPAM spiderpool
+                      CNI configuration default IPv4&IPv6 pools.
+                    properties:
+                      ipv4:
+                        items:
+                          type: string
+                        type: array
+                      ipv6:
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  master:
+                    items:
+                      type: string
+                    type: array
+                  vlanID:
+                    format: int32
+                    maximum: 4094
+                    minimum: 0
+                    type: integer
+                required:
+                - master
+                type: object
+              ovs:
+                properties:
+                  bridge:
+                    type: string
+                  deviceID:
+                    description: PCI address of a VF in valid sysfs format
+                    type: string
+                  ippools:
+                    description: SpiderpoolPools could specify the IPAM spiderpool
+                      CNI configuration default IPv4&IPv6 pools.
+                    properties:
+                      ipv4:
+                        items:
+                          type: string
+                        type: array
+                      ipv6:
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  trunk:
+                    items:
+                      properties:
+                        id:
+                          maximum: 4094
+                          minimum: 0
+                          type: integer
+                        maxID:
+                          maximum: 4094
+                          minimum: 0
+                          type: integer
+                        minID:
+                          maximum: 4094
+                          minimum: 0
+                          type: integer
+                      type: object
+                    type: array
+                  vlan:
+                    format: int32
+                    type: integer
+                required:
+                - bridge
+                type: object
+              sriov:
+                properties:
+                  enableRdma:
+                    default: false
+                    type: boolean
+                  ippools:
+                    description: SpiderpoolPools could specify the IPAM spiderpool
+                      CNI configuration default IPv4&IPv6 pools.
+                    properties:
+                      ipv4:
+                        items:
+                          type: string
+                        type: array
+                      ipv6:
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  maxTxRateMbps:
+                    minimum: 0
+                    type: integer
+                  minTxRateMbps:
+                    minimum: 0
+                    type: integer
+                  resourceName:
+                    type: string
+                  vlanID:
+                    format: int32
+                    maximum: 4094
+                    minimum: 0
+                    type: integer
+                required:
+                - resourceName
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true

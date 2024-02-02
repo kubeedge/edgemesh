@@ -1,0 +1,710 @@
+# child values
+spiderpool:
+  # Default values for spiderpool.
+  # This is a YAML-formatted file.
+  # Declare variables to be passed into your templates.
+
+  ## @section Global parameters
+  ##
+  global:
+    ## @param global.imageRegistryOverride Global image registry for all images, which is used for offline environment
+    imageRegistryOverride: "ghcr.m.daocloud.io"
+    ## @param global.nameOverride instance name
+    ## default spiderpool
+    nameOverride: ""
+    ## @param global.clusterDnsDomain cluster dns domain
+    clusterDnsDomain: "cluster.local"
+    ## @param global.commonAnnotations Annotations to add to all deployed objects
+    commonAnnotations: {}
+    ## @param global.commonLabels Labels to add to all deployed objects
+    commonLabels: {}
+    #  label1: v1
+    #  labele: v2
+
+    ## @param global.cniBinHostPath the host path of the IPAM plugin directory.
+    cniBinHostPath: /opt/cni/bin
+    ## @param global.cniConfHostPath the host path of the cni config directory
+    cniConfHostPath: /etc/cni/net.d
+    ## @param global.ipamUNIXSocketHostPath the host path of unix domain socket for ipam plugin
+    ipamUNIXSocketHostPath: /var/run/spidernet/spiderpool.sock
+    ## @param global.configName the configmap name
+    configName: "spiderpool-conf"
+    ## @param global.ciliumConfigMap the cilium's configMap, default is kube-system/cilium-config
+    ciliumConfigMap: kube-system/cilium-config
+  ## @section ipam parameters
+  ##
+  ipam:
+    ## @param ipam.enableIPv4 enable ipv4
+    enableIPv4: true
+    ## @param ipam.enableIPv6 enable ipv6
+    enableIPv6: false
+    ## @param ipam.enableStatefulSet the network mode
+    enableStatefulSet: true
+    ## @param ipam.enableKubevirtStaticIP the feature to keep kubevirt vm pod static IP
+    enableKubevirtStaticIP: true
+    ## @param ipam.enableSpiderSubnet SpiderSubnet feature gate.
+    enableSpiderSubnet: true
+    ## @param ipam.subnetDefaultFlexibleIPNumber the default flexible IP number of SpiderSubnet feature auto-created IPPools
+    subnetDefaultFlexibleIPNumber: 1
+    gc:
+      ## @param ipam.gc.enabled enable retrieve IP in spiderippool CR
+      enabled: true
+      gcAll:
+        ## @param ipam.gc.gcAll.intervalInSecond the gc all interval duration
+        intervalInSecond: 600
+      GcDeletingTimeOutPod:
+        ## @param ipam.gc.GcDeletingTimeOutPod.enabled enable retrieve IP for the pod who times out of deleting graceful period
+        enabled: true
+        ## @param ipam.gc.GcDeletingTimeOutPod.delay the gc delay seconds after the pod times out of deleting graceful period
+        delay: 0
+  ## @section grafanaDashboard parameters
+  ##
+  grafanaDashboard:
+    ## @param grafanaDashboard.install install grafanaDashboard for spiderpool. This requires the grafana operator CRDs to be available
+    install: false
+    ## @param grafanaDashboard.namespace the grafanaDashboard namespace. Default to the namespace of helm instance
+    namespace: ""
+    ## @param grafanaDashboard.annotations the additional annotations of spiderpool grafanaDashboard
+    annotations: {}
+    ## @param grafanaDashboard.labels the additional label of spiderpool grafanaDashboard
+    labels: {}
+  ## @section coordinator parameters
+  ##
+  coordinator:
+    ## @param coordinator.enabled enable SpiderCoordinator
+    enabled: true
+    ## @param coordinator.name the name of the default SpiderCoordinator CR
+    name: "default"
+    ## @param coordinator.mode optional network mode, ["auto","underlay", "overlay", "disabled"]
+    mode: "auto"
+    ## @param coordinator.podCIDRType Pod CIDR type that should be collected, [ "auto", "cluster", "calico", "cilium", "none" ]
+    podCIDRType: "auto"
+    ## @param coordinator.detectGateway detect the reachability of the gateway
+    detectGateway: true
+    ## @param coordinator.detectIPConflict detect IP address conflicts
+    detectIPConflict: true
+    ## @param coordinator.tunePodRoutes tune Pod routes
+    tunePodRoutes: true
+    ## @param coordinator.hijackCIDR Additional subnets that need to be hijacked to the host forward, the default link-local range "169.254.0.0/16" is used for NodeLocal DNS
+    hijackCIDR: ["169.254.0.0/16"]
+  ## @section rdma parameters
+  ##
+  rdma:
+    rdmaSharedDevicePlugin:
+      ## @param rdma.rdmaSharedDevicePlugin.install install rdma shared device plugin for macvlan cni
+      install: false
+      ## @param rdma.rdmaSharedDevicePlugin.name the name of rdma shared device plugin
+      name: "spiderpool-rdma-shared-device-plugin"
+      image:
+        ## @param rdma.rdmaSharedDevicePlugin.image.registry the image registry of rdma shared device plugin
+        registry: ghcr.m.daocloud.io
+        ## @param rdma.rdmaSharedDevicePlugin.image.repository the image repository of rdma shared device plugin
+        repository: mellanox/k8s-rdma-shared-dev-plugin
+        ## @param rdma.rdmaSharedDevicePlugin.image.pullPolicy the image pullPolicy of rdma shared device plugin
+        pullPolicy: IfNotPresent
+        ## @param rdma.rdmaSharedDevicePlugin.image.digest the image digest of rdma shared device plugin
+        digest: ""
+        ## @param rdma.rdmaSharedDevicePlugin.image.tag the image tag of rdma shared device plugin
+        tag: latest
+        ## @param rdma.rdmaSharedDevicePlugin.image.imagePullSecrets the image imagePullSecrets of rdma shared device plugin
+        imagePullSecrets: []
+        # - name: "image-pull-secret"
+      ## @skip rdma.rdmaSharedDevicePlugin.updateStrategy.rollingUpdate.maxUnavailable
+      ## @skip rdma.rdmaSharedDevicePlugin.updateStrategy.type
+      updateStrategy:
+        rollingUpdate:
+          maxUnavailable: 2
+        type: RollingUpdate
+      ## @skip rdma.rdmaSharedDevicePlugin.tolerations
+      tolerations:
+        - operator: Exists
+      ## @param rdma.rdmaSharedDevicePlugin.podAnnotations the additional annotations
+      podAnnotations: {}
+      ## @param rdma.rdmaSharedDevicePlugin.podLabels the additional label
+      podLabels: {}
+      resources:
+        limits:
+          ## @param rdma.rdmaSharedDevicePlugin.resources.limits.cpu the cpu limit
+          cpu: 300m
+          ## @param rdma.rdmaSharedDevicePlugin.resources.limits.memory the memory limit
+          memory: 300Mi
+        requests:
+          ## @param rdma.rdmaSharedDevicePlugin.resources.requests.cpu the cpu requests
+          cpu: 100m
+          ## @param rdma.rdmaSharedDevicePlugin.resources.requests.memory the memory requests
+          memory: 50Mi
+      deviceConfig:
+        ## @param rdma.rdmaSharedDevicePlugin.deviceConfig.periodicUpdateInterval periodic Update Interval
+        periodicUpdateInterval: 300
+        ## @param rdma.rdmaSharedDevicePlugin.deviceConfig.resourcePrefix resource prefix
+        resourcePrefix: "spidernet.io"
+        ## @param rdma.rdmaSharedDevicePlugin.deviceConfig.resourceName resource Name
+        resourceName: "hca_shared_devices"
+        ## @param rdma.rdmaSharedDevicePlugin.deviceConfig.rdmaHcaMax rdma Hca Max
+        rdmaHcaMax: 500
+        ## @param rdma.rdmaSharedDevicePlugin.deviceConfig.vendors rdma device vendors, default to mellanox device
+        vendors: "15b3"
+        ## @param rdma.rdmaSharedDevicePlugin.deviceConfig.deviceIDs rdma device IDs, default to mellanox device
+        deviceIDs: "1017"
+  ## @section multus parameters
+  ##
+  multus:
+    ## @param multus.enableMultusConfig enable SpiderMultusConfig
+    enableMultusConfig: true
+    multusCNI:
+      ## @param multus.multusCNI.install enable install multus-CNI
+      install: true
+      ## @param multus.multusCNI.uninstall enable remove multus-CNI configuration and binary files on multus-ds pod shutdown. Enable this if you uninstall multus from your cluster. Disable this in the multus upgrade phase to prevent CNI configuration file from being removed, which may cause pods start failure
+      uninstall: true
+      ## @param multus.multusCNI.name the name of spiderpool multus
+      name: "spiderpool-multus"
+      image:
+        ## @param multus.multusCNI.image.registry the multus-CNI image registry
+        registry: ghcr.m.daocloud.io
+        ## @param multus.multusCNI.image.repository the multus-CNI image repository
+        repository: k8snetworkplumbingwg/multus-cni
+        ## @param multus.multusCNI.image.pullPolicy the multus-CNI image pullPolicy
+        pullPolicy: IfNotPresent
+        ## @param multus.multusCNI.image.digest the multus-CNI image digest
+        digest: ""
+        ## @param multus.multusCNI.image.tag the multus-CNI image tag
+        tag: v3.9.3
+        # tag: v4.0.2-thick
+
+        ## @param multus.multusCNI.image.imagePullSecrets the multus-CNI image imagePullSecrets
+        imagePullSecrets: []
+        # - name: "image-pull-secret"
+      ## @param multus.multusCNI.defaultCniCRName if this value is empty, multus will automatically get default CNI according to the existed CNI conf file in /etc/cni/net.d/, if no cni files found in /etc/cni/net.d, A Spidermultusconfig CR named default will be created, please update the related SpiderMultusConfig for default CNI after installation. The namespace of defaultCniCRName follows with the release namespace of spdierpool
+      defaultCniCRName: ""
+      securityContext:
+        ## @param multus.multusCNI.securityContext.privileged the securityContext privileged of multus-CNI daemonset pod
+        privileged: true
+      ## @param multus.multusCNI.extraEnv the additional environment variables of multus-CNI daemonset pod container
+      extraEnv: []
+      ## @param multus.multusCNI.extraVolumes the additional volumes of multus-CNI daemonset pod container
+      extraVolumes: []
+      # - name: test-val
+      #   mountPath: /host/tmp
+
+      ## @param multus.multusCNI.extraVolumeMounts the additional hostPath mounts of multus-CNI daemonset pod container
+      extraVolumeMounts: []
+      # - name: test-val
+      #   mountPath: /tmp
+
+      log:
+        ## @param multus.multusCNI.log.logLevel the multus-CNI daemonset pod log level
+        logLevel: "debug"
+        ## @param multus.multusCNI.log.logFile the multus-CNI daemonset pod log file
+        logFile: "/var/log/multus.log"
+  ## @section plugins parameters
+  ##
+  plugins:
+    ## @param plugins.installCNI install all cni plugins to each node
+    installCNI: false
+    ## @param plugins.installRdmaCNI install rdma cni used to isolate rdma device for sriov cni
+    installRdmaCNI: true
+    ## @param plugins.installOvsCNI install ovs cni to each node
+    installOvsCNI: true
+    ## @param plugins.installibSriovCNI install ib-sriov cni to each node
+    installibSriovCNI: true
+    ## @param plugins.installIpoibCNI install ipoib cni to each node
+    installIpoibCNI: true
+    image:
+      ## @param plugins.image.registry the image registry of plugins
+      registry: ghcr.m.daocloud.io
+      ## @param plugins.image.repository the image repository of plugins
+      repository: spidernet-io/spiderpool/spiderpool-plugins
+      ## @param plugins.image.pullPolicy the image pullPolicy of plugins
+      pullPolicy: IfNotPresent
+      ## @param plugins.image.digest the image digest of plugins
+      digest: ""
+      ## @param plugins.image.tag the image tag of plugins
+      tag: v0.9.2
+      ## @param plugins.image.imagePullSecrets the image imagePullSecrets of plugins
+      imagePullSecrets: []
+  ## @section clusterDefaultPool parameters
+  ##
+  clusterDefaultPool:
+    ## @param clusterDefaultPool.installIPv4IPPool install ipv4 spiderpool instance. It is required to set ipam.enableIPv4=true
+    installIPv4IPPool: true
+    ## @param clusterDefaultPool.installIPv6IPPool install ipv6 spiderpool instance. It is required to set ipam.enableIPv6=true
+    installIPv6IPPool: false
+    ## @param clusterDefaultPool.ipv4IPPoolName the name of ipv4 spiderpool instance
+    ipv4IPPoolName: "default-v4-ippool"
+    ## @param clusterDefaultPool.ipv6IPPoolName the name of ipv6 spiderpool instance
+    ipv6IPPoolName: "default-v6-ippool"
+    ## @param clusterDefaultPool.ipv4SubnetName the name of ipv4 spidersubnet instance
+    ipv4SubnetName: "default-v4-subnet"
+    ## @param clusterDefaultPool.ipv6SubnetName the name of ipv6 spidersubnet instance
+    ipv6SubnetName: "default-v6-subnet"
+    ## @param clusterDefaultPool.ipv4Subnet the subnet of ipv4 spiderpool instance
+    ipv4Subnet: "192.168.0.0/16"
+    ## @param clusterDefaultPool.ipv6Subnet the subnet of ipv6 spiderpool instance
+    ipv6Subnet: "fd00::/112"
+    ## @param clusterDefaultPool.ipv4IPRanges the available IP of ipv4 spiderpool instance
+    ipv4IPRanges:
+      - 192.168.0.10-192.168.0.100
+    ## @param clusterDefaultPool.ipv6IPRanges the available IP of ipv6 spiderpool instance
+    ipv6IPRanges:
+      - fd00::10-fd00::100
+    ## @param clusterDefaultPool.ipv4Gateway the gateway of ipv4 subnet
+    ipv4Gateway: "192.168.0.1"
+    ## @param clusterDefaultPool.ipv6Gateway the gateway of ipv6 subnet
+    ipv6Gateway: "fd00::1"
+  ## @section spiderpoolAgent parameters
+  ##
+  spiderpoolAgent:
+    ## @param spiderpoolAgent.name the spiderpoolAgent name
+    name: "spiderpool-agent"
+    ## @param spiderpoolAgent.binName the binName name of spiderpoolAgent
+    binName: "/usr/bin/spiderpool-agent"
+    image:
+      ## @param spiderpoolAgent.image.registry the image registry of spiderpoolAgent
+      registry: ghcr.m.daocloud.io
+      ## @param spiderpoolAgent.image.repository the image repository of spiderpoolAgent
+      repository: spidernet-io/spiderpool/spiderpool-agent
+      ## @param spiderpoolAgent.image.pullPolicy the image pullPolicy of spiderpoolAgent
+      pullPolicy: IfNotPresent
+      ## @param spiderpoolAgent.image.digest the image digest of spiderpoolAgent, which takes preference over tag
+      digest: ""
+      ## @param spiderpoolAgent.image.tag the image tag of spiderpoolAgent, overrides the image tag whose default is the chart appVersion.
+      tag: v0.9.0
+      ## @param spiderpoolAgent.image.imagePullSecrets the image imagePullSecrets of spiderpoolAgent
+      imagePullSecrets: []
+      # - name: "image-pull-secret"
+    ## @skip spiderpoolAgent.nodeSelector.kubernetes.io/os
+    nodeSelector:
+      kubernetes.io/os: linux
+    serviceAccount:
+      ## @param spiderpoolAgent.serviceAccount.create create the service account for the spiderpoolAgent
+      create: true
+      ## @param spiderpoolAgent.serviceAccount.annotations the annotations of spiderpoolAgent service account
+      annotations: {}
+    ## @skip spiderpoolAgent.updateStrategy.rollingUpdate.maxUnavailable
+    ## @skip spiderpoolAgent.updateStrategy.type
+    updateStrategy:
+      rollingUpdate:
+        maxUnavailable: 2
+      type: RollingUpdate
+    service:
+      ## @param spiderpoolAgent.service.annotations the annotations for spiderpoolAgent service
+      annotations: {}
+      ## @param spiderpoolAgent.service.type the type for spiderpoolAgent service
+      type: ClusterIP
+    ## @skip spiderpoolAgent.tolerations
+    tolerations:
+      - operator: Exists
+    ## @param spiderpoolAgent.priorityClassName the priority Class Name for spiderpoolAgent
+    priorityClassName: "system-node-critical"
+    ## @param spiderpoolAgent.affinity the affinity of spiderpoolAgent
+    affinity: {}
+    ## @param spiderpoolAgent.extraArgs the additional arguments of spiderpoolAgent container
+    extraArgs: []
+    ## @param spiderpoolAgent.extraEnv the additional environment variables of spiderpoolAgent container
+    extraEnv: []
+    ## @param spiderpoolAgent.extraVolumes the additional volumes of spiderpoolAgent container
+    extraVolumes: []
+    ## @param spiderpoolAgent.extraVolumeMounts the additional hostPath mounts of spiderpoolAgent container
+    extraVolumeMounts: []
+    ## @param spiderpoolAgent.podAnnotations the additional annotations of spiderpoolAgent pod
+    podAnnotations: {}
+    ## @param spiderpoolAgent.podLabels the additional label of spiderpoolAgent pod
+    podLabels: {}
+    resources:
+      limits:
+        ## @param spiderpoolAgent.resources.limits.cpu the cpu limit of spiderpoolAgent pod
+        cpu: 1000m
+        ## @param spiderpoolAgent.resources.limits.memory the memory limit of spiderpoolAgent pod
+        memory: 1024Mi
+      requests:
+        ## @param spiderpoolAgent.resources.requests.cpu the cpu requests of spiderpoolAgent pod
+        cpu: 10m
+        ## @param spiderpoolAgent.resources.requests.memory the memory requests of spiderpoolAgent pod
+        memory: 32Mi
+    ## @param spiderpoolAgent.securityContext the security Context of spiderpoolAgent pod
+    securityContext: {}
+    # runAsUser: 0
+
+    ## @param spiderpoolAgent.httpPort the http Port for spiderpoolAgent, for health checking
+    httpPort: 5710
+    healthChecking:
+      startupProbe:
+        ## @param spiderpoolAgent.healthChecking.startupProbe.failureThreshold the failure threshold of startup probe for spiderpoolAgent health checking
+        failureThreshold: 60
+        ## @param spiderpoolAgent.healthChecking.startupProbe.periodSeconds the period seconds of startup probe for spiderpoolAgent health checking
+        periodSeconds: 2
+      livenessProbe:
+        ## @param spiderpoolAgent.healthChecking.livenessProbe.failureThreshold the failure threshold of startup probe for spiderpoolAgent health checking
+        failureThreshold: 6
+        ## @param spiderpoolAgent.healthChecking.livenessProbe.periodSeconds the period seconds of startup probe for spiderpoolAgent health checking
+        periodSeconds: 10
+      readinessProbe:
+        ## @param spiderpoolAgent.healthChecking.readinessProbe.failureThreshold the failure threshold of startup probe for spiderpoolAgent health checking
+        failureThreshold: 3
+        ## @param spiderpoolAgent.healthChecking.readinessProbe.periodSeconds the period seconds of startup probe for spiderpoolAgent health checking
+        periodSeconds: 10
+    prometheus:
+      ## @param spiderpoolAgent.prometheus.enabled enable spiderpool agent to collect metrics
+      enabled: false
+      ## @param spiderpoolAgent.prometheus.enabledDebugMetric enable spiderpool agent to collect debug level metrics
+      enabledDebugMetric: false
+      ## @param spiderpoolAgent.prometheus.port the metrics port of spiderpool agent
+      port: 5711
+      serviceMonitor:
+        ## @param spiderpoolAgent.prometheus.serviceMonitor.install install serviceMonitor for spiderpool agent. This requires the prometheus CRDs to be available
+        install: false
+        ## @param spiderpoolAgent.prometheus.serviceMonitor.namespace the serviceMonitor namespace. Default to the namespace of helm instance
+        namespace: ""
+        ## @param spiderpoolAgent.prometheus.serviceMonitor.annotations the additional annotations of spiderpoolAgent serviceMonitor
+        annotations: {}
+        ## @param spiderpoolAgent.prometheus.serviceMonitor.labels the additional label of spiderpoolAgent serviceMonitor
+        labels: {}
+        ## @param spiderpoolAgent.prometheus.serviceMonitor.interval represents the interval of spiderpoolAgent serviceMonitor's scraping action
+        interval: "10s"
+      prometheusRule:
+        ## @param spiderpoolAgent.prometheus.prometheusRule.install install prometheusRule for spiderpool agent. This requires the prometheus CRDs to be available
+        install: false
+        ## @param spiderpoolAgent.prometheus.prometheusRule.namespace the prometheusRule namespace. Default to the namespace of helm instance
+        namespace: ""
+        ## @param spiderpoolAgent.prometheus.prometheusRule.annotations the additional annotations of spiderpoolAgent prometheusRule
+        annotations: {}
+        ## @param spiderpoolAgent.prometheus.prometheusRule.labels the additional label of spiderpoolAgent prometheusRule
+        labels: {}
+        ## @param spiderpoolAgent.prometheus.prometheusRule.enableWarningIPAMAllocationFailure the additional rule of spiderpoolAgent prometheusRule
+        enableWarningIPAMAllocationFailure: true
+        ## @param spiderpoolAgent.prometheus.prometheusRule.enableWarningIPAMAllocationOverTime the additional rule of spiderpoolAgent prometheusRule
+        enableWarningIPAMAllocationOverTime: true
+        ## @param spiderpoolAgent.prometheus.prometheusRule.enableWarningIPAMHighAllocationDurations the additional rule of spiderpoolAgent prometheusRule
+        enableWarningIPAMHighAllocationDurations: true
+        ## @param spiderpoolAgent.prometheus.prometheusRule.enableWarningIPAMReleaseFailure the additional rule of spiderpoolAgent prometheusRule
+        enableWarningIPAMReleaseFailure: true
+        ## @param spiderpoolAgent.prometheus.prometheusRule.enableWarningIPAMReleaseOverTime the additional rule of spiderpoolAgent prometheusRule
+        enableWarningIPAMReleaseOverTime: true
+    debug:
+      ## @param spiderpoolAgent.debug.logLevel the log level of spiderpool agent [debug, info, warn, error, fatal, panic]
+      logLevel: "info"
+      ## @param spiderpoolAgent.debug.gopsPort the gops port of spiderpool agent
+      gopsPort: 5712
+  ## @section spiderpoolController parameters
+  ##
+  spiderpoolController:
+    ## @param spiderpoolController.name the spiderpoolController name
+    name: "spiderpool-controller"
+    ## @param spiderpoolController.replicas the replicas number of spiderpoolController pod
+    replicas: 1
+    ## @param spiderpoolController.binName the binName name of spiderpoolController
+    binName: "/usr/bin/spiderpool-controller"
+    ## @param spiderpoolController.hostnetwork enable hostnetwork mode of spiderpoolController pod. Notice, if no CNI available before spiderpool installation, must enable this
+    hostnetwork: true
+    image:
+      ## @param spiderpoolController.image.registry the image registry of spiderpoolController
+      registry: ghcr.m.daocloud.io
+      ## @param spiderpoolController.image.repository the image repository of spiderpoolController
+      repository: spidernet-io/spiderpool/spiderpool-controller
+      ## @param spiderpoolController.image.pullPolicy the image pullPolicy of spiderpoolController
+      pullPolicy: IfNotPresent
+      ## @param spiderpoolController.image.digest the image digest of spiderpoolController, which takes preference over tag
+      digest: ""
+      ## @param spiderpoolController.image.tag the image tag of spiderpoolController, overrides the image tag whose default is the chart appVersion.
+      tag: v0.9.0
+      ## @param spiderpoolController.image.imagePullSecrets the image imagePullSecrets of spiderpoolController
+      imagePullSecrets: []
+      # - name: "image-pull-secret"
+    ## @skip spiderpoolController.nodeSelector.kubernetes.io/os
+    nodeSelector:
+      kubernetes.io/os: linux
+    serviceAccount:
+      ## @param spiderpoolController.serviceAccount.create create the service account for the spiderpoolController
+      create: true
+      ## @param spiderpoolController.serviceAccount.annotations the annotations of spiderpoolController service account
+      annotations: {}
+    service:
+      ## @param spiderpoolController.service.annotations the annotations for spiderpoolController service
+      annotations: {}
+      ## @param spiderpoolController.service.type the type for spiderpoolController service
+      type: ClusterIP
+    ## @skip spiderpoolController.tolerations
+    tolerations:
+      - operator: Exists
+        effect: NoSchedule
+    ## @param spiderpoolController.priorityClassName the priority Class Name for spiderpoolController
+    priorityClassName: "system-node-critical"
+    ## @param spiderpoolController.affinity the affinity of spiderpoolController
+    affinity: {}
+    ## @param spiderpoolController.extraArgs the additional arguments of spiderpoolController container
+    extraArgs: []
+    ## @param spiderpoolController.extraEnv the additional environment variables of spiderpoolController container
+    extraEnv: []
+    ## @param spiderpoolController.extraVolumes the additional volumes of spiderpoolController container
+    extraVolumes: []
+    # - name: test-val
+    #   mountPath: /host/tmp
+
+    ## @param spiderpoolController.extraVolumeMounts the additional hostPath mounts of spiderpoolController container
+    extraVolumeMounts: []
+    # - name: test-val
+    #   mountPath: /tmp
+
+    ## @param spiderpoolController.podAnnotations the additional annotations of spiderpoolController pod
+    podAnnotations: {}
+    # test: 100
+
+    ## @param spiderpoolController.podLabels the additional label of spiderpoolController pod
+    podLabels: {}
+    ## @param spiderpoolController.securityContext the security Context of spiderpoolController pod
+    securityContext: {}
+    # runAsUser: 0
+
+    resources:
+      limits:
+        ## @param spiderpoolController.resources.limits.cpu the cpu limit of spiderpoolController pod
+        cpu: 500m
+        ## @param spiderpoolController.resources.limits.memory the memory limit of spiderpoolController pod
+        memory: 1024Mi
+      requests:
+        ## @param spiderpoolController.resources.requests.cpu the cpu requests of spiderpoolController pod
+        cpu: 10m
+        ## @param spiderpoolController.resources.requests.memory the memory requests of spiderpoolController pod
+        memory: 64Mi
+    podDisruptionBudget:
+      ## @param spiderpoolController.podDisruptionBudget.enabled enable podDisruptionBudget for spiderpoolController pod
+      enabled: false
+      ## @param spiderpoolController.podDisruptionBudget.minAvailable minimum number/percentage of pods that should remain scheduled.
+      minAvailable: 1
+    ## @param spiderpoolController.httpPort the http Port for spiderpoolController, for health checking and http service
+    httpPort: 5720
+    healthChecking:
+      startupProbe:
+        ## @param spiderpoolController.healthChecking.startupProbe.failureThreshold the failure threshold of startup probe for spiderpoolController health checking
+        failureThreshold: 30
+        ## @param spiderpoolController.healthChecking.startupProbe.periodSeconds the period seconds of startup probe for spiderpoolController health checking
+        periodSeconds: 2
+      livenessProbe:
+        ## @param spiderpoolController.healthChecking.livenessProbe.failureThreshold the failure threshold of startup probe for spiderpoolController health checking
+        failureThreshold: 6
+        ## @param spiderpoolController.healthChecking.livenessProbe.periodSeconds the period seconds of startup probe for spiderpoolController health checking
+        periodSeconds: 10
+      readinessProbe:
+        ## @param spiderpoolController.healthChecking.readinessProbe.failureThreshold the failure threshold of startup probe for spiderpoolController health checking
+        failureThreshold: 3
+        ## @param spiderpoolController.healthChecking.readinessProbe.periodSeconds the period seconds of startup probe for spiderpoolController health checking
+        periodSeconds: 10
+    ## @param spiderpoolController.webhookPort the http port for spiderpoolController webhook
+    webhookPort: 5722
+    prometheus:
+      ## @param spiderpoolController.prometheus.enabled enable spiderpool Controller to collect metrics
+      enabled: false
+      ## @param spiderpoolController.prometheus.enabledDebugMetric enable spiderpool Controller to collect debug level metrics
+      enabledDebugMetric: false
+      ## @param spiderpoolController.prometheus.port the metrics port of spiderpool Controller
+      port: 5721
+      serviceMonitor:
+        ## @param spiderpoolController.prometheus.serviceMonitor.install install serviceMonitor for spiderpool agent. This requires the prometheus CRDs to be available
+        install: false
+        ## @param spiderpoolController.prometheus.serviceMonitor.namespace the serviceMonitor namespace. Default to the namespace of helm instance
+        namespace: ""
+        ## @param spiderpoolController.prometheus.serviceMonitor.annotations the additional annotations of spiderpoolController serviceMonitor
+        annotations: {}
+        ## @param spiderpoolController.prometheus.serviceMonitor.labels the additional label of spiderpoolController serviceMonitor
+        labels: {}
+        ## @param spiderpoolController.prometheus.serviceMonitor.interval represents the interval of spiderpoolController serviceMonitor's scraping action
+        interval: "10s"
+      prometheusRule:
+        ## @param spiderpoolController.prometheus.prometheusRule.install install prometheusRule for spiderpool agent. This requires the prometheus CRDs to be available
+        install: false
+        ## @param spiderpoolController.prometheus.prometheusRule.namespace the prometheusRule namespace. Default to the namespace of helm instance
+        namespace: ""
+        ## @param spiderpoolController.prometheus.prometheusRule.annotations the additional annotations of spiderpoolController prometheusRule
+        annotations: {}
+        ## @param spiderpoolController.prometheus.prometheusRule.labels the additional label of spiderpoolController prometheusRule
+        labels: {}
+        ## @param spiderpoolController.prometheus.prometheusRule.enableWarningIPGCFailureCounts the additional rule of spiderpoolController prometheusRule
+        enableWarningIPGCFailureCounts: true
+    debug:
+      ## @param spiderpoolController.debug.logLevel the log level of spiderpool Controller [debug, info, warn, error, fatal, panic]
+      logLevel: "info"
+      ## @param spiderpoolController.debug.gopsPort the gops port of spiderpool Controller
+      gopsPort: 5724
+    ## TLS configuration for webhook
+    tls:
+      ## @param spiderpoolController.tls.method the method for generating TLS certificates. [ provided , certmanager , auto]
+      ## - provided:     provide all certificates by helm options
+      ## - certmanager:  This method use cert-manager to generate & rotate certificates.
+      ## - auto:         Auto generate cert.
+      method: auto
+      ## @param spiderpoolController.tls.secretName the secret name for storing TLS certificates
+      secretName: "spiderpool-controller-server-certs"
+      ## for certmanager method
+      certmanager:
+        ## @param spiderpoolController.tls.certmanager.certValidityDuration generated certificates validity duration in days for 'certmanager' method
+        certValidityDuration: 365
+        ## @param spiderpoolController.tls.certmanager.issuerName issuer name of cert manager 'certmanager'. If not specified, a CA issuer will be created.
+        issuerName: ""
+        ## @param spiderpoolController.tls.certmanager.extraDnsNames extra DNS names added to certificate when it's auto generated
+        extraDnsNames: []
+        ## @param spiderpoolController.tls.certmanager.extraIPAddresses extra IP addresses added to certificate when it's auto generated
+        extraIPAddresses: []
+      ## for provided method
+      provided:
+        ## @param spiderpoolController.tls.provided.tlsCert encoded tls certificate for provided method
+        ## @param spiderpoolController.tls.provided.tlsKey encoded tls key for provided method
+        ## @param spiderpoolController.tls.provided.tlsCa encoded tls CA for provided method
+        tlsCert: ""
+        tlsKey: ""
+        tlsCa: ""
+      ## for auto method
+      auto:
+        ## @param spiderpoolController.tls.auto.caExpiration ca expiration for auto method
+        # in day , default 200 years
+        caExpiration: '73000'
+        ## @param spiderpoolController.tls.auto.certExpiration server cert expiration for auto method
+        # in day, default 200 years
+        certExpiration: '73000'
+        ## @param spiderpoolController.tls.auto.extraIpAddresses extra IP addresses of server certificate for auto method
+        extraIpAddresses: []
+        ## @param spiderpoolController.tls.auto.extraDnsNames extra DNS names of server cert for auto method
+        extraDnsNames: []
+  ## @section spiderpoolInit parameters
+  ##
+  spiderpoolInit:
+    ## @param spiderpoolInit.name the init job for installing default spiderippool
+    name: "spiderpool-init"
+    ## @param spiderpoolInit.binName the binName name of spiderpoolInit
+    binName: "/usr/bin/spiderpool-init"
+    ## @param spiderpoolInit.hostnetwork enable hostnetwork mode of spiderpoolInit pod. Notice, if no CNI available before spiderpool installation, must enable this
+    hostnetwork: true
+    image:
+      ## @param spiderpoolInit.image.registry the image registry of spiderpoolInit
+      registry: ghcr.m.daocloud.io
+      ## @param spiderpoolInit.image.repository the image repository of spiderpoolInit
+      repository: spidernet-io/spiderpool/spiderpool-controller
+      ## @param spiderpoolInit.image.pullPolicy the image pullPolicy of spiderpoolInit
+      pullPolicy: IfNotPresent
+      ## @param spiderpoolInit.image.digest the image digest of spiderpoolInit, which takes preference over tag
+      digest: ""
+      ## @param spiderpoolInit.image.tag the image tag of spiderpoolInit, overrides the image tag whose default is the chart appVersion.
+      tag: v0.9.0
+      ## @param spiderpoolInit.image.imagePullSecrets the image imagePullSecrets of spiderpoolInit
+      imagePullSecrets: []
+      # - name: "image-pull-secret"
+    ## @param spiderpoolInit.priorityClassName the priority Class Name for spiderpoolInit
+    priorityClassName: "system-node-critical"
+    ## @skip spiderpoolInit.tolerations
+    tolerations:
+      - operator: Exists
+    ## @skip spiderpoolInit.nodeSelector.kubernetes.io/os
+    nodeSelector:
+      kubernetes.io/os: linux
+    ## @param spiderpoolInit.affinity the affinity of spiderpoolInit
+    affinity: {}
+    ## @param spiderpoolInit.extraArgs the additional arguments of spiderpoolInit container
+    extraArgs: []
+    resources:
+      limits:
+        ## @param spiderpoolInit.resources.limits.cpu the cpu limit of spiderpoolInit pod
+        cpu: 200m
+        ## @param spiderpoolInit.resources.limits.memory the memory limit of spiderpoolInit pod
+        memory: 256Mi
+      requests:
+        ## @param spiderpoolInit.resources.requests.cpu the cpu requests of spiderpoolInit pod
+        cpu: 10m
+        ## @param spiderpoolInit.resources.requests.memory the memory requests of spiderpoolInit pod
+        memory: 32Mi
+    readinessProbe:
+      ## @param spiderpoolInit.readinessProbe.failureThreshold the failure threshold of startup probe for spiderpool-init health checking
+      failureThreshold: 30
+      ## @param spiderpoolInit.readinessProbe.periodSeconds the period seconds of startup probe for spiderpool-init health checking
+      periodSeconds: 10
+    ## @param spiderpoolInit.extraEnv the additional environment variables of spiderpoolInit container
+    extraEnv: []
+    ## @param spiderpoolInit.securityContext the security Context of spiderpoolInit pod
+    securityContext: {}
+    # runAsUser: 0
+
+    ## @param spiderpoolInit.podAnnotations the additional annotations of spiderpoolInit pod
+    podAnnotations: {}
+    ## @param spiderpoolInit.podLabels the additional label of spiderpoolInit pod
+    podLabels: {}
+    serviceAccount:
+      ## @param spiderpoolInit.serviceAccount.annotations the annotations of spiderpoolInit service account
+      annotations: {}
+  ## @section sriov network operator parameters
+  ##
+  sriov:
+    ## @param sriov.install install sriov network operator
+    install: false
+    ## @param sriov.name the name of sriov network operator
+    name: "spiderpool-sriov-operator"
+    ## @skip sriov.tolerations
+    tolerations:
+      - operator: Exists
+    ## @skip sriov.nodeSelector.kubernetes.io/os
+    nodeSelector:
+      kubernetes.io/os: linux
+    ## @param sriov.affinity the affinity
+    affinity: {}
+    ## @param sriov.hostnetwork enable hostnetwork mode. Notice, if no CNI available before spiderpool installation, must enable this
+    hostnetwork: true
+    ## @param sriov.replicas the replicas number
+    replicas: 1
+    ## @param sriov.resourcePrefix the resource prefix
+    resourcePrefix: "spidernet.io"
+    ## @param sriov.priorityClassName the priority Class Name
+    priorityClassName: "system-node-critical"
+    ## @param sriov.enableAdmissionController enable Admission Controller
+    enableAdmissionController: false
+    resources:
+      limits:
+        ## @param sriov.resources.limits.cpu the cpu limit
+        cpu: 300m
+        ## @param sriov.resources.limits.memory the memory limit
+        memory: 300Mi
+      requests:
+        ## @param sriov.resources.requests.cpu the cpu requests
+        cpu: 100m
+        ## @param sriov.resources.requests.memory the memory requests
+        memory: 128Mi
+    image:
+      ## @param sriov.image.registry registry for all images
+      registry: ghcr.io
+      ## @param sriov.image.pullPolicy the image pullPolicy for all images
+      pullPolicy: IfNotPresent
+      ## @param sriov.image.imagePullSecrets the image imagePullSecrets for all images
+      imagePullSecrets: []
+      # - name: "image-pull-secret"
+
+      operator:
+        ## @param sriov.image.operator.repository the image repository
+        repository: k8snetworkplumbingwg/sriov-network-operator
+        ## @param sriov.image.operator.tag the image tag
+        tag: v1.2.0
+      sriovConfigDaemon:
+        ## @param sriov.image.sriovConfigDaemon.repository the image repository
+        repository: k8snetworkplumbingwg/sriov-network-operator-config-daemon
+        ## @param sriov.image.sriovConfigDaemon.tag the image tag
+        tag: v1.2.0
+      sriovCni:
+        ## @param sriov.image.sriovCni.repository the image repository
+        repository: k8snetworkplumbingwg/sriov-cni
+        ## @param sriov.image.sriovCni.tag the image tag
+        tag: v2.7.0
+      ibSriovCni:
+        ## @param sriov.image.ibSriovCni.repository the image repository
+        repository: k8snetworkplumbingwg/ib-sriov-cni
+        ## @param sriov.image.ibSriovCni.tag the image tag
+        tag: v1.0.2
+      sriovDevicePlugin:
+        ## @param sriov.image.sriovDevicePlugin.repository the image repository
+        repository: k8snetworkplumbingwg/sriov-network-device-plugin
+        ## @param sriov.image.sriovDevicePlugin.tag the image tag
+        tag: v3.5.1
+      resourcesInjector:
+        ## @param sriov.image.resourcesInjector.repository the image repository
+        repository: k8snetworkplumbingwg/network-resources-injector
+        ## @param sriov.image.resourcesInjector.tag the image tag
+        tag: v1.5
+      webhook:
+        ## @param sriov.image.webhook.repository the image repository
+        repository: k8snetworkplumbingwg/sriov-network-operator-webhook
+        ## @param sriov.image.webhook.tag the image tag
+        tag: v1.2.0

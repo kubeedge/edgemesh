@@ -1,0 +1,69 @@
+{{- if .Values.spiderpoolAgent.prometheus.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.spiderpoolAgent.name | trunc 63 | trimSuffix "-" }}
+  namespace: {{ .Release.Namespace | quote }}
+  {{- if or .Values.global.commonAnnotations .Values.spiderpoolAgent.service.annotations }}
+  annotations:
+    {{- if .Values.global.commonAnnotations }}
+    {{- include "tplvalues.render" ( dict "value" .Values.global.commonAnnotations "context" $ ) | nindent 4 }}
+    {{- end }}
+    {{- if .Values.spiderpoolAgent.service.annotations }}
+    {{- include "tplvalues.render" ( dict "value" .Values.spiderpoolAgent.service.annotations "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+  labels:
+    {{- if .Values.global.commonLabels }}
+    {{- include "tplvalues.render" ( dict "value" .Values.global.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+    {{- include "spiderpool.spiderpoolAgent.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.spiderpoolAgent.service.type }}
+  ports:
+    - name: metrics
+      port: {{ .Values.spiderpoolAgent.prometheus.port }}
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    {{- include "spiderpool.spiderpoolAgent.selectorLabels" . | nindent 4 }}
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.spiderpoolController.name | trunc 63 | trimSuffix "-" }}
+  namespace: {{ .Release.Namespace | quote }}
+  {{- if or .Values.global.commonAnnotations .Values.spiderpoolController.service.annotations }}
+  annotations:
+    {{- if .Values.global.commonAnnotations }}
+    {{- include "tplvalues.render" ( dict "value" .Values.global.commonAnnotations "context" $ ) | nindent 4 }}
+    {{- end }}
+    {{- if .Values.spiderpoolController.service.annotations }}
+    {{- include "tplvalues.render" ( dict "value" .Values.spiderpoolController.service.annotations "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+  labels:
+    {{- if .Values.global.commonLabels }}
+    {{- include "tplvalues.render" ( dict "value" .Values.global.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+    {{- include "spiderpool.spiderpoolController.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.spiderpoolController.service.type }}
+  ports:
+    {{- if .Values.spiderpoolController.prometheus.enabled }}
+    - name: metrics
+      port: {{ .Values.spiderpoolController.prometheus.port }}
+      targetPort: metrics
+      protocol: TCP
+    {{- end }}
+    - name: webhook
+      port: {{ .Values.spiderpoolController.webhookPort }}
+      targetPort: webhook
+      protocol: TCP
+    - name: http
+      port: {{ .Values.spiderpoolController.httpPort }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "spiderpool.spiderpoolController.selectorLabels" . | nindent 4 }}
