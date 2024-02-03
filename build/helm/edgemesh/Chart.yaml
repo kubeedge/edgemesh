@@ -26,3 +26,5 @@ appVersion: latest
 dependencies:
   - name: agent
     version: latest
+  - name: spiderpool
+    version: 0.9.1
