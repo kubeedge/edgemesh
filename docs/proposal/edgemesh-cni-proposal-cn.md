@@ -83,7 +83,7 @@ EdgeMesh 仓库位置：https://github.com/kubeedge/edgemesh
 
 ​	对于每一类 CNI 而言都必须具有的功能包括：
 
-​	CNI 插件首先得实现一个可以被容器管理系统（CRI），比如rkt、Kubernetes 所调用的可执行文件——cni plugins，这个插件首先需要提供**基础的 Linux 网络联通服务**，比如创建 veth 或者 bridge 并将 veth 对的一端插入容器的 network namespace，一端插入 bridge，使得容器之间可以相互通信。然后**将IP 分配给接口**，并通过调用 **IPAM **插件来设置和管理IP地址，使得集群内的容器IP地址相互不重复，或者是结合其他的插件来实现更加复杂的网络路由管理功能等等。
+​	CNI 插件首先得实现一个可以被容器管理系统（CRI），比如rkt、Kubernetes 所调用的可执行文件——cni plugins，这个插件首先需要提供**基础的 Linux 网络联通服务**，比如创建 veth 或者 bridge 并将 veth 对的一端插入容器的 network namespace，一端插入 bridge，使得容器之间可以相互通信。然后**将IP 分配给接口**，并通过调用 **IPAM** 插件来设置和管理IP地址，使得集群内的容器IP地址相互不重复，或者是结合其他的插件来实现更加复杂的网络路由管理功能等等。
 
   CNI 团队提供了一个较为典型的例子如下：
 
@@ -126,7 +126,7 @@ EdgeMesh 仓库位置：https://github.com/kubeedge/edgemesh
 
 > 详细问题是：为什么在云上局域网通过ClusterIP访问此服务无法访问通，然而在边缘局域网通过ClusterIP访问此服务可以访问通？
 >
-> **答：当前主流的 CNI 插件并不具备跨子网流量转发的能力，本身依赖网络三层可达；所以底层网络不互通，CNI 仅在L3提供的连接服务就不够支持跨网段连通，换句话说即便是边缘网络，不相通的网段也无法联通。 **
+> **答：当前主流的 CNI 插件并不具备跨子网流量转发的能力，本身依赖网络三层可达；所以底层网络不互通，CNI 仅在L3提供的连接服务就不够支持跨网段连通，换句话说即便是边缘网络，不相通的网段也无法联通。**
 
 
 
@@ -140,11 +140,11 @@ EdgeMesh 仓库位置：https://github.com/kubeedge/edgemesh
 
 ### <font size ='4'> EdgeMesh 不具备 PodIP 流量转发能力</font>
 
-> 详细问题： 为什么在云上局域网通过ClusterIP访问此服务可以通（如果仅回答因为装了edgemesh不得分，需要回答清楚原理），然而通过PodIP访问此应用不能通
+> 详细问题： 为什么在云上局域网通过ClusterIP访问此服务可以通，然而通过PodIP访问此应用不能通
 >
-> **答：edgemesh目前虽然支持ClusterIP层面的跨子网流量转发能力，但是还不具备PodIP的流量转发能力；当流量经由 Iptables 转发时候不会被拦截到 EdgeMesh 中，那么所使用的 NodeIP 是底层网络设备无法访问到**
+> **答：Edgemesh目前虽然支持ClusterIP层面的跨子网流量转发能力，但是还不具备PodIP的流量转发能力；当流量经由 Iptables 转发时候不会被拦截到 EdgeMesh 中，那么所使用的 NodeIP 是底层网络设备无法访问到。**
 
-<img src="D:\Project\edgemesh\docs\proposal\edgemesh-cni-proposal-cn.assets\edgemesh-cni_iptableslogic-1698243308771-4.png" alt="iptables" style="zoom:15%;" />
+<img src="./images/mesh-feature-cni/edgemesh-cni_iptableslogic.png" alt="cni_logic" style="zoom:15%;" />
 
 ​	Kubernetes 的网络模型中设置 Service , 通过绑定 EndPoint 的 Pod IP 来提供服务。这个设计使得请求只需要考虑一个固定的路由地址，由 Kubernetes 系统帮助他完成网络的转发和负载均衡。 
 
@@ -190,7 +190,7 @@ EdgeMesh 仓库位置：https://github.com/kubeedge/edgemesh
 
 ####  <font size ='4'> A. 节点内创建并管理网络资源 </font>
 
-​	**EdgeMesh CNI 需要为同子网以及跨子网集群内容器创建网络资源，包括分配 IP 地址、创建网桥划分网段、维护网络状态等基础功能。**在进一步深入项目研究之后，结合 SRV6 或者是 Netpolicy规则实现多层次复杂结构的容器网络部署形式。
+​	**EdgeMesh CNI 需要为同子网以及跨子网集群内容器创建网络资源，包括分配 IP 地址、创建网桥划分网段、维护网络状态等基础功能。** 在进一步深入项目研究之后，结合 SRV6 或者是 Netpolicy规则实现多层次复杂结构的容器网络部署形式。
 
 ​	这一步需要解决的问题包括：
 
@@ -346,7 +346,7 @@ PING 192.0.2.1 (192.0.2.1) 56(84) bytes of data.
 
 ![ip_routing](./images/mesh-feature-cni/edgemeshp2p.png)
 
-​	**核心思路：使用 Iptables 将请求固定 IP 网段(也就是跨子网的IP地址)的流量转发到EdgeMesh **。
+​	**核心思路：使用 Iptables 将请求固定 IP 网段(也就是跨子网的IP地址)的流量转发到EdgeMesh。**
 
 ​	EdgeMesh 的基础工作原理是通过在节点上插入 Iptables 规则，将对Service 的流量拦截到 EdgeMesh 当中，此时流量走的是 EdgeMesh 提供的 P2P 通信服务。
 
@@ -369,7 +369,7 @@ edgemesh-agent-xp54c         1/1     Running   0          29m   192.168.5.121   
 ​	借助此前的 EdgeMesh 样例，我们知道进入测试容器之后，云上的容器内是可以通过 Service 访问边缘的服务，但是却不能够通过 PodIP 访问,也就是如下所示：
 
 ```
-[root@k8s-master dyx]# k get all -n testzone -o wide
+[root@k8s-master dyx]# kubectl get all -n testzone -o wide
 NAME                                 READY   STATUS    RESTARTS   AGE   IP             NODE        NOMINATED NODE   READINESS GATES
 pod/alpine-test                      1/1     Running   0          16m   10.244.36.79   k8s-node1   <none>           <none>
 pod/hostname-edge-84cb45ccf4-5srqw   1/1     Running   0          15m   10.244.13.2    ke-edge1    <none>           <none>
