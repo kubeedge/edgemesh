@@ -105,7 +105,7 @@ EdgeMesh satisfies the new requirements in edge scenarios (e.g., limited edge re
   <tr>
     <td align="center">Edge CNI</td>
     <td align="center">Cross-Subnet Pod Communication</td>
-    <td align="center">+</td>
+    <td align="center">✓(beta)</td>
   </tr>
 </table>
 

@@ -105,7 +105,7 @@ EdgeMesh 满足边缘场景下的新需求（如边缘资源有限、边云网�
   <tr>
     <td align="center">边缘CNI</td>
     <td align="center">跨子网Pod通信</td>
-    <td align="center">+</td>
+    <td align="center">✓(beta)</td>
   </tr>
 </table>
 
