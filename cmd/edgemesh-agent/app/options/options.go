@@ -2,7 +2,7 @@ package options
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -41,7 +41,7 @@ func (o *EdgeMeshAgentOptions) Validate() []error {
 }
 
 func (o *EdgeMeshAgentOptions) Parse(cfg *v1alpha1.EdgeMeshAgentConfig) error {
-	data, err := ioutil.ReadFile(o.ConfigFile)
+	data, err := os.ReadFile(o.ConfigFile)
 	if err != nil {
 		klog.Errorf("Failed to read config file %s: %v", o.ConfigFile, err)
 		return err
