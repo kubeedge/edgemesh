@@ -28,3 +28,4 @@ dependencies:
     version: latest
   - name: spiderpool
     version: 0.9.1
+    condition: agent.modules.edgeCNI.enable

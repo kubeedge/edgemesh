@@ -33,6 +33,8 @@ agent:
       enable: true
     edgeTunnel:
       enable: true
+    edgeCNI:
+      enable: false
 spiderpool:
   coordinator:
     enabled: false
