@@ -8,7 +8,7 @@ This feature mainly provides basic CNI functionality for edge containers. In the
 
 You can enable the Edge CNI feature by following these steps:
 
-![流程图](images\cni\CNIworkflow.png)
+![流程图](./images/cni/CNIworkflow.png)
 
 ### 1. Install the Unified IPAM Plugin
 
@@ -91,4 +91,4 @@ In addition to the aforementioned CNI requirements, the most important aspect is
 
 So, in this project, we have decided not to replace existing CNI implementations such as Flannel, Calico, but to work in coordination with them to achieve cloud-to-edge/edge-to-edge cross-network communication. The overall system architecture is depicted in the diagram below:
 
-![架构图](images\cni\arch.png)
+![架构图](./images/cni/arch.png)

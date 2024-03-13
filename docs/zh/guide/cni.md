@@ -8,7 +8,7 @@
 
 您可以通过以下的步骤启用边缘 CNI 功能：
 
-![流程图](images\cni\CNIworkflow.png)
+![流程图](./../../guide/images/cni/CNIworkflow.png)
 
 ### 1. 安装统一 IPAM 插件
 
@@ -95,4 +95,4 @@ helm安装 : [Helm 安装 | EdgeMesh在新窗口打开](https://edgemesh.netlify
 
 ​		所以我们决定此次项目并不替代Flannel, Calico等CNI实现，而是与这些CNI实现相互配合实现云边/边边跨网络通信，主要的系统架构如下图所示：
 
-![架构图](images\cni\arch.png)
+![架构图](./../../guide/images/cni/arch.png)
