@@ -6,7 +6,7 @@ All the test cases in this chapter can find the corresponding files in the direc
 
 - **Step 1**: Deploy EdgeMesh
 
-Please refer to [Getting Started](./getting-started.md) to deploy EdgeMesh
+Please refer to [Getting Started](https://edgemesh.netlify.app/guide/) to deploy EdgeMesh
 
 - **Step 2**: Deploy Test Pods
 
