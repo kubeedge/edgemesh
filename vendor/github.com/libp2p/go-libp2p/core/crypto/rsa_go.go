@@ -1,6 +1,3 @@
-//go:build !openssl
-// +build !openssl
-
 package crypto
 
 import (
@@ -33,6 +30,9 @@ type RsaPublicKey struct {
 func GenerateRSAKeyPair(bits int, src io.Reader) (PrivKey, PubKey, error) {
 	if bits < MinRsaKeyBits {
 		return nil, nil, ErrRsaKeyTooSmall
+	}
+	if bits > maxRsaKeyBits {
+		return nil, nil, ErrRsaKeyTooBig
 	}
 	priv, err := rsa.GenerateKey(src, bits)
 	if err != nil {
@@ -127,6 +127,9 @@ func UnmarshalRsaPrivateKey(b []byte) (key PrivKey, err error) {
 	if sk.N.BitLen() < MinRsaKeyBits {
 		return nil, ErrRsaKeyTooSmall
 	}
+	if sk.N.BitLen() > maxRsaKeyBits {
+		return nil, ErrRsaKeyTooBig
+	}
 	return &RsaPrivateKey{sk: *sk}, nil
 }
 
@@ -143,6 +146,9 @@ func UnmarshalRsaPublicKey(b []byte) (key PubKey, err error) {
 	}
 	if pk.N.BitLen() < MinRsaKeyBits {
 		return nil, ErrRsaKeyTooSmall
+	}
+	if pk.N.BitLen() > maxRsaKeyBits {
+		return nil, ErrRsaKeyTooBig
 	}
 
 	return &RsaPublicKey{k: *pk}, nil

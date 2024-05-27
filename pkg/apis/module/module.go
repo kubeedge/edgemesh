@@ -16,9 +16,9 @@ type module interface {
 	Shutdown()
 }
 
-func Initialize(coreModules map[string]core.Module) error {
+func Initialize(coreModules map[string]*core.ModuleInfo) error {
 	for _, coreModule := range coreModules {
-		m, ok := coreModule.(module)
+		m, ok := coreModule.GetModule().(module)
 		if !ok {
 			return fmt.Errorf("can't convert %T to module", coreModule)
 		}

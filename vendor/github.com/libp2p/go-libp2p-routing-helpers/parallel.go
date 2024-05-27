@@ -7,13 +7,12 @@ import (
 	"reflect"
 	"sync"
 
-	ci "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/routing"
-
-	multierror "github.com/hashicorp/go-multierror"
-	cid "github.com/ipfs/go-cid"
+	"github.com/hashicorp/go-multierror"
+	"github.com/ipfs/go-cid"
 	record "github.com/libp2p/go-libp2p-record"
+	ci "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/routing"
 )
 
 // Parallel operates on the slice of routers in parallel.
@@ -171,17 +170,12 @@ func (r Parallel) search(ctx context.Context, do func(routing.Routing) (<-chan [
 	ctx, cancel := context.WithCancel(ctx)
 
 	out := make(chan []byte)
-	var errs []error
 
 	var wg sync.WaitGroup
 	for _, ri := range r.Routers {
 		vchan, err := do(ri)
-		switch err {
-		case nil:
-		case routing.ErrNotFound, routing.ErrNotSupported:
+		if err != nil {
 			continue
-		default:
-			errs = append(errs, err)
 		}
 
 		wg.Add(1)

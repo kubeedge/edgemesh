@@ -28,7 +28,6 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/prometheus/client_golang/prometheus"
-	"go.opencensus.io/stats/view"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
@@ -715,11 +714,7 @@ func (t *EdgeTunnel) runMetricsServer() {
 	}
 
 	klog.Infof("Starting Metrics service")
-	err := view.Register(obs.DefaultViews...)
-	if err != nil {
-		klog.Errorf("Failed to register view error: %v", err)
-		return
-	}
+	obs.MustRegisterWith(prometheus.DefaultRegisterer)
 	exporter, err := ocprom.NewExporter(ocprom.Options{
 		Registry: prometheus.DefaultRegisterer.(*prometheus.Registry),
 	})

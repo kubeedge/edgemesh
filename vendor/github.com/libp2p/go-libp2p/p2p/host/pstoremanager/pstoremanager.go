@@ -9,6 +9,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/p2p/host/eventbus"
 
 	logging "github.com/ipfs/go-log/v2"
 )
@@ -68,7 +69,7 @@ func NewPeerstoreManager(pstore peerstore.Peerstore, eventBus event.Bus, opts ..
 func (m *PeerstoreManager) Start() {
 	ctx, cancel := context.WithCancel(context.Background())
 	m.cancel = cancel
-	sub, err := m.eventBus.Subscribe(&event.EvtPeerConnectednessChanged{})
+	sub, err := m.eventBus.Subscribe(&event.EvtPeerConnectednessChanged{}, eventbus.Name("pstoremanager"))
 	if err != nil {
 		log.Warnf("subscription failed. Peerstore manager not activated. Error: %s", err)
 		return
@@ -108,7 +109,8 @@ func (m *PeerstoreManager) background(ctx context.Context, sub event.Subscriptio
 				// If we reconnect to the peer before we've cleared the information, keep it.
 				delete(disconnected, p)
 			}
-		case now := <-ticker.C:
+		case <-ticker.C:
+			now := time.Now()
 			for p, disconnectTime := range disconnected {
 				if disconnectTime.Add(m.gracePeriod).Before(now) {
 					m.pstore.RemovePeer(p)

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 
 	"github.com/kubeedge/kubeedge/tests/e2e/utils"
 )
