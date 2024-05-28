@@ -6,7 +6,7 @@
 
 - **步骤1**: 部署 EdgeMesh
 
-请参考 [快速上手](./getting-started.md) 完成 EdgeMesh 的部署
+请参考 [快速上手](https://edgemesh.netlify.app/zh/guide) 完成 EdgeMesh 的部署
 
 - **步骤2**: 部署测试容器
 
