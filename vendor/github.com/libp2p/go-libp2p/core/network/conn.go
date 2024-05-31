@@ -6,6 +6,7 @@ import (
 
 	ic "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -32,6 +33,22 @@ type Conn interface {
 
 	// GetStreams returns all open streams over this conn.
 	GetStreams() []Stream
+
+	// IsClosed returns whether a connection is fully closed, so it can
+	// be garbage collected.
+	IsClosed() bool
+}
+
+// ConnectionState holds information about the connection.
+type ConnectionState struct {
+	// The stream multiplexer used on this connection (if any). For example: /yamux/1.0.0
+	StreamMultiplexer protocol.ID
+	// The security protocol used on this connection (if any). For example: /tls/1.0.0
+	Security protocol.ID
+	// the transport used on this connection. For example: tcp
+	Transport string
+	// indicates whether StreamMultiplexer was selected using inlined muxer negotiation
+	UsedEarlyMuxerNegotiation bool
 }
 
 // ConnSecurity is the interface that one can mix into a connection interface to
@@ -40,14 +57,14 @@ type ConnSecurity interface {
 	// LocalPeer returns our peer ID
 	LocalPeer() peer.ID
 
-	// LocalPrivateKey returns our private key
-	LocalPrivateKey() ic.PrivKey
-
 	// RemotePeer returns the peer ID of the remote peer.
 	RemotePeer() peer.ID
 
 	// RemotePublicKey returns the public key of the remote peer.
 	RemotePublicKey() ic.PubKey
+
+	// ConnState returns information about the connection state.
+	ConnState() ConnectionState
 }
 
 // ConnMultiaddrs is an interface mixin for connection types that provide multiaddr

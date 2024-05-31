@@ -1,72 +1,132 @@
 package obs
 
 import (
-	"context"
 	"strings"
 
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
+	"github.com/libp2p/go-libp2p/p2p/metricshelper"
+	"github.com/prometheus/client_golang/prometheus"
+)
 
-	"go.opencensus.io/stats"
-	"go.opencensus.io/stats/view"
-	"go.opencensus.io/tag"
+const metricNamespace = "libp2p_rcmgr"
+
+var (
+
+	// Conns
+	conns = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: metricNamespace,
+		Name:      "connections",
+		Help:      "Number of Connections",
+	}, []string{"dir", "scope"})
+
+	connsInboundSystem     = conns.With(prometheus.Labels{"dir": "inbound", "scope": "system"})
+	connsInboundTransient  = conns.With(prometheus.Labels{"dir": "inbound", "scope": "transient"})
+	connsOutboundSystem    = conns.With(prometheus.Labels{"dir": "outbound", "scope": "system"})
+	connsOutboundTransient = conns.With(prometheus.Labels{"dir": "outbound", "scope": "transient"})
+
+	oneTenThenExpDistributionBuckets = []float64{
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 16, 32, 64, 128, 256,
+	}
+
+	// PeerConns
+	peerConns = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: metricNamespace,
+		Name:      "peer_connections",
+		Buckets:   oneTenThenExpDistributionBuckets,
+		Help:      "Number of connections this peer has",
+	}, []string{"dir"})
+	peerConnsInbound  = peerConns.With(prometheus.Labels{"dir": "inbound"})
+	peerConnsOutbound = peerConns.With(prometheus.Labels{"dir": "outbound"})
+
+	// Lets us build a histogram of our current state. See https://github.com/libp2p/go-libp2p-resource-manager/pull/54#discussion_r911244757 for more information.
+	previousPeerConns = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: metricNamespace,
+		Name:      "previous_peer_connections",
+		Buckets:   oneTenThenExpDistributionBuckets,
+		Help:      "Number of connections this peer previously had. This is used to get the current connection number per peer histogram by subtracting this from the peer_connections histogram",
+	}, []string{"dir"})
+	previousPeerConnsInbound  = previousPeerConns.With(prometheus.Labels{"dir": "inbound"})
+	previousPeerConnsOutbound = previousPeerConns.With(prometheus.Labels{"dir": "outbound"})
+
+	// Streams
+	streams = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: metricNamespace,
+		Name:      "streams",
+		Help:      "Number of Streams",
+	}, []string{"dir", "scope", "protocol"})
+
+	peerStreams = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: metricNamespace,
+		Name:      "peer_streams",
+		Buckets:   oneTenThenExpDistributionBuckets,
+		Help:      "Number of streams this peer has",
+	}, []string{"dir"})
+	peerStreamsInbound  = peerStreams.With(prometheus.Labels{"dir": "inbound"})
+	peerStreamsOutbound = peerStreams.With(prometheus.Labels{"dir": "outbound"})
+
+	previousPeerStreams = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: metricNamespace,
+		Name:      "previous_peer_streams",
+		Buckets:   oneTenThenExpDistributionBuckets,
+		Help:      "Number of streams this peer has",
+	}, []string{"dir"})
+	previousPeerStreamsInbound  = previousPeerStreams.With(prometheus.Labels{"dir": "inbound"})
+	previousPeerStreamsOutbound = previousPeerStreams.With(prometheus.Labels{"dir": "outbound"})
+
+	// Memory
+	memory = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: metricNamespace,
+		Name:      "memory",
+		Help:      "Amount of memory reserved as reported to the Resource Manager",
+	}, []string{"scope", "protocol"})
+
+	// PeerMemory
+	peerMemory = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Namespace: metricNamespace,
+		Name:      "peer_memory",
+		Buckets:   memDistribution,
+		Help:      "How many peers have reserved this bucket of memory, as reported to the Resource Manager",
+	})
+	previousPeerMemory = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Namespace: metricNamespace,
+		Name:      "previous_peer_memory",
+		Buckets:   memDistribution,
+		Help:      "How many peers have previously reserved this bucket of memory, as reported to the Resource Manager",
+	})
+
+	// ConnMemory
+	connMemory = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Namespace: metricNamespace,
+		Name:      "conn_memory",
+		Buckets:   memDistribution,
+		Help:      "How many conns have reserved this bucket of memory, as reported to the Resource Manager",
+	})
+	previousConnMemory = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Namespace: metricNamespace,
+		Name:      "previous_conn_memory",
+		Buckets:   memDistribution,
+		Help:      "How many conns have previously reserved this bucket of memory, as reported to the Resource Manager",
+	})
+
+	// FDs
+	fds = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: metricNamespace,
+		Name:      "fds",
+		Help:      "Number of file descriptors reserved as reported to the Resource Manager",
+	}, []string{"scope"})
+
+	fdsSystem    = fds.With(prometheus.Labels{"scope": "system"})
+	fdsTransient = fds.With(prometheus.Labels{"scope": "transient"})
+
+	// Blocked resources
+	blockedResources = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: metricNamespace,
+		Name:      "blocked_resources",
+		Help:      "Number of blocked resources",
+	}, []string{"dir", "scope", "resource"})
 )
 
 var (
-	metricNamespace = "rcmgr/"
-	conns           = stats.Int64(metricNamespace+"connections", "Number of Connections", stats.UnitDimensionless)
-
-	peerConns         = stats.Int64(metricNamespace+"peer/connections", "Number of connections this peer has", stats.UnitDimensionless)
-	peerConnsNegative = stats.Int64(metricNamespace+"peer/connections_negative", "Number of connections this peer had. This is used to get the current connection number per peer histogram by subtracting this from the peer/connections histogram", stats.UnitDimensionless)
-
-	streams = stats.Int64(metricNamespace+"streams", "Number of Streams", stats.UnitDimensionless)
-
-	peerStreams         = stats.Int64(metricNamespace+"peer/streams", "Number of streams this peer has", stats.UnitDimensionless)
-	peerStreamsNegative = stats.Int64(metricNamespace+"peer/streams_negative", "Number of streams this peer had. This is used to get the current streams number per peer histogram by subtracting this from the peer/streams histogram", stats.UnitDimensionless)
-
-	memory             = stats.Int64(metricNamespace+"memory", "Amount of memory reserved as reported to the Resource Manager", stats.UnitDimensionless)
-	peerMemory         = stats.Int64(metricNamespace+"peer/memory", "Amount of memory currently reseved for peer", stats.UnitDimensionless)
-	peerMemoryNegative = stats.Int64(metricNamespace+"peer/memory_negative", "Amount of memory previously reseved for peer. This is used to get the current memory per peer histogram by subtracting this from the peer/memory histogram", stats.UnitDimensionless)
-
-	connMemory         = stats.Int64(metricNamespace+"conn/memory", "Amount of memory currently reseved for the connection", stats.UnitDimensionless)
-	connMemoryNegative = stats.Int64(metricNamespace+"conn/memory_negative", "Amount of memory previously reseved for the connection.  This is used to get the current memory per connection histogram by subtracting this from the conn/memory histogram", stats.UnitDimensionless)
-
-	fds = stats.Int64(metricNamespace+"fds", "Number of fds as reported to the Resource Manager", stats.UnitDimensionless)
-
-	blockedResources = stats.Int64(metricNamespace+"blocked_resources", "Number of resource requests blocked", stats.UnitDimensionless)
-)
-
-var (
-	directionTag, _ = tag.NewKey("dir")
-	scopeTag, _     = tag.NewKey("scope")
-	serviceTag, _   = tag.NewKey("service")
-	protocolTag, _  = tag.NewKey("protocol")
-	resourceTag, _  = tag.NewKey("resource")
-)
-
-var (
-	ConnView = &view.View{Measure: conns, Aggregation: view.Sum(), TagKeys: []tag.Key{directionTag, scopeTag}}
-
-	oneTenThenExpDistribution = []float64{
-		1.1, 2.1, 3.1, 4.1, 5.1, 6.1, 7.1, 8.1, 9.1, 10.1, 16.1, 32.1, 64.1, 128.1, 256.1,
-	}
-
-	PeerConnsView = &view.View{
-		Measure:     peerConns,
-		Aggregation: view.Distribution(oneTenThenExpDistribution...),
-		TagKeys:     []tag.Key{directionTag},
-	}
-	PeerConnsNegativeView = &view.View{
-		Measure:     peerConnsNegative,
-		Aggregation: view.Distribution(oneTenThenExpDistribution...),
-		TagKeys:     []tag.Key{directionTag},
-	}
-
-	StreamView             = &view.View{Measure: streams, Aggregation: view.Sum(), TagKeys: []tag.Key{directionTag, scopeTag, serviceTag, protocolTag}}
-	PeerStreamsView        = &view.View{Measure: peerStreams, Aggregation: view.Distribution(oneTenThenExpDistribution...), TagKeys: []tag.Key{directionTag}}
-	PeerStreamNegativeView = &view.View{Measure: peerStreamsNegative, Aggregation: view.Distribution(oneTenThenExpDistribution...), TagKeys: []tag.Key{directionTag}}
-
-	MemoryView = &view.View{Measure: memory, Aggregation: view.Sum(), TagKeys: []tag.Key{scopeTag, serviceTag, protocolTag}}
-
 	memDistribution = []float64{
 		1 << 10,   // 1KB
 		4 << 10,   // 4KB
@@ -79,49 +139,26 @@ var (
 		2 << 30,   // 2GB
 		4 << 30,   // 4GB
 	}
-	PeerMemoryView = &view.View{
-		Measure:     peerMemory,
-		Aggregation: view.Distribution(memDistribution...),
-	}
-	PeerMemoryNegativeView = &view.View{
-		Measure:     peerMemoryNegative,
-		Aggregation: view.Distribution(memDistribution...),
-	}
-
-	// Not setup yet. Memory isn't attached to a given connection.
-	ConnMemoryView = &view.View{
-		Measure:     connMemory,
-		Aggregation: view.Distribution(memDistribution...),
-	}
-	ConnMemoryNegativeView = &view.View{
-		Measure:     connMemoryNegative,
-		Aggregation: view.Distribution(memDistribution...),
-	}
-
-	FDsView = &view.View{Measure: fds, Aggregation: view.Sum(), TagKeys: []tag.Key{scopeTag}}
-
-	BlockedResourcesView = &view.View{
-		Measure:     blockedResources,
-		Aggregation: view.Sum(),
-		TagKeys:     []tag.Key{scopeTag, resourceTag},
-	}
 )
 
-var DefaultViews []*view.View = []*view.View{
-	ConnView,
-	PeerConnsView,
-	PeerConnsNegativeView,
-	FDsView,
+func MustRegisterWith(reg prometheus.Registerer) {
+	reg.MustRegister(
+		conns,
+		peerConns,
+		previousPeerConns,
+		streams,
+		peerStreams,
 
-	StreamView,
-	PeerStreamsView,
-	PeerStreamNegativeView,
+		previousPeerStreams,
 
-	MemoryView,
-	PeerMemoryView,
-	PeerMemoryNegativeView,
-
-	BlockedResourcesView,
+		memory,
+		peerMemory,
+		previousPeerMemory,
+		connMemory,
+		previousConnMemory,
+		fds,
+		blockedResources,
+	)
 }
 
 // StatsTraceReporter reports stats on the resource manager using its traces.
@@ -133,11 +170,17 @@ func NewStatsTraceReporter() (StatsTraceReporter, error) {
 }
 
 func (r StatsTraceReporter) ConsumeEvent(evt rcmgr.TraceEvt) {
-	ctx := context.Background()
+	tags := metricshelper.GetStringSlice()
+	defer metricshelper.PutStringSlice(tags)
 
+	r.consumeEventWithLabelSlice(evt, tags)
+}
+
+// Separate func so that we can test that this function does not allocate. The syncPool may allocate.
+func (r StatsTraceReporter) consumeEventWithLabelSlice(evt rcmgr.TraceEvt, tags *[]string) {
 	switch evt.Type {
 	case rcmgr.TraceAddStreamEvt, rcmgr.TraceRemoveStreamEvt:
-		if p := rcmgr.ParsePeerScopeName(evt.Name); p.Validate() == nil {
+		if p := rcmgr.PeerStrInScopeName(evt.Name); p != "" {
 			// Aggregated peer stats. Counts how many peers have N number of streams open.
 			// Uses two buckets aggregations. One to count how many streams the
 			// peer has now. The other to count the negative value, or how many
@@ -148,10 +191,10 @@ func (r StatsTraceReporter) ConsumeEvent(evt rcmgr.TraceEvt) {
 			peerStreamsOut := int64(evt.StreamsOut)
 			if oldStreamsOut != peerStreamsOut {
 				if oldStreamsOut != 0 {
-					stats.RecordWithTags(ctx, []tag.Mutator{tag.Upsert(directionTag, "outbound")}, peerStreamsNegative.M(oldStreamsOut))
+					previousPeerStreamsOutbound.Observe(float64(oldStreamsOut))
 				}
 				if peerStreamsOut != 0 {
-					stats.RecordWithTags(ctx, []tag.Mutator{tag.Upsert(directionTag, "outbound")}, peerStreams.M(peerStreamsOut))
+					peerStreamsOutbound.Observe(float64(peerStreamsOut))
 				}
 			}
 
@@ -159,46 +202,50 @@ func (r StatsTraceReporter) ConsumeEvent(evt rcmgr.TraceEvt) {
 			peerStreamsIn := int64(evt.StreamsIn)
 			if oldStreamsIn != peerStreamsIn {
 				if oldStreamsIn != 0 {
-					stats.RecordWithTags(ctx, []tag.Mutator{tag.Upsert(directionTag, "inbound")}, peerStreamsNegative.M(oldStreamsIn))
+					previousPeerStreamsInbound.Observe(float64(oldStreamsIn))
 				}
 				if peerStreamsIn != 0 {
-					stats.RecordWithTags(ctx, []tag.Mutator{tag.Upsert(directionTag, "inbound")}, peerStreams.M(peerStreamsIn))
+					peerStreamsInbound.Observe(float64(peerStreamsIn))
 				}
 			}
 		} else {
-			var tags []tag.Mutator
-			if rcmgr.IsSystemScope(evt.Name) || rcmgr.IsTransientScope(evt.Name) {
-				tags = append(tags, tag.Upsert(scopeTag, evt.Name))
-			} else if svc := rcmgr.ParseServiceScopeName(evt.Name); svc != "" {
-				tags = append(tags, tag.Upsert(scopeTag, "service"), tag.Upsert(serviceTag, svc))
-			} else if proto := rcmgr.ParseProtocolScopeName(evt.Name); proto != "" {
-				tags = append(tags, tag.Upsert(scopeTag, "protocol"), tag.Upsert(protocolTag, proto))
-			} else {
-				// Not measuring connscope, servicepeer and protocolpeer. Lots of data, and
-				// you can use aggregated peer stats + service stats to infer
-				// this.
-				break
-			}
-
 			if evt.DeltaOut != 0 {
-				stats.RecordWithTags(
-					ctx,
-					append([]tag.Mutator{tag.Upsert(directionTag, "outbound")}, tags...),
-					streams.M(int64(evt.DeltaOut)),
-				)
+				if rcmgr.IsSystemScope(evt.Name) || rcmgr.IsTransientScope(evt.Name) {
+					*tags = (*tags)[:0]
+					*tags = append(*tags, "outbound", evt.Name, "")
+					streams.WithLabelValues(*tags...).Set(float64(evt.StreamsOut))
+				} else if proto := rcmgr.ParseProtocolScopeName(evt.Name); proto != "" {
+					*tags = (*tags)[:0]
+					*tags = append(*tags, "outbound", "protocol", proto)
+					streams.WithLabelValues(*tags...).Set(float64(evt.StreamsOut))
+				} else {
+					// Not measuring service scope, connscope, servicepeer and protocolpeer. Lots of data, and
+					// you can use aggregated peer stats + service stats to infer
+					// this.
+					break
+				}
 			}
 
 			if evt.DeltaIn != 0 {
-				stats.RecordWithTags(
-					ctx,
-					append([]tag.Mutator{tag.Upsert(directionTag, "inbound")}, tags...),
-					streams.M(int64(evt.DeltaIn)),
-				)
+				if rcmgr.IsSystemScope(evt.Name) || rcmgr.IsTransientScope(evt.Name) {
+					*tags = (*tags)[:0]
+					*tags = append(*tags, "inbound", evt.Name, "")
+					streams.WithLabelValues(*tags...).Set(float64(evt.StreamsIn))
+				} else if proto := rcmgr.ParseProtocolScopeName(evt.Name); proto != "" {
+					*tags = (*tags)[:0]
+					*tags = append(*tags, "inbound", "protocol", proto)
+					streams.WithLabelValues(*tags...).Set(float64(evt.StreamsIn))
+				} else {
+					// Not measuring service scope, connscope, servicepeer and protocolpeer. Lots of data, and
+					// you can use aggregated peer stats + service stats to infer
+					// this.
+					break
+				}
 			}
 		}
 
 	case rcmgr.TraceAddConnEvt, rcmgr.TraceRemoveConnEvt:
-		if p := rcmgr.ParsePeerScopeName(evt.Name); p.Validate() == nil {
+		if p := rcmgr.PeerStrInScopeName(evt.Name); p != "" {
 			// Aggregated peer stats. Counts how many peers have N number of connections.
 			// Uses two buckets aggregations. One to count how many streams the
 			// peer has now. The other to count the negative value, or how many
@@ -209,10 +256,10 @@ func (r StatsTraceReporter) ConsumeEvent(evt rcmgr.TraceEvt) {
 			connsOut := int64(evt.ConnsOut)
 			if oldConnsOut != connsOut {
 				if oldConnsOut != 0 {
-					stats.RecordWithTags(ctx, []tag.Mutator{tag.Upsert(directionTag, "outbound")}, peerConnsNegative.M(oldConnsOut))
+					previousPeerConnsOutbound.Observe(float64(oldConnsOut))
 				}
 				if connsOut != 0 {
-					stats.RecordWithTags(ctx, []tag.Mutator{tag.Upsert(directionTag, "outbound")}, peerConns.M(connsOut))
+					peerConnsOutbound.Observe(float64(connsOut))
 				}
 			}
 
@@ -220,87 +267,71 @@ func (r StatsTraceReporter) ConsumeEvent(evt rcmgr.TraceEvt) {
 			connsIn := int64(evt.ConnsIn)
 			if oldConnsIn != connsIn {
 				if oldConnsIn != 0 {
-					stats.RecordWithTags(ctx, []tag.Mutator{tag.Upsert(directionTag, "inbound")}, peerConnsNegative.M(oldConnsIn))
+					previousPeerConnsInbound.Observe(float64(oldConnsIn))
 				}
 				if connsIn != 0 {
-					stats.RecordWithTags(ctx, []tag.Mutator{tag.Upsert(directionTag, "inbound")}, peerConns.M(connsIn))
+					peerConnsInbound.Observe(float64(connsIn))
 				}
 			}
 		} else {
-			var tags []tag.Mutator
-			if rcmgr.IsSystemScope(evt.Name) || rcmgr.IsTransientScope(evt.Name) {
-				tags = append(tags, tag.Upsert(scopeTag, evt.Name))
-			} else if rcmgr.IsConnScope(evt.Name) {
+			if rcmgr.IsConnScope(evt.Name) {
 				// Not measuring this. I don't think it's useful.
 				break
-			} else {
-				// This could be a span
-				break
 			}
 
-			if evt.DeltaOut != 0 {
-				stats.RecordWithTags(
-					ctx,
-					append([]tag.Mutator{tag.Upsert(directionTag, "outbound")}, tags...),
-					conns.M(int64(evt.DeltaOut)),
-				)
-			}
-
-			if evt.DeltaIn != 0 {
-				stats.RecordWithTags(
-					ctx,
-					append([]tag.Mutator{tag.Upsert(directionTag, "inbound")}, tags...),
-					conns.M(int64(evt.DeltaIn)),
-				)
+			if rcmgr.IsSystemScope(evt.Name) {
+				connsInboundSystem.Set(float64(evt.ConnsIn))
+				connsOutboundSystem.Set(float64(evt.ConnsOut))
+			} else if rcmgr.IsTransientScope(evt.Name) {
+				connsInboundTransient.Set(float64(evt.ConnsIn))
+				connsOutboundTransient.Set(float64(evt.ConnsOut))
 			}
 
 			// Represents the delta in fds
 			if evt.Delta != 0 {
-				stats.RecordWithTags(
-					ctx,
-					tags,
-					fds.M(int64(evt.Delta)),
-				)
+				if rcmgr.IsSystemScope(evt.Name) {
+					fdsSystem.Set(float64(evt.FD))
+				} else if rcmgr.IsTransientScope(evt.Name) {
+					fdsTransient.Set(float64(evt.FD))
+				}
 			}
 		}
+
 	case rcmgr.TraceReserveMemoryEvt, rcmgr.TraceReleaseMemoryEvt:
-		if p := rcmgr.ParsePeerScopeName(evt.Name); p.Validate() == nil {
+		if p := rcmgr.PeerStrInScopeName(evt.Name); p != "" {
 			oldMem := evt.Memory - evt.Delta
 			if oldMem != evt.Memory {
 				if oldMem != 0 {
-					stats.Record(ctx, peerMemoryNegative.M(oldMem))
+					previousPeerMemory.Observe(float64(oldMem))
 				}
 				if evt.Memory != 0 {
-					stats.Record(ctx, peerMemory.M(evt.Memory))
+					peerMemory.Observe(float64(evt.Memory))
 				}
 			}
 		} else if rcmgr.IsConnScope(evt.Name) {
 			oldMem := evt.Memory - evt.Delta
 			if oldMem != evt.Memory {
 				if oldMem != 0 {
-					stats.Record(ctx, connMemoryNegative.M(oldMem))
+					previousConnMemory.Observe(float64(oldMem))
 				}
 				if evt.Memory != 0 {
-					stats.Record(ctx, connMemory.M(evt.Memory))
+					connMemory.Observe(float64(evt.Memory))
 				}
 			}
 		} else {
-			var tags []tag.Mutator
 			if rcmgr.IsSystemScope(evt.Name) || rcmgr.IsTransientScope(evt.Name) {
-				tags = append(tags, tag.Upsert(scopeTag, evt.Name))
-			} else if svc := rcmgr.ParseServiceScopeName(evt.Name); svc != "" {
-				tags = append(tags, tag.Upsert(scopeTag, "service"), tag.Upsert(serviceTag, svc))
+				*tags = (*tags)[:0]
+				*tags = append(*tags, evt.Name, "")
+				memory.WithLabelValues(*tags...).Set(float64(evt.Memory))
 			} else if proto := rcmgr.ParseProtocolScopeName(evt.Name); proto != "" {
-				tags = append(tags, tag.Upsert(scopeTag, "protocol"), tag.Upsert(protocolTag, proto))
+				*tags = (*tags)[:0]
+				*tags = append(*tags, "protocol", proto)
+				memory.WithLabelValues(*tags...).Set(float64(evt.Memory))
 			} else {
 				// Not measuring connscope, servicepeer and protocolpeer. Lots of data, and
 				// you can use aggregated peer stats + service stats to infer
 				// this.
 				break
-			}
-
-			if evt.Delta != 0 {
-				stats.RecordWithTags(ctx, tags, memory.M(int64(evt.Delta)))
 			}
 		}
 
@@ -314,31 +345,40 @@ func (r StatsTraceReporter) ConsumeEvent(evt rcmgr.TraceEvt) {
 			resource = "memory"
 		}
 
+		scopeName := evt.Name
 		// Only the top scopeName. We don't want to get the peerid here.
-		scopeName := strings.SplitN(evt.Name, ":", 2)[0]
+		// Using indexes and slices to avoid allocating.
+		scopeSplitIdx := strings.IndexByte(scopeName, ':')
+		if scopeSplitIdx != -1 {
+			scopeName = evt.Name[0:scopeSplitIdx]
+		}
 		// Drop the connection or stream id
-		scopeName = strings.SplitN(scopeName, "-", 2)[0]
-
-		// If something else gets added here, make sure to update the size hint
-		// below when we make `tagsWithDir`.
-		tags := []tag.Mutator{tag.Upsert(scopeTag, scopeName), tag.Upsert(resourceTag, resource)}
+		idSplitIdx := strings.IndexByte(scopeName, '-')
+		if idSplitIdx != -1 {
+			scopeName = scopeName[0:idSplitIdx]
+		}
 
 		if evt.DeltaIn != 0 {
-			tagsWithDir := make([]tag.Mutator, 0, 3)
-			tagsWithDir = append(tagsWithDir, tag.Insert(directionTag, "inbound"))
-			tagsWithDir = append(tagsWithDir, tags...)
-			stats.RecordWithTags(ctx, tagsWithDir[0:], blockedResources.M(int64(1)))
+			*tags = (*tags)[:0]
+			*tags = append(*tags, "inbound", scopeName, resource)
+			blockedResources.WithLabelValues(*tags...).Add(float64(evt.DeltaIn))
 		}
 
 		if evt.DeltaOut != 0 {
-			tagsWithDir := make([]tag.Mutator, 0, 3)
-			tagsWithDir = append(tagsWithDir, tag.Insert(directionTag, "outbound"))
-			tagsWithDir = append(tagsWithDir, tags...)
-			stats.RecordWithTags(ctx, tagsWithDir, blockedResources.M(int64(1)))
+			*tags = (*tags)[:0]
+			*tags = append(*tags, "outbound", scopeName, resource)
+			blockedResources.WithLabelValues(*tags...).Add(float64(evt.DeltaOut))
 		}
 
-		if evt.Delta != 0 {
-			stats.RecordWithTags(ctx, tags, blockedResources.M(1))
+		if evt.Delta != 0 && resource == "connection" {
+			// This represents fds blocked
+			*tags = (*tags)[:0]
+			*tags = append(*tags, "", scopeName, "fd")
+			blockedResources.WithLabelValues(*tags...).Add(float64(evt.Delta))
+		} else if evt.Delta != 0 {
+			*tags = (*tags)[:0]
+			*tags = append(*tags, "", scopeName, resource)
+			blockedResources.WithLabelValues(*tags...).Add(float64(evt.Delta))
 		}
 	}
 }

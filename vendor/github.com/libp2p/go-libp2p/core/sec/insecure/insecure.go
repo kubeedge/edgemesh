@@ -10,12 +10,18 @@ import (
 	"net"
 
 	ci "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/core/sec"
-	pb "github.com/libp2p/go-libp2p/core/sec/insecure/pb"
+	"github.com/libp2p/go-libp2p/core/sec/insecure/pb"
 
 	"github.com/libp2p/go-msgio"
+
+	"google.golang.org/protobuf/proto"
 )
+
+//go:generate protoc --proto_path=$PWD:$PWD/../../.. --go_out=. --go_opt=Mpb/plaintext.proto=./pb pb/plaintext.proto
 
 // ID is the multistream-select protocol ID that should be used when identifying
 // this security transport.
@@ -27,30 +33,26 @@ const ID = "/plaintext/2.0.0"
 // peer presents as their ID and public key.
 // No authentication of the remote identity is performed.
 type Transport struct {
-	id  peer.ID
-	key ci.PrivKey
+	id         peer.ID
+	key        ci.PrivKey
+	protocolID protocol.ID
 }
 
-// NewWithIdentity constructs a new insecure transport. The provided private key
-// is stored and returned from LocalPrivateKey to satisfy the
-// SecureTransport interface, and the public key is sent to
+var _ sec.SecureTransport = &Transport{}
+
+// NewWithIdentity constructs a new insecure transport. The public key is sent to
 // remote peers. No security is provided.
-func NewWithIdentity(id peer.ID, key ci.PrivKey) *Transport {
+func NewWithIdentity(protocolID protocol.ID, id peer.ID, key ci.PrivKey) *Transport {
 	return &Transport{
-		id:  id,
-		key: key,
+		protocolID: protocolID,
+		id:         id,
+		key:        key,
 	}
 }
 
 // LocalPeer returns the transport's local peer ID.
 func (t *Transport) LocalPeer() peer.ID {
 	return t.id
-}
-
-// LocalPrivateKey returns the local private key.
-// This key is used only for identity generation and provides no security.
-func (t *Transport) LocalPrivateKey() ci.PrivKey {
-	return t.key
 }
 
 // SecureInbound *pretends to secure* an inbound connection to the given peer.
@@ -60,19 +62,18 @@ func (t *Transport) LocalPrivateKey() ci.PrivKey {
 //
 // SecureInbound may fail if the remote peer sends an ID and public key that are inconsistent
 // with each other, or if a network error occurs during the ID exchange.
-func (t *Transport) SecureInbound(ctx context.Context, insecure net.Conn, p peer.ID) (sec.SecureConn, error) {
+func (t *Transport) SecureInbound(_ context.Context, insecure net.Conn, p peer.ID) (sec.SecureConn, error) {
 	conn := &Conn{
-		Conn:         insecure,
-		local:        t.id,
-		localPrivKey: t.key,
+		Conn:        insecure,
+		local:       t.id,
+		localPubKey: t.key.GetPublic(),
 	}
 
-	err := conn.runHandshakeSync()
-	if err != nil {
+	if err := conn.runHandshakeSync(); err != nil {
 		return nil, err
 	}
 
-	if t.key != nil && p != "" && p != conn.remote {
+	if p != "" && p != conn.remote {
 		return nil, fmt.Errorf("remote peer sent unexpected peer ID. expected=%s received=%s", p, conn.remote)
 	}
 
@@ -87,19 +88,18 @@ func (t *Transport) SecureInbound(ctx context.Context, insecure net.Conn, p peer
 // SecureOutbound may fail if the remote peer sends an ID and public key that are inconsistent
 // with each other, or if the ID sent by the remote peer does not match the one dialed. It may
 // also fail if a network error occurs during the ID exchange.
-func (t *Transport) SecureOutbound(ctx context.Context, insecure net.Conn, p peer.ID) (sec.SecureConn, error) {
+func (t *Transport) SecureOutbound(_ context.Context, insecure net.Conn, p peer.ID) (sec.SecureConn, error) {
 	conn := &Conn{
-		Conn:         insecure,
-		local:        t.id,
-		localPrivKey: t.key,
+		Conn:        insecure,
+		local:       t.id,
+		localPubKey: t.key.GetPublic(),
 	}
 
-	err := conn.runHandshakeSync()
-	if err != nil {
+	if err := conn.runHandshakeSync(); err != nil {
 		return nil, err
 	}
 
-	if t.key != nil && p != conn.remote {
+	if p != conn.remote {
 		return nil, fmt.Errorf("remote peer sent unexpected peer ID. expected=%s received=%s",
 			p, conn.remote)
 	}
@@ -107,15 +107,14 @@ func (t *Transport) SecureOutbound(ctx context.Context, insecure net.Conn, p pee
 	return conn, nil
 }
 
+func (t *Transport) ID() protocol.ID { return t.protocolID }
+
 // Conn is the connection type returned by the insecure transport.
 type Conn struct {
 	net.Conn
 
-	local  peer.ID
-	remote peer.ID
-
-	localPrivKey ci.PrivKey
-	remotePubKey ci.PubKey
+	local, remote             peer.ID
+	localPubKey, remotePubKey ci.PubKey
 }
 
 func makeExchangeMessage(pubkey ci.PubKey) (*pb.Exchange, error) {
@@ -136,12 +135,12 @@ func makeExchangeMessage(pubkey ci.PubKey) (*pb.Exchange, error) {
 
 func (ic *Conn) runHandshakeSync() error {
 	// If we were initialized without keys, behave as in plaintext/1.0.0 (do nothing)
-	if ic.localPrivKey == nil {
+	if ic.localPubKey == nil {
 		return nil
 	}
 
 	// Generate an Exchange message
-	msg, err := makeExchangeMessage(ic.localPrivKey.GetPublic())
+	msg, err := makeExchangeMessage(ic.localPubKey)
 	if err != nil {
 		return err
 	}
@@ -180,7 +179,7 @@ func (ic *Conn) runHandshakeSync() error {
 func readWriteMsg(rw io.ReadWriter, out *pb.Exchange) (*pb.Exchange, error) {
 	const maxMessageSize = 1 << 16
 
-	outBytes, err := out.Marshal()
+	outBytes, err := proto.Marshal(out)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +190,7 @@ func readWriteMsg(rw io.ReadWriter, out *pb.Exchange) (*pb.Exchange, error) {
 	}()
 
 	r := msgio.NewVarintReaderSize(rw, maxMessageSize)
-	msg, err1 := r.ReadMsg()
+	b, err1 := r.ReadMsg()
 
 	// Always wait for the read to finish.
 	err2 := <-wresult
@@ -200,11 +199,11 @@ func readWriteMsg(rw io.ReadWriter, out *pb.Exchange) (*pb.Exchange, error) {
 		return nil, err1
 	}
 	if err2 != nil {
-		r.ReleaseMsg(msg)
+		r.ReleaseMsg(b)
 		return nil, err2
 	}
 	inMsg := new(pb.Exchange)
-	err = inMsg.Unmarshal(msg)
+	err = proto.Unmarshal(b, inMsg)
 	return inMsg, err
 }
 
@@ -225,9 +224,9 @@ func (ic *Conn) RemotePublicKey() ci.PubKey {
 	return ic.remotePubKey
 }
 
-// LocalPrivateKey returns the private key for the local peer.
-func (ic *Conn) LocalPrivateKey() ci.PrivKey {
-	return ic.localPrivKey
+// ConnState returns the security connection's state information.
+func (ic *Conn) ConnState() network.ConnectionState {
+	return network.ConnectionState{}
 }
 
 var _ sec.SecureTransport = (*Transport)(nil)

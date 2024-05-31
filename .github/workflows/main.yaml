@@ -91,7 +91,7 @@ jobs:
 
       - name: Install dependences
         run: |
-          command -v ginkgo || go install github.com/onsi/ginkgo/ginkgo@latest
+          command -v ginkgo || go install github.com/onsi/ginkgo/v2/ginkgo@latest
           go install sigs.k8s.io/kind@v0.19.0
           curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.27.7/bin/linux/amd64/kubectl && sudo install kubectl /usr/local/bin/kubectl
           type keadm || {

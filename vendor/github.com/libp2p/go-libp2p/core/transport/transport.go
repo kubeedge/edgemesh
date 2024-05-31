@@ -4,6 +4,7 @@ package transport
 
 import (
 	"context"
+	"errors"
 	"net"
 
 	"github.com/libp2p/go-libp2p/core/network"
@@ -77,6 +78,12 @@ type Transport interface {
 	Proxy() bool
 }
 
+// Resolver can be optionally implemented by transports that want to resolve or transform the
+// multiaddr.
+type Resolver interface {
+	Resolve(ctx context.Context, maddr ma.Multiaddr) ([]ma.Multiaddr, error)
+}
+
 // Listener is an interface closely resembling the net.Listener interface. The
 // only real difference is that Accept() returns Conn's of the type in this
 // package, and also exposes a Multiaddr method as opposed to a regular Addr
@@ -87,6 +94,9 @@ type Listener interface {
 	Addr() net.Addr
 	Multiaddr() ma.Multiaddr
 }
+
+// ErrListenerClosed is returned by Listener.Accept when the listener is gracefully closed.
+var ErrListenerClosed = errors.New("listener closed")
 
 // TransportNetwork is an inet.Network with methods for managing transports.
 type TransportNetwork interface {
