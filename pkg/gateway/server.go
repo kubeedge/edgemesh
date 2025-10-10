@@ -161,7 +161,7 @@ func (srv *Server) newProto(conn net.Conn) (Protocol, error) {
 		// find all virtual services that bound to the gateway
 		fn := func(key, value interface{}) bool {
 			if vs, ok := value.(*istioapi.VirtualService); ok {
-				if vs.Spec.Gateways[0] == srv.options.GwName &&
+				if len(vs.Spec.Gateways) > 0 && vs.Spec.Gateways[0] == srv.options.GwName &&
 					reflect.DeepEqual(vs.Spec.Hosts, srv.options.Hosts) {
 					vss = append(vss, vs)
 				}
