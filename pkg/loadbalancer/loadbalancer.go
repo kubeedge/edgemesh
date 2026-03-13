@@ -584,7 +584,6 @@ func (lb *LoadBalancer) OnServiceAdd(service *v1.Service) {
 
 func (lb *LoadBalancer) OnServiceUpdate(oldService, service *v1.Service) {
 	lb.serviceChange(oldService, service, "OnServiceUpdate")
-	klog.Info("")
 }
 
 func (lb *LoadBalancer) OnServiceDelete(service *v1.Service) {
