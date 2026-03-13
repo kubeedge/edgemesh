@@ -13,7 +13,7 @@ import (
 	istioapi "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istio "istio.io/client-go/pkg/clientset/versioned"
 	istioinformers "istio.io/client-go/pkg/informers/externalversions"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -926,6 +926,7 @@ func (lb *LoadBalancer) TryConnectEndpoints(service proxy.ServicePortName, srcAd
 			if err == nil {
 				_, err = outConn.Write(reqBytes)
 				if err != nil {
+					outConn.Close()
 					return nil, err
 				}
 			}

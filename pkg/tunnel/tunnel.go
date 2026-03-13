@@ -37,7 +37,7 @@ import (
 	discoverypb "github.com/kubeedge/edgemesh/pkg/tunnel/pb/discovery"
 	proxypb "github.com/kubeedge/edgemesh/pkg/tunnel/pb/proxy"
 	netutil "github.com/kubeedge/edgemesh/pkg/util/net"
-	"github.com/kubeedge/edgemesh/pkg/util/tunutils"
+	cni "github.com/kubeedge/edgemesh/pkg/util/tunutils"
 )
 
 const (
@@ -216,10 +216,12 @@ func (t *EdgeTunnel) discoveryStreamHandler(stream network.Stream) {
 	msg := new(discoverypb.Discovery)
 	err := streamReader.ReadMsg(msg)
 	if err != nil {
+		stream.Reset()
 		klog.Errorf("Read msg from %s err: %v", remotePeer, err)
 		return
 	}
 	if msg.GetType() != discoverypb.Discovery_CONNECT {
+		stream.Reset()
 		klog.Errorf("Stream between %s, Type should be CONNECT", remotePeer)
 		return
 	}
@@ -231,6 +233,7 @@ func (t *EdgeTunnel) discoveryStreamHandler(stream network.Stream) {
 	msg.NodeName = &t.Config.NodeName
 	err = streamWriter.WriteMsg(msg)
 	if err != nil {
+		stream.Reset()
 		klog.Errorf("[%s] Write msg to %s err: %v", protocol, remotePeer, err)
 		return
 	}
@@ -238,6 +241,7 @@ func (t *EdgeTunnel) discoveryStreamHandler(stream network.Stream) {
 	// (re)mapping nodeName and peerID
 	klog.Infof("[%s] Discovery from %s : %s", protocol, nodeName, remotePeer)
 	t.nodePeerMap[nodeName] = remotePeer.ID
+	stream.Reset()
 }
 
 type ProxyOptions struct {
@@ -339,10 +343,12 @@ func (t *EdgeTunnel) proxyStreamHandler(stream network.Stream) {
 	msg := new(proxypb.Proxy)
 	err := streamReader.ReadMsg(msg)
 	if err != nil {
+		stream.Reset()
 		klog.Errorf("Read msg from %s err: %v", remotePeer, err)
 		return
 	}
 	if msg.GetType() != proxypb.Proxy_CONNECT {
+		stream.Reset()
 		klog.Errorf("Read msg from %s type should be CONNECT", remotePeer)
 		return
 	}
@@ -358,9 +364,11 @@ func (t *EdgeTunnel) proxyStreamHandler(stream network.Stream) {
 		msg.Reset()
 		msg.Type = proxypb.Proxy_FAILED.Enum()
 		if err = streamWriter.WriteMsg(msg); err != nil {
+			stream.Reset()
 			klog.Errorf("Write msg to %s err: %v", remotePeer, err)
 			return
 		}
+		stream.Reset()
 		return
 	}
 
@@ -368,6 +376,7 @@ func (t *EdgeTunnel) proxyStreamHandler(stream network.Stream) {
 	msg.Type = proxypb.Proxy_SUCCESS.Enum()
 	err = streamWriter.WriteMsg(msg)
 	if err != nil {
+		stream.Reset()
 		klog.Errorf("Write msg to %s err: %v", remotePeer, err)
 		return
 	}
@@ -820,10 +829,12 @@ func (t *EdgeTunnel) CNIAdapterStreamHandler(stream network.Stream) {
 	msg := new(proxypb.Proxy)
 	err := streamReader.ReadMsg(msg)
 	if err != nil {
+		stream.Reset()
 		klog.Errorf("Read msg from %s err: %v", remotePeer, err)
 		return
 	}
 	if msg.GetType() != proxypb.Proxy_CONNECT {
+		stream.Reset()
 		klog.Errorf("Read msg from %s type should be CONNECT", remotePeer)
 		return
 	}
@@ -839,9 +850,11 @@ func (t *EdgeTunnel) CNIAdapterStreamHandler(stream network.Stream) {
 		msg.Reset()
 		msg.Type = proxypb.Proxy_FAILED.Enum()
 		if err = streamWriter.WriteMsg(msg); err != nil {
+			stream.Reset()
 			klog.Errorf("Write msg to %s err: %v", remotePeer, err)
 			return
 		}
+		stream.Reset()
 		return
 	}
 
@@ -849,6 +862,7 @@ func (t *EdgeTunnel) CNIAdapterStreamHandler(stream network.Stream) {
 	msg.Type = proxypb.Proxy_SUCCESS.Enum()
 	err = streamWriter.WriteMsg(msg)
 	if err != nil {
+		stream.Reset()
 		klog.Errorf("Write msg to %s err: %v", remotePeer, err)
 		return
 	}

@@ -55,6 +55,7 @@ func copyBytes(direction string, dest, src net.Conn, wg *sync.WaitGroup) {
 }
 
 func ProxyConnUDP(inConn net.Conn, udpConn *net.UDPConn) {
+	defer inConn.Close()
 	var buffer [4096]byte
 	for {
 		n, err := inConn.Read(buffer[0:])

@@ -323,6 +323,7 @@ func Dial() (*TunConn, error) { return nil, nil }
 func DialTun(stream net.Conn, name string) {
 	p2p2Tun, err := NewTunConn(name)
 	if err != nil {
+		stream.Close()
 		klog.Errorf("p2p handler create TunConn failed", err)
 		return
 	}
@@ -331,6 +332,7 @@ func DialTun(stream net.Conn, name string) {
 	buffer := NewRecycleByteBuffer(PacketSize)
 	// TODO: separate below as P2P handler and add SetWriteDeadline
 	go func() {
+		defer stream.Close()
 		for {
 			n, err := stream.Read(packet)
 			if err != nil {
