@@ -43,30 +43,47 @@ func isValidEndpoint(host string, port int) bool {
 
 // buildPortsToEndpointsMap builds a map of portname -> all nodeName:podName:ip:port
 // for that portname. Explode Endpoints.Subsets[*] into this structure.
-func buildPortsToEndpointsMap(endpoints *v1.Endpoints) map[string][]string {
-	portsToEndpoints := map[string][]string{}
+//key---portName
+//value 二维数据，第一层两个元素 0位---ready ep信息   1位---noReady ep信息
+func buildPortsToEndpointsMap(endpoints *v1.Endpoints) map[string][][]string {
+	portsToEndpoints := map[string][][]string{}
 	for i := range endpoints.Subsets {
 		ss := &endpoints.Subsets[i]
-		for i := range ss.Ports {
-			port := &ss.Ports[i]
-			for i := range ss.Addresses {
-				addr := &ss.Addresses[i]
-				if isValidEndpoint(addr.IP, int(port.Port)) {
-					nodeName := defaults.EmptyNodeName
-					podName := defaults.EmptyPodName
-					if addr.NodeName != nil {
-						nodeName = *addr.NodeName
-					}
-					if addr.TargetRef != nil {
-						podName = addr.TargetRef.Name
-					}
-					endpoint := fmt.Sprintf("%s:%s:%s", nodeName, podName, net.JoinHostPort(addr.IP, strconv.Itoa(int(port.Port))))
-					portsToEndpoints[port.Name] = append(portsToEndpoints[port.Name], endpoint)
-				}
+		for m := range ss.Ports {
+			for n := range ss.Addresses {
+				addEndpoints(&ss.Addresses[n], &ss.Ports[m], portsToEndpoints, true)
+			}
+			for n := range ss.NotReadyAddresses {
+				addEndpoints(&ss.NotReadyAddresses[n], &ss.Ports[m], portsToEndpoints, false)
 			}
 		}
 	}
 	return portsToEndpoints
+}
+
+func addEndpoints(addr *v1.EndpointAddress, port *v1.EndpointPort, portsToEndpoints map[string][][]string, isReady bool) {
+	rlt, ok := portsToEndpoints[port.Name]
+	if !ok {
+		rlt = make([][]string, 2)
+		portsToEndpoints[port.Name] = rlt
+	}
+	if isValidEndpoint(addr.IP, int(port.Port)) {
+		nodeName := defaults.EmptyNodeName
+		podName := defaults.EmptyNodeName
+		if addr.NodeName != nil {
+			nodeName = *addr.NodeName
+		}
+		if addr.TargetRef != nil {
+			podName = addr.TargetRef.Name
+		}
+		endpoint := fmt.Sprintf("%s:%s:%s", nodeName, podName, net.JoinHostPort(addr.IP, strconv.Itoa(int(port.Port))))
+		if isReady {
+			rlt[0] = append(rlt[0], endpoint)
+		} else {
+			rlt[1] = append(rlt[1], endpoint)
+		}
+
+	}
 }
 
 // isSessionAffinity return true if this service is using some form of session affinity.
