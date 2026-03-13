@@ -107,7 +107,12 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 		return nil, fmt.Errorf("failed to new conn manager: %w", err)
 	}
 
-	listenAddr, err := generateListenAddr(c)
+	ips, err := GetIPsFromInterfaces(c.ListenInterfaces, c.ExtraFilteredInterfaces)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ips from listen interfaces: %w", err)
+	}
+
+	listenAddr, err := generateListenAddr(c, ips)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate listenAddr: %w", err)
 	}
@@ -122,18 +127,19 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 		}))
 	}
 
-	// If the relayMap does not contain any public IP, NATService will not be able to assist this non-relay node to
-	// identify its own network(public, private or unknown), so it needs to configure libp2p.ForceReachabilityPrivate()
-	if !isRelay && !relayMap.ContainsPublicIP() {
+	// Nodes that only listen on non-public addresses cannot rely on AutoNAT to infer
+	// public reachability in fronted-relay setups such as ACK+NLB, so force private reachability.
+	if !isRelay && (!relayMap.ContainsPublicIP() || ShouldForceReachabilityPrivate(ips)) {
 		klog.Infof("Configure libp2p.ForceReachabilityPrivate()")
 		opts = append(opts, libp2p.ForceReachabilityPrivate())
 	}
 
 	relayNums := len(relayMap)
-	if c.MaxCandidates < relayNums {
-		klog.Infof("MaxCandidates=%d is less than len(relayMap)=%d, set MaxCandidates to len(relayMap)",
-			c.MaxCandidates, relayNums)
-		c.MaxCandidates = relayNums
+	minCandidates, maxCandidates, numRelays := normalizeAutoRelayConfig(c.MaxCandidates, relayNums)
+	if maxCandidates != c.MaxCandidates {
+		klog.Infof("MaxCandidates adjusted from %d to %d (relayNums=%d)",
+			c.MaxCandidates, maxCandidates, relayNums)
+		c.MaxCandidates = maxCandidates
 	}
 
 	// configures libp2p to use the given private network protector
@@ -165,9 +171,7 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 			func(ctx context.Context, numPeers int) <-chan peer.AddrInfo {
 				return peerSource
 			},
-			autorelay.WithMinCandidates(0),
-			autorelay.WithMaxCandidates(c.MaxCandidates),
-			autorelay.WithBackoff(30*time.Second),
+			buildAutoRelayOpts(minCandidates, c.MaxCandidates, numRelays)...,
 		),
 		libp2p.EnableNATService(),
 		libp2p.EnableHolePunching(),
@@ -270,12 +274,7 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 	return edgeTunnel, nil
 }
 
-func generateListenAddr(c *v1alpha1.EdgeTunnelConfig) (libp2p.Option, error) {
-	ips, err := GetIPsFromInterfaces(c.ListenInterfaces, c.ExtraFilteredInterfaces)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ips from listen interfaces: %w", err)
-	}
-
+func generateListenAddr(c *v1alpha1.EdgeTunnelConfig, ips []string) (libp2p.Option, error) {
 	multiAddrStrings := make([]string, 0)
 	if c.Mode == defaults.ServerClientMode {
 		for _, ip := range ips {
@@ -289,4 +288,46 @@ func generateListenAddr(c *v1alpha1.EdgeTunnelConfig) (libp2p.Option, error) {
 
 	listenAddr := libp2p.ListenAddrStrings(multiAddrStrings...)
 	return listenAddr, nil
+}
+
+// normalizeAutoRelayConfig computes normalized autorelay parameters.
+//
+// Fixes the bug where WithMinCandidates(0) prevents peerSource from ever being
+// triggered (issue #583):
+//   - minCandidates is set to at least 1 so relay_finder calls peerSource and
+//     enters the Reserve() path.
+//   - maxCandidates is at least relayNums so the candidate pool is large enough.
+//   - For single-relay setups, numRelays=1 avoids waiting for a second relay
+//     (the default desiredRelays=2 would stall indefinitely with only one relay).
+func normalizeAutoRelayConfig(cfgMaxCandidates, relayNums int) (minCandidates, maxCandidates, numRelays int) {
+	maxCandidates = cfgMaxCandidates
+	if maxCandidates < relayNums {
+		maxCandidates = relayNums
+	}
+	// minCandidates must be >= 1; otherwise the condition
+	// `numCandidates < minCandidates` in relay_finder.findNodes() is always
+	// false and peerSource is never called.
+	minCandidates = 1
+	if maxCandidates > 0 && minCandidates > maxCandidates {
+		minCandidates = maxCandidates
+	}
+	// For single-relay setups, explicitly set desiredRelays=1 to avoid
+	// waiting forever for a second relay (default desiredRelays=2).
+	if relayNums == 1 {
+		numRelays = 1
+	}
+	return
+}
+
+// buildAutoRelayOpts constructs the autorelay option list from normalized parameters.
+func buildAutoRelayOpts(minCandidates, maxCandidates, numRelays int) []autorelay.Option {
+	opts := []autorelay.Option{
+		autorelay.WithMinCandidates(minCandidates),
+		autorelay.WithMaxCandidates(maxCandidates),
+		autorelay.WithBackoff(30 * time.Second),
+	}
+	if numRelays > 0 {
+		opts = append(opts, autorelay.WithNumRelays(numRelays))
+	}
+	return opts
 }

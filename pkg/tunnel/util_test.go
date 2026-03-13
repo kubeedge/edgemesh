@@ -124,6 +124,65 @@ func TestAddCircuitAddrsToPeer(t *testing.T) {
 	assertEqual(relayPeer.String(), want, t)
 }
 
+func TestFilterPrivateMaddrDropsNonRoutableRelayAddrs(t *testing.T) {
+	maddrs, err := StringsToMaddrs([]string{
+		"/ip4/47.95.1.47/tcp/20006",
+		"/ip4/10.112.27.223/tcp/20006",
+		"/ip4/169.254.20.10/tcp/20006",
+		"/ip4/198.18.1.255/tcp/20006",
+		"/dns4/nlb-9qpaugg3doihkhemjw.cn-beijing.nlb.aliyuncsslb.com/tcp/20006",
+	})
+	if !assertEqual(err, nil, t) {
+		t.Fatalf("failed to create multiaddrs: %v", err)
+	}
+
+	want, err := StringsToMaddrs([]string{
+		"/ip4/47.95.1.47/tcp/20006",
+		"/dns4/nlb-9qpaugg3doihkhemjw.cn-beijing.nlb.aliyuncsslb.com/tcp/20006",
+	})
+	if !assertEqual(err, nil, t) {
+		t.Fatalf("failed to create expected multiaddrs: %v", err)
+	}
+
+	got := FilterPrivateMaddr(maddrs)
+	if !assertEqual(got, want, t) {
+		t.Fatalf("expected only routable relay addrs %v, got %v", want, got)
+	}
+}
+
+func TestShouldForceReachabilityPrivate(t *testing.T) {
+	tests := []struct {
+		name string
+		ips  []string
+		want bool
+	}{
+		{
+			name: "only private and loopback addresses",
+			ips:  []string{"10.80.9.54", "127.0.0.1"},
+			want: true,
+		},
+		{
+			name: "public address present",
+			ips:  []string{"10.80.9.54", "47.95.1.47"},
+			want: false,
+		},
+		{
+			name: "empty addresses",
+			ips:  nil,
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ShouldForceReachabilityPrivate(tt.ips)
+			if !assertEqual(got, tt.want, t) {
+				t.Fatalf("ShouldForceReachabilityPrivate(%v) = %v, want %v", tt.ips, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestAppendMultiaddrs(t *testing.T) {
 	// generate multiAddress
 	var nodes = []*testNode{

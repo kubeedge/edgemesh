@@ -20,6 +20,7 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	ws "github.com/libp2p/go-libp2p/p2p/transport/websocket"
 	ma "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr/net"
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/edgemesh/pkg/apis/config/v1alpha1"
@@ -182,14 +183,46 @@ func GenerateRelayMap(relayNodes []*v1alpha1.RelayNode, protocol string, listenP
 func FilterPrivateMaddr(maddrs []ma.Multiaddr) []ma.Multiaddr {
 	result := make([]ma.Multiaddr, 0)
 	for _, maddr := range maddrs {
-		maddrElements := strings.Split(maddr.String(), "/")
-		ip := maddrElements[ipIndex]
-		ipAddress := net.ParseIP(ip)
-		if !ipAddress.IsLoopback() && !ipAddress.IsPrivate() {
+		if manet.IsPublicAddr(maddr) || isDNSMaddr(maddr) {
 			result = append(result, maddr)
 		}
 	}
 	return result
+}
+
+func isDNSMaddr(maddr ma.Multiaddr) bool {
+	first, _ := ma.SplitFirst(maddr)
+	if first == nil {
+		return false
+	}
+
+	switch first.Protocol().Code {
+	case ma.P_DNS, ma.P_DNS4, ma.P_DNS6, ma.P_DNSADDR:
+		return true
+	default:
+		return false
+	}
+}
+
+func ShouldForceReachabilityPrivate(ips []string) bool {
+	if len(ips) == 0 {
+		return false
+	}
+
+	for _, ip := range ips {
+		if isPublicIP(ip) {
+			return false
+		}
+	}
+	return true
+}
+
+func isPublicIP(ip string) bool {
+	maddr, err := ma.NewMultiaddr(GenerateMultiAddrString(TCP, ip, 1))
+	if err != nil {
+		return false
+	}
+	return manet.IsPublicAddr(maddr)
 }
 
 func FilterCircuitMaddr(maddrs []ma.Multiaddr) []ma.Multiaddr {
