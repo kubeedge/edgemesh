@@ -32,7 +32,13 @@ func parseEndpoint(endpoint string) (string, string, string, string, bool) {
 	if len(info) != endpointLen {
 		return "", "", "", "", false
 	}
-	// TODO check IP and port
+	port, err := strconv.Atoi(info[portIndex])
+	if err != nil {
+		return "", "", "", "", false
+	}
+	if net.ParseIP(info[ipIndex]) == nil || !isValidEndpoint(info[ipIndex], port) {
+		return "", "", "", "", false
+	}
 	return info[nodeIndex], info[podIndex], info[ipIndex], info[portIndex], true
 }
 
