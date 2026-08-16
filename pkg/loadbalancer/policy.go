@@ -126,7 +126,17 @@ func (ch *ConsistentHashPolicy) Pick(_ []string, srcAddr net.Addr, netConn net.C
 		if srcAddr == nil && netConn != nil {
 			srcAddr = netConn.RemoteAddr()
 		}
-		keyValue = srcAddr.String()
+		if srcAddr == nil {
+			return "", req, fmt.Errorf("source address is required for %s policy", UserSourceIP)
+		}
+		sourceIP, _, splitErr := net.SplitHostPort(srcAddr.String())
+		if splitErr != nil {
+			return "", req, fmt.Errorf("malformed source address %q: %w", srcAddr.String(), splitErr)
+		}
+		if sourceIP == "" {
+			return "", req, fmt.Errorf("malformed source address %q: missing host", srcAddr.String())
+		}
+		keyValue = sourceIP
 	default:
 		klog.Errorf("Failed to get hash key value")
 		keyValue = ""
