@@ -109,15 +109,15 @@ func getNamespaceName(dr *istioapi.DestinationRule) string {
 // getPolicyName gets policy name from a DestinationRule object.
 func getPolicyName(dr *istioapi.DestinationRule) string {
 	if dr.Spec.TrafficPolicy == nil {
-		klog.Errorf("destination rule object %s .Spec.TrafficPolicy is nil", getNamespaceName(dr))
+		klog.V(4).Infof("destination rule object %s .Spec.TrafficPolicy is nil", getNamespaceName(dr))
 		return ""
 	}
 	if dr.Spec.TrafficPolicy.LoadBalancer == nil {
-		klog.Errorf("destination rule object %s .Spec.TrafficPolicy.LoadBalancer is nil", getNamespaceName(dr))
+		klog.V(4).Infof("destination rule object %s .Spec.TrafficPolicy.LoadBalancer is nil", getNamespaceName(dr))
 		return ""
 	}
 	if dr.Spec.TrafficPolicy.LoadBalancer.LbPolicy == nil {
-		klog.Errorf("destination rule object %s .Spec.TrafficPolicy.LoadBalancer.LbPolicy is nil", getNamespaceName(dr))
+		klog.V(4).Infof("destination rule object %s .Spec.TrafficPolicy.LoadBalancer.LbPolicy is nil", getNamespaceName(dr))
 		return ""
 	}
 	switch lbPolicy := dr.Spec.TrafficPolicy.LoadBalancer.LbPolicy.(type) {

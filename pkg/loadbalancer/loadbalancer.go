@@ -774,7 +774,9 @@ func (lb *LoadBalancer) OnDestinationRuleUpdate(oldDr, dr *istioapi.DestinationR
 			delete(lb.policyMap, svcPort)
 		}
 		lb.setLoadBalancerPolicy(dr, policyName, svcPort, state.endpoints)
-		lb.policyMap[svcPort].Update(oldDr, dr)
+		if policy, exists := lb.policyMap[svcPort]; exists {
+			policy.Update(oldDr, dr)
+		}
 		lb.policyMutex.Unlock()
 	}
 }
@@ -788,8 +790,10 @@ func (lb *LoadBalancer) OnDestinationRuleDelete(dr *istioapi.DestinationRule) {
 			continue
 		}
 		lb.policyMutex.Lock()
-		lb.policyMap[svcPort].Release()
-		delete(lb.policyMap, svcPort)
+		if policy, exists := lb.policyMap[svcPort]; exists {
+			policy.Release()
+			delete(lb.policyMap, svcPort)
+		}
 		lb.policyMutex.Unlock()
 	}
 }
@@ -801,6 +805,9 @@ func (lb *LoadBalancer) OnDestinationRuleSynced() {
 // this assumes that lb.policyMapLock is already held.
 func (lb *LoadBalancer) setLoadBalancerPolicy(dr *istioapi.DestinationRule, policyName string, svcPort proxy.ServicePortName, endpoints []string) {
 	switch policyName {
+	case "":
+		// A TLS-only Istio rule does not override the service balancer.
+		return
 	case RoundRobin:
 		lb.policyMap[svcPort] = NewRoundRobinPolicy()
 	case Random:
