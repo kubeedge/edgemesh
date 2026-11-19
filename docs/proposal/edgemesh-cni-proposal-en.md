@@ -177,7 +177,7 @@ Based on the research of the existing CNI architecture and the understanding of 
 
 - Creating network resources and allocating addresses. This can be achieved by creating bridges or network cards, but the partitioning of network segments and synchronization with KubeEdge must be considered.
 
-  > it's not means that  Edgemesh CNI completely overtake the position of formers like calico or flannel, costumers will use what they want in the cloud , but from experience , edge side would not have it's own CNI ,so that is where Edegmesh CNI would perform.
+  > it's not means that  Edgemesh CNI completely overtake the position of formers like calico or flannel, customers will use what they want in the cloud , but from experience , edge side would not have it's own CNI ,so that is where Edegmesh CNI would perform.
 
 ####  <font size ='4'> B. Ensure unique cluster internal addresses</font>
 
@@ -261,7 +261,7 @@ At the end of the experiment, a bridge was created and communication capabilitie
 Ready to call the cni to create ip for ns1
 {test 192.0.2.15/24}
 The CNI has been called, see the following results
-The bridge and the veth has been attatch to
+The bridge and the veth has been attached to
 bridge name     bridge id               STP enabled     interfaces
 test            8000.b6e6090625de       no              veth2a9d8a3d
 The interface in the netns

@@ -200,7 +200,7 @@ type EdgeCNIConfig struct {
 	// do not allow users to configure manually
 	EncapIP string `json:"encapsulationIP,omitempty"`
 
-	// TunMode indicates wether adapter usese ebpf and fast mod
+	// TunMode indicates whether adapter usese ebpf and fast mod
 	TunMode int `json:"tunMode,omitempty"`
 
 	// MeshCIDR indicates the CIDR of cluster, separate as ClouCIDR and EdgeCIDR

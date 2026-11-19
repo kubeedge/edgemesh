@@ -26,7 +26,7 @@ if pgrep "edgecore" >/dev/null; then
 }
 EOF
 
-  # cpoy it to  /etc/cni/net.d
+  # copy it to  /etc/cni/net.d
   cp -f /etc/edgemesh/config/10-edgemesh-cni.conflist /etc/cni/net.d/
 
 else

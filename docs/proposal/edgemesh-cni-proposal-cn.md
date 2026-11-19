@@ -277,7 +277,7 @@ EdgeMesh 仓库位置：https://github.com/kubeedge/edgemesh
 Ready to call the cni to create ip for ns1
 {test 192.0.2.15/24}
 The CNI has been called, see the following results
-The bridge and the veth has been attatch to
+The bridge and the veth has been attached to
 bridge name     bridge id               STP enabled     interfaces
 test            8000.b6e6090625de       no              veth2a9d8a3d
 The interface in the netns
