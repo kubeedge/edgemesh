@@ -239,7 +239,7 @@ func newEdgeTunnel(c *v1alpha1.EdgeTunnelConfig) (*EdgeTunnel, error) {
 	// init config watcher
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return nil, fmt.Errorf("init config watcher errror: %w", err)
+		return nil, fmt.Errorf("init config watcher error: %w", err)
 	}
 	err = watcher.Add(c.ConfigPath)
 	if err != nil {
